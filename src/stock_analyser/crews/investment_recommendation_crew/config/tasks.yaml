@@ -1,0 +1,124 @@
+planning_task:
+  description: >
+    You are part of a team that is writing an analysis report about the stock of the following company: 
+    
+    Company name: {company_name}.
+    
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+
+    Industry: {industry}
+
+    Current date (ISO format): {date_iso}.
+    
+    Your task is to develop a structured set of research questions to supplement the report and support an investment recommendation.
+
+    First read the full report:
+
+    - {market_and_industry_section}
+    - {competitor_landscape_section}  
+    - {financial_data_section}
+    - {analyst_insights_section}
+    - {warren_buffet_section}
+    - {cathie_wood_section}
+    - {benjamin_graham_section}
+    - {risk_analysis_section}
+    - {future_outlook_section}
+
+    Then write a comprehensive research plan with maximum 5 prioritized research questions addressing information not already present in the report, for example:
+    - valuation_factors: valuation metrics (P/E, P/S, P/B, etc.) compared to industry peers
+    - fundamental_assessment: company's fundamental strengths and weaknesses (competitive advantages, management quality, etc.)
+    - market_outlook: market trends and outlook for the company's industry
+    - potential_catalysts: potential catalysts that could impact the stock price (product launches, regulatory changes, etc.)
+    - technical_considerations: stock's technical indicators, support/resistance levels, and potential entry/exit points
+    - other_recommendations: any other relevant recommendations, such as a staged buying approach
+
+    The research questions should be specific, actionable, and relevant to the report's contents.
+    Don't ask about information that is already present in the report.
+    
+  expected_output: >
+    A structured research plan with up to 5 prioritized research questions to supplement the report and inform the investment recommendation.
+    Output in a `ResearchQuestions` Pydantic model.
+  agent: planner
+
+research_task:
+  description: >
+    You are researching content for the "Investment Recommendation" section of an analysis report about the stock of the following company: 
+
+    Company name: {company_name}.
+
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+
+    Industry: {industry}
+
+    Current date (ISO format): {date_iso}.
+
+    Use the tools you have available to you to gather information in answer to the research questions provided to you.
+
+    Provide the answers to the research questions in the `ResearchAnswers` Pydantic model.
+    
+
+  expected_output: >
+    A structured set of self-contained answers to each of the research questions, crafted for contextual independence.
+    Output in the `ResearchAnswers` Pydantic model.
+  agent: researcher
+
+writing_task:
+  description: >
+    Draft the "Investment Recommendation" section based on the report's contents and the supplementary research provided to you.
+    Clearly and emphatically state a Buy, Sell, or Hold recommendation, supported by an evidence-based rationale and justification.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    
+    Here is the full report:
+    - {market_and_industry_section}
+    - {competitor_landscape_section}  
+    - {financial_data_section}
+    - {analyst_insights_section}
+    - {warren_buffet_section}
+    - {cathie_wood_section}
+    - {benjamin_graham_section}
+    - {risk_analysis_section}
+    - {future_outlook_section}
+
+  expected_output: >
+    A draft of the "Investment Recommendation" section including a clear Buy/Sell/Hold recommendation supported by a concise rationale linking the key information from the report and the supplementary research.
+    The output must be formatted as markdown without code blocks.
+    Begin the section with the title: ## Investment Recommendation
+  agent: writer
+
+critic_task:
+  description: >
+    Critically review the draft "Investment Recommendation" section for accuracy, clarity, coherence, and completeness.
+    Assess the strength of the recommendation and rationale, the relevance of catalysts, and the validity of technical considerations.
+    Provide specific, actionable feedback to improve the content, presentation, and markdown formatting.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A detailed critique of the draft, including:
+    - Assessment of the recommendation's clarity and justification.
+    - Evaluation of the rationale's strength and supporting evidence.
+    - Feedback on the relevance and impact of identified catalysts.
+    - Review of technical considerations (if any) for accuracy and feasibility.
+    - Specific suggestions for improvement, focusing on clarity, conciseness, and data consistency.
+    - The full, verbatim draft section content that you have critiqued.
+  agent: critic
+
+editing_task:
+  description: >
+    Refine the "Investment Recommendation" section, incorporating the critic's feedback to strengthen the justification, clarity, and conciseness of the rationale.
+    Ensure all supporting information is accurate and consistent, enhancing rather than reducing the existing content.
+    - The final version should be well-presented and aligned with the overall report.
+    - Prioritize clarity, accuracy, and conciseness, leveraging the information provided.
+    - Make full use of the provided information; do not suggest further research.
+    - Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    - Omit unnecessary disclaimers and do not explicitly reference the critic's feedback.
+    - Don't include a publication date as a separate heading.
+    
+    Current date: {date_us}.
+  expected_output: >
+    A final, polished version of the "Investment Recommendation" section, ready for inclusion in the report.
+    This should be a fully revised and improved version, addressing all feedback from the critic.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

@@ -1,0 +1,52 @@
+warren_buffet_analysis_task:
+  description: >
+    Conduct a comprehensive analysis of the specified stock and formulate an investment recommendation,
+    strictly adhering to the investment principles of Warren Buffet.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Key Considerations:
+    - Circle of Competence: Only invest in businesses you understand.
+    - Margin of Safety: Buy only when the stock is priced significantly below its intrinsic value (at least 30% below).
+    - Economic Moat: Prefer companies with durable competitive advantages.
+    - Quality Management: Look for conservative, shareholder-oriented management teams.
+    - Financial Strength: Prioritize companies with low debt and strong returns on equity.
+    - Long-term Perspective: Invest in businesses, not just stocks, with a long-term holding strategy.
+    - Owner Earnings: Focus on owner earnings and intrinsic value calculations.
+    - Earnings Growth: Prefer companies with consistent earnings growth.
+    - Sell Signals: Consider selling when fundamentals deteriorate or the valuation becomes excessively high.
+
+    Leverage the available tools to gather all necessary data. Synthesize your findings into a clear, concise,
+    Warren Buffet-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
+
+  expected_output: >
+    A definitive investment recommendation (bullish, bearish, or neutral), supported by a confidence level (0-100) and clear, concise reasoning.
+  agent: warren_buffet_agent
+
+
+warren_buffet_writeup_task:
+  description: >
+    Compose a concise, compelling summary of the Warren Buffet-style investment signal. This summary will be
+    incorporated as a distinct section within a broader, comprehensive stock research report.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Current date: {date_us}
+
+    Formatting and Style Guidelines:
+    - Begin with the title: ### Warren Buffet investment analysis
+    - The section must be formatted in Markdown.
+    - Adopt a first-person perspective, writing as if you are Warren Buffet.
+    - Use quotation marks and _italics_ for direct quotes.
+    - Restrict your content to information derived from the analysis tools and your designated knowledge source.
+    - Ensure clarity and precision. Avoid vague language or ambiguity. Present information factually and in an easily digestible manner.
+    - Do not include any disclaimers or calls for additional research.
+    - Don't include a publication date as a separate heading.
+
+  expected_output: >
+    A succinct, Markdown-formatted summary of the investment signal, free of code blocks, presenting a clear and definitive investment perspective.
+  agent: warren_buffet_writer

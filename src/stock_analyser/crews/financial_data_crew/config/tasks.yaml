@@ -1,0 +1,176 @@
+# This file contains the task configurations for the Financial Data Crew
+# The crew is responsible for gathering and analyzing financial data for a company
+
+comprehensive_financial_analysis_task:
+  description: >
+    You are researching content for the "Financial Deep Dive" section in a stock analysis
+    report about the stock of the following company: 
+
+    Company name: {company_name}.
+
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+
+    Industry: {industry}.
+
+    Using the tools available to you and your knowledge sources, gather comprehensive financial data for {company_name} (ticker: {company_ticker}).
+    Focus on populating ALL components of the `FinancialData` model:
+
+    1. Income Statement Analysis:
+        - Total revenue, gross profit, operating income, net income, and EBITDA.
+        - Diluted EPS, revenue growth, earnings growth.
+        - Gross margins, operating margin, and profit margin.
+
+    2. Balance Sheet Analysis:
+        - Total assets and total liabilities.
+        - Total equity, current ratio, and debt-to-equity ratio.
+
+    3. Cash Flow Analysis:
+        - Operating cash flow, capital expenditures, and free cash flow.
+        - Free cash flow per share.
+
+    4. Valuation Metrics:
+        - Trailing and forward P/E ratios.
+        - Price-to-sales, price-to-book, and price-to-free-cash-flow ratios.
+        - Enterprise value, EV/Revenue, and EV/EBITDA ratios.
+
+    5. Price Metrics:
+        - Current price, 52-week high, 52-week low.
+        - 50-day and 200-day moving averages.
+
+    6. Return Metrics:
+        - Return on equity, return on assets, and return on invested capital.
+
+    7. Dividend Metrics:
+        - Dividend yield, dividend rate, and payout ratio.
+
+    8. Analyst Targets:
+        - Analyst target price (mean).
+        - Average analyst rating.
+
+    9. Ownership Structure:
+        - Shares outstanding.
+        - Percentage held by insiders and institutions.
+
+    Use all available tools systematically to gather this information:
+    - YFinanceStockKPITool for general financial metrics
+    - YFinanceIncomeTool for detailed income statement data
+    - EarningsForecastTool for earnings projections
+    - EarningsSurpriseTool for earnings surprises
+    - MomentumEstimateTool for momentum indicators
+    - CalculatorTool for any necessary calculations
+    - FilingsSearchTool to search through SEC filings for additional context
+
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    The complete `FinancialData` Pydantic model with ALL components fully populated:
+    
+    1. `income_statement_analysis`: Complete `IncomeStatementAnalysis` model with:
+        - `total_revenue`, `gross_profit`, `operating_income`, `net_income`, `ebitda`
+        - `diluted_eps`, `revenue_growth`, `earnings_growth`
+        - `gross_margins`, `operating_margin`, `profit_margin`
+
+    2. `balance_sheet_analysis`: Complete `BalanceSheetAnalysis` model with:
+        - `total_assets`, `total_liabilities`
+        - `total_equity`, `current_ratio`, `debt_to_equity`
+    
+    3. `cash_flow_analysis`: Complete `CashFlowAnalysis` model with:
+        - `operating_cash_flow`, `capital_expenditures`, `free_cash_flow`
+        - `free_cash_flow_per_share`
+
+    4. `valuation_metrics`: Complete `ValuationMetrics` model with:
+        - `trailing_pe`, `forward_pe`
+        - `price_to_sales`, `price_to_book`, `price_to_free_cash_flow`
+        - `enterprise_value`, `ev_to_revenue`, `ev_to_ebitda`
+
+    5. `price_metrics`: Complete `PriceMetrics` model with:
+        - `current_price`, `fifty_two_week_high`, `fifty_two_week_low`
+        - `fifty_day_average`, `two_hundred_day_average`
+
+    6. `return_metrics`: Complete `ReturnMetrics` model with:
+        - `return_on_equity`, `return_on_assets`, `return_on_invested_capital`
+
+    7. `dividend_metrics`: Complete `DividendMetrics` model with:
+        - `dividend_yield`, `dividend_rate`, `payout_ratio`
+
+    8. `analyst_targets`: Complete `AnalystTargets` model with:
+        - `analyst_target_price`, `average_analyst_rating`
+
+    9. `ownership_structure`: Complete `OwnershipStructure` model with:
+        - `shares_outstanding`, `held_percent_insiders`, `held_percent_institutions`
+  agent: researcher
+
+writing_task:
+  description: >
+    Draft the "Financial Deep Dive" section of the stock analysis report, incorporating the detailed findings from the
+    comprehensive financial analysis. Structure the section with clear subsections that present
+    the data in a logical and informative manner, explaining the data in a way that is compelling and easy to understand. The subsections
+    should correspond directly to the structure of the `FinancialData` Pydantic model.
+
+    Format as markdown without code blocks, using bullet points, tables, and concise paragraphs to present the information effectively.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, engaging, and easy to understand. 
+
+    Current date: {date_us}.
+  expected_output: >
+    A complete draft of the "Financial Deep Dive" section including:
+    - An introduction to the section
+    - Income Statement Analysis subsection presenting data and insights from the `IncomeStatementAnalysis` model.
+    - Balance Sheet Analysis subsection presenting data and insights from the `BalanceSheetAnalysis` model.
+    - Cash Flow Analysis subsection presenting data and insights from the `CashFlowAnalysis` model.
+    - Valuation Metrics subsection presenting data and insights from the `ValuationMetrics` model.
+    - Price Metrics subsection presenting data and insights from the `PriceMetrics` model.
+    - Return Metrics subsection presenting data and insights from the `ReturnMetrics` model.
+    - Dividend Metrics subsection presenting data and insights from the `DividendMetrics` model.
+    - Analyst Targets subsection presenting data and insights from the `AnalystTargets` model.
+    - Ownership Structure subsection presenting data and insights from the `OwnershipStructure` model.
+
+    Each subsection should clearly present the data gathered, along with insightful analysis and context.
+    The output must be formatted as markdown without code blocks.
+    Begin the section with the title: ## Financial Deep Dive
+  agent: writer
+
+critic_task:
+  description: >
+    Review the drafted "Financial Deep Dive" section for accuracy, clarity, completeness, and coherence.
+    Ensure all data points are consistent with the gathered financial data and that the analysis provides
+    meaningful insights for investors.
+    This should include feedback on:
+    - Accuracy and consistency of financial data and calculations
+    - Clarity and conciseness of writing and analysis
+    - Completeness of the content (addressing all key areas outlined in the financial data model)
+    - Effectiveness of data presentation (tables, bullet points, etc.)
+    - Overall effectiveness in conveying the company's financial position
+    - Do not suggest adding charts, graphs or imagery
+    - If data is missing, it's usually better to suggest editing it out rather than drawing attention to its absence
+  expected_output: >
+    A detailed critique of the draft, including specific suggestions for improvement.
+    You must also output the full, verbatim draft section content that you have critiqued as well.
+    Current date (ISO format): {date_iso}.
+  agent: critic
+
+editing_task:
+  description: >
+    Revise the "Financial Deep Dive" section based on the critic's feedback. 
+    Focus on enhancing the content while maintaining accuracy and clarity.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, engaging, and easy to understand. 
+    Ensure all feedback is addressed, and the final version effectively communicates the company's financial position.
+    
+    Guidelines:
+    - Present data clearly and consistently, with proper formatting for financial figures
+    - Use bullet points for multiple data points to maintain readability
+    - Include brief transition statements between subsections
+    - Clearly label all time periods and dates
+    - Quantify all trends and changes
+    - Avoid unnecessary disclaimers
+    - Use your knowledge source and existing information; do not suggest further research
+    - Do not explicitly reference the critic's feedback
+    - Don't include a publication date as a separate heading.
+    
+    Current date: {date_us}.
+  expected_output: >
+    A final, polished version of the "Financial Deep Dive" section, ready for inclusion in the stock analysis report.
+    This should be a fully revised and improved version, addressing all feedback from the critic while maintaining
+    the clear structure defined by our financial data model.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

@@ -1,0 +1,30 @@
+planning_task:
+  description: >
+    Analyze the stock analysis report and comprehensively extract all key information to form the basis of the final "Conclusion" section.
+
+    Report:
+    {report}
+
+    Synthesize a holistic summary of the key facts and data contained within the report.
+    Make sure the ultimate investment recommendation is clear and emphasised, and provide sufficient justification for why this recommendation has been provided.
+    This will subsequently be used to substantify a conclusion on whether there is a compelling investment case for {company_name}, so it is important to include all relevant data.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A concise summary of the report's main points, forming the foundation for the conclusion.
+    Presented as approximately five bullet points, each a single, impactful sentence.
+    Output in markdown, excluding code blocks.
+  agent: planner
+
+writing_task:
+  description: >
+    Compose a comprehensive and persuasive conclusion for a stock analysis report about {company_name} using the provided context.
+    This conclusion should offer a holistic overview of the report, enabling investors to assess the investment case.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    Make sure the ultimate investment recommendation is clear and emphasised, and provide sufficient justification for why this recommendation has been provided.
+    Don't include a publication date as a separate heading.
+    Current date: {date_us}.
+  expected_output: >
+    A complete conclusion that clearly indicates whether the data supports a case for investment in {company_name}.
+    Output in markdown, excluding code blocks.
+    Begin the section with the title: ## Conclusion
+  agent: writer

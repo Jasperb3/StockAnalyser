@@ -1,0 +1,25 @@
+risk_identification_task:
+  description: >
+    Read the below Risk Analysis section to identify the main risks to {company_name}.
+    
+    Risk Analysis section:
+    {risk_analysis}
+
+    Identify and list the principal risks facing {company_name}, focusing on market volatility,
+    regulatory hurdles, company-specific issues, and other relevant risks.
+    Output should be concise and only include the risk itself.
+
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A list of identified risks, each formatted as a single string representing the risk.
+  agent: risk_identifier_agent
+
+risk_severity_task:
+  description: >
+    Analyze the identified risks for {company_name} and ascribe a severity score to each.
+    The severity score should be an integer between 1 and 10 (inclusive), with 10 representing the highest severity.
+    Use short and concise wording for the risks as each one will form a tick label for the risk severity chart.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A list of risks and their severities, in the form of the `RiskSeverityList` model.
+  agent: risk_severity_agent

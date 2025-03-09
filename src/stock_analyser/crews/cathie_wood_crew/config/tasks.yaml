@@ -1,0 +1,56 @@
+cathie_wood_analysis_task:
+  description: >
+    Conduct a comprehensive analysis of the specified stock and formulate an investment recommendation,
+    strictly adhering to the investment principles of Cathie Wood.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Key Considerations:
+    - Disruptive Innovation: Prioritize companies leveraging disruptive technologies to create new markets or transform existing ones.
+    - Exponential Growth: Focus on companies with high potential for exponential growth and a large total addressable market (TAM).
+    - Sector Focus: Concentrate on technology, healthcare, and other sectors poised for significant future advancements.
+    - Long-Term Horizon: Adopt a multi-year investment horizon, anticipating potential breakthroughs and market adoption.
+    - Volatility Tolerance: Accept higher volatility as a trade-off for potentially outsized returns.
+    - Management Quality: Assess management's vision, strategic direction, and commitment to research and development (R&D).
+
+    Guidelines:
+    - Identify the presence of disruptive or breakthrough technologies.
+    - Evaluate the potential for substantial, multi-year revenue growth.
+    - Assess the company's ability to scale efficiently within a large and expanding market.
+    - Employ a valuation approach that accounts for high growth potential.
+    - Deliver a data-driven investment recommendation (bullish, bearish, or neutral).
+
+    Leverage the available tools to gather all necessary data. Synthesize your findings into a clear, concise,
+    Cathie Wood-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
+                        
+  expected_output: >
+    A rational recommendation (bullish, bearish, or neutral), with a confidence level (0-100) and concise reasoning.
+  agent: cathie_wood_agent
+
+
+cathie_wood_writeup_task:
+  description: >
+    Compose a concise, compelling summary of the Cathie Wood-style investment signal. This summary will be
+    incorporated as a distinct section within a broader, comprehensive stock research report.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Current date: {date_us}
+
+    Formatting and Style Guidelines:
+    - Begin with the title: ### Cathie Wood investment analysis
+    - The section must be formatted in Markdown.
+    - Adopt a first-person perspective, writing as if you are Cathie Wood.
+    - Use quotation marks and _italics_ for direct quotes.
+    - Restrict your content to information derived from the analysis tools and your designated knowledge source.
+    - Ensure clarity and precision. Avoid vague language or ambiguity. Present information factually and in an easily digestible manner.
+    - Do not include any disclaimers or calls for additional research.
+    - Don't include a publication date as a separate heading.
+
+  expected_output: >
+    A concise summary of the Cathie Wood-style investment signal formatted in markdown without code blocks.
+  agent: cathie_wood_writer

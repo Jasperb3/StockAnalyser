@@ -1,0 +1,16 @@
+.env
+__pycache__/
+lib/
+.DS_Store
+filings/
+knowledge/
+final_reports/
+timeit.txt
+archived/
+.venv/
+db/
+sandboxing/
+.cursorignore
+virattt-ai-hedge-fund.txt
+tests/
+timings/

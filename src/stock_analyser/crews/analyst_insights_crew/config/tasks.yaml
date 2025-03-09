@@ -1,0 +1,78 @@
+research_task:
+  description: >
+    You are researching content for the "Analyst & Professional Insights" section of a stock analysis report about the stock of the following company: 
+
+    Company name: {company_name}.
+
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+
+    Industry: {industry}.
+
+    Current date (ISO format): {date_iso}.
+
+    Collect detailed data and information to fill out the `AnalystsInsightsModel`. This includes:
+    - Analyst Recommendations: gather the specific numbers of recommendations for the `recommendations` field, and provide a consensus price target if available for the `analyst_price_targets` field.
+    - Recent Rating Changes: Find specific upgrades/downgrades, including dates, firms, old rating, new rating for the `upgrades_downgrades` field.
+    - Institutional and Mutual Fund Holders: Gather details on notable institutional holders and mutual fund holders activity for the `institutional_and_mutual_fund_holders` field.
+    - Insider Transactions: Gather details on notable insider transactions for the `insider_trading` field.
+    - Other Insights: Gather any other relevant insights for the `other_insights` field.
+  expected_output: >
+    A fully populated `AnalystsInsightsModel` containing all the necessary data.
+    The output should be formatted as markdown without code blocks, and structured according to the model's fields:
+    `analyst_recommendations`, `analyst_price_targets`, `upgrades_downgrades`, `institutional_and_mutual_fund_holders`, `insider_trading`, and `other_insights`.
+    Each field should provide specific data and context, ready for writing and visualization.
+  agent: researcher
+
+writing_task:
+  description: >
+    Transform the researched data from the `AnalystsInsightsModel` into a well-written "Analyst & Professional Insights" section.
+    Clearly present the analyst recommendations, rating changes, institutional sentiment, and other insights.
+    The writing should be clear, factual, and compelling. Avoid uncertainty and ambiguity.
+    Supplement the data with your knowledge source where appropriate, explaining the data in a way that is compelling and easy to understand.
+    Format as markdown without code blocks, using bullet points, tables, and concise paragraphs to present the information effectively and highlight key findings and trends.
+    Current date: {date_us}.
+  expected_output: >
+    A complete draft of the "Analyst & Professional Insights" section including:
+    - A summary of analyst recommendations (Strong Buy, Buy, Hold, Sell, Strong Sell).
+    - Analyst price targets.
+    - Details on recent rating changes.
+    - An overview of institutional and mutual fund holders.
+    - An overview of insider transactions.
+    - Any other relevant insights.
+    The output must be formatted as markdown without code blocks.
+    Begin the section with the title: ## Analyst & Professional Insights
+  agent: writer
+
+critic_task:
+  description: >
+    Critically review the draft "Analyst & Professional Insights" section for accuracy, clarity, coherence, and completeness.
+    Identify any gaps in information, areas of weakness, or potential improvements.
+    Provide specific, actionable feedback. Check for consistency with the overall report.
+    You must also output the full, verbatim draft section content that you have critiqued as well.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A detailed critique of the section, including specific suggestions for improvement, identification of any factual errors, omissions,
+    or areas needing clarification. The critique should ensure the data is presented objectively and without bias.
+  agent: critic
+
+editing_task:
+  description: >
+    Improve the "Analyst & Professional Insights" section using the critic's feedback.
+    The final version must be polished, error-free, and present a clear, concise, and compelling overview of analyst and institutional sentiment.
+    - Focus on clarity, accuracy, and conciseness, using only the available information and your knowledge source. Do not suggest further research.
+    - For longer sections, use brief transition statements or lists to summarize subtopics, aiding readability.
+    - Consistently quantify impacts (e.g., effect of percentage changes in interest rates or supply chain disruptions on revenue or costs).
+    - Use bullet points for large datasets or multiple data points to maintain conciseness.
+    - Break paragraphs with numerous data references into bulleted lists for clarity.
+    - Clearly and consistently label timeframes for each dataset (e.g., quarterly vs. yearly).
+    - Avoid unnecessary disclaimers
+    - Do not explicitly reference the critic's feedback.
+    - Don't include a publication date as a separate heading.
+
+    Current date: {date_us}.
+  expected_output: >
+    A final, publication-ready "Analyst & Professional Insights" section. The section should be accurate, unbiased, and effectively communicate the key findings.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

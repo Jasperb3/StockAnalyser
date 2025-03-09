@@ -1,0 +1,56 @@
+competitor_identification_task:
+  description: >
+    Analyze the "Market and Industry" section provided below to identify the primary competitors of {company_name}.
+    Return a list containing the names and tickers of these competitors.
+
+    Market and Industry section:
+    {market_and_industry_section}
+
+    Current date (ISO format): {date_iso}.
+
+  expected_output: >
+    A `CompetitorList` model instance containing a list of approximately 5 main competitors of {company_name}, including each competitor's name and ticker symbol.
+  agent: competitor_identifier_agent
+
+competitor_financial_data_task:
+  description: >
+    Using the provided list of competitors, gather their financial data using the available tools.
+    Compile a comprehensive dataset within the `CompetitorFinancialData` model, including the specified financial metrics for both the competitors and {company_name} ({company_ticker}).
+
+    Current date (ISO format): {date_iso}.
+
+  expected_output: >
+    A `CompetitorFinancialData` model instance containing the following data:
+    - competitors: A list of competitors, plus {company_name} ({company_ticker}), with the names and tickers of each company.
+    - revenue_growth_yoy: Year-over-year revenue growth for {company_name} and each of its competitors.
+    - net_margin: Net margin for {company_name} and each of its competitors.
+    - roe: Return on equity for {company_name} and each of its competitors.
+    - pe_ratio: Price-to-earnings ratio for {company_name} and each of its competitors.
+    - ps_ratio: Price-to-sales ratio for {company_name} and each of its competitors.
+    - news_articles:  Relevant news articles pertaining to the competitors.
+  agent: competitor_financial_data_agent
+
+competitor_section_writing_task:
+  description: >
+    Review the collected financial data and news articles for {company_name}'s competitors.
+    Compose a report section that presents this information in a clear, engaging, and easily digestible manner.
+
+    Create a markdown table summarizing the key financial metrics of the competitors, using {company_name} as a benchmark for comparison.
+    The table should include:
+    - Revenue growth (year-over-year)
+    - Net margin
+    - Return on equity (ROE)
+    - Price-to-sales ratio (PSR)
+
+    Provide an analysis of {company_name}'s financial performance relative to its competitors.
+
+    Highlight any significant news or research findings that could potentially affect {company_name}.
+
+    Don't include a publication date as a separate heading.
+
+    The output should be formatted as markdown (without code blocks) and structured according to the `CompetitorSection` model.
+
+    Current date: {date_us}.
+  expected_output: >
+    A `CompetitorSection` model instance containing a markdown table of the financial data and a narrative analysis of {company_name}'s financial performance in comparison to its competitors.
+  agent: competitor_section_writing_agent

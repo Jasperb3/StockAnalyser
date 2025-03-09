@@ -1,0 +1,119 @@
+# planning_task:
+#   description: >
+#     You are part of a team that is writing a stock analysis report about the stock of the following company: 
+    
+#     Company name: {company_name}.
+    
+#     Company ticker: {company_ticker}.
+    
+#     Website: {company_website}
+    
+#     Industry: {industry}.
+
+#     Define the scope and structure for the Market & Industry Context section of the stock analysis report.
+#     Identify key areas to research, including market overview, industry growth forecasts, and competitor landscape,
+#     considering the current date is {date}.
+
+#     Avoid the following areas, which will be covered in different sections of the report: 
+#     - Analysts' Insights
+#     - Executiuve Summary
+#     - Financial Deep Dive
+#     - Future Outlook
+#     - Investment Recommendations
+#     - Risk Analysis
+    
+#   expected_output: >
+#     A detailed outline for the Market & Industry Context section, including specific research questions and a plan
+#     for the content structure. This should include:
+#     - Key economic trends to focus on (e.g., interest rates, inflation).
+#     - Relevant geopolitical considerations.
+#     - Key aspects of industry growth forecasts (size, demand drivers).
+#     - Key aspects of the competitor landscape (market share, product differentiation).
+#     - Ideas for representing information (bullet points, table, emojis).
+#   agent: planner
+
+research_task:
+  description: >
+    You are researching content for the "Market & Industry Context" section of a stock analysis report about the stock of the following company: 
+
+    Company name: {company_name}.
+
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+
+    Industry: {industry}.
+
+    Current date (ISO format): {date_iso}.
+
+    Gather data and insights on the market and industry to populate the `MarketIndustryContextModel`.
+    Focus on gathering information for the following fields:
+    - `market_overview`: Overall market size and current conditions.
+    - `industry_trends`: Key trends shaping the industry.
+    - `industry_growth_forecasts`: Projections for industry growth, including size and demand drivers.
+    - `industry_leaders`: Information about the industry leaders.
+    - `competitor_landscape`: Market share and product differentiation strategies of key competitors.
+    - `macroeconomic_factors`: Current economic trends (e.g., interest rates, inflation) and geopolitical factors impacting the industry.
+    - `regulatory_environment`: Key regulations and policies impacting the industry.
+
+    Use your tools and knowledge source to gather information on market size, demand drivers, market share of key competitors, and product differentiation strategies.
+  expected_output: >
+    A `MarketIndustryContextModel` Pydantic model with the `market_overview`, `industry_trends`, `industry_growth_forecasts`, `competitor_landscape`, `macroeconomic_factors`, and `regulatory_environment` fields populated.
+  agent: researcher
+
+writing_task:
+  description: >
+    Draft the "Market & Industry Context" section of the stock analysis report, incorporating the detailed findings from the research task and your knowledge source.
+    Structure the section with clear headings for each subsection, presenting the data and analysis in a concise and informative manner.
+    Format as markdown without code blocks, using bullet points, tables, and concise paragraphs to present the information effectively.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    Current date: {date_us}.
+  expected_output: >
+    A complete draft of the "Market & Industry Context" section, including:
+    - An introduction to the section.
+    - A subsection for **Market Overview**, presenting the `market_overview`.
+    - A subsection for **Industry Trends**, presenting the `industry_trends`.
+    - A subsection for **Industry Growth Forecasts**, presenting the `industry_growth_forecasts`.
+    - A subsection for **Industry Leaders**, presenting the `industry_leaders`.
+    - A subsection for **Competitor Landscape**, presenting the `competitor_landscape`.
+    - A subsection for **Macroeconomic Factors**, presenting the `macroeconomic_factors`.
+    - A subsection for **Regulatory Environment**, presenting the `regulatory_environment`.
+    Each subsection should clearly present the data gathered, along with insightful analysis and context.
+    The output must be formatted as markdown without code blocks. Don't use emojis.
+    Begin the section with the title: ## Market & Industry Context
+  agent: writer
+
+critic_task:
+  description: >
+    Review the drafted "Market & Industry Context" section for accuracy, clarity, coherence, and completeness.
+    Provide specific, actionable feedback to improve the content and presentation. Focus on data consistency, clarity of writing and if the information is comprehensive.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A detailed critique of the draft, including specific suggestions for improvement. This should include feedback on:
+    - Accuracy of data and information.
+    - Clarity and conciseness of writing.
+    - Completeness of the content (addressing all key areas).
+    - Adherence to the specified format (bullet points, table, markdown formatting).
+    - Consistency of data across different parts of the section.
+    You must also output the full, verbatim draft section content that you have critiqued as well.
+  agent: critic
+
+editing_task:
+  description: >
+    Revise the "Market & Industry Context" section, incorporating the critic's feedback to enhance clarity, accuracy, and conciseness.
+    - Enhance, rather than reduce, existing content, addressing all feedback points.
+    - Use only available information and your knowledge source; do not suggest further research.
+    - Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    - Employ brief transition statements or lists to summarize subtopics in longer sections.
+    - Quantify impacts consistently (e.g., effects of percentage changes in interest rates or supply chain disruptions).
+    - Use bullet points for conciseness when presenting large datasets or multiple data points.
+    - Convert paragraphs with numerous data references into bulleted lists.
+    - Label timeframes (e.g., quarterly vs. yearly) clearly and consistently.
+    - Omit unnecessary disclaimers and do not explicitly reference the critic's feedback.
+    - Don't include a publication date as a separate heading.
+    Current date: {date_us}.
+  expected_output: >
+    A final, polished version of the "Market & Industry Context" section, ready for inclusion in the stock analysis report.
+    This should be a fully revised and improved version, addressing all feedback from the critic.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

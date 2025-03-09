@@ -1,0 +1,24 @@
+subject_line_writing_task:
+  description: >
+    Write a relevant and engaging subject line for a professional email to an important client that has the following body:
+    
+    {report}
+  expected_output: >
+    The email subject line with no additional preamble or other commentary
+  agent: subject_line_writer_agent
+
+gmail_draft_task:
+  description: >
+    Compose an email to {client} containing the stock analysis for {company_name}. Include:
+
+    1. The provided subject line
+    2. A professional salutation
+    3. A brief introduction explaining the email's purpose and informing that the report can be found below
+    4. The following analysis report:
+    {report}
+    5. A polite closing signature from {sender}
+
+    Current date: {date_us}
+  expected_output: >
+    Either True or False depending on whether the email was drafted successfully or not
+  agent: gmail_draft_agent

@@ -1,0 +1,81 @@
+research_task:
+  description: >
+    You are researching content for the "Risk Disclosure & Mitigation" section of a stock analysis report about the stock of the following company: 
+
+    Company name: {company_name}.
+    
+    Company ticker: {company_ticker}.
+
+    Website: {company_website}
+    
+    Industry: {industry}.
+
+    Current date (ISO format): {date_iso}.
+
+    Gather data and insights on the risks to populate the `RiskAnalysisModel`.
+    Focus on gathering information for the following fields:
+    - `market_volatility`: Analyze current market conditions and identify potential volatility risks.
+    - `regulatory_hurdles`: Identify and analyze regulatory challenges and their potential impact.
+    - `company_specific_issues`: Analyze company-specific risks, such as operational, financial, or strategic risks.
+    - `other_risks`: Identify and analyze any other relevant risks not covered in the previous categories.
+    Use your tools and knowledge source to gather information on each risk, including specific examples, data, and potential consequences.
+  expected_output: >
+    A `RiskAnalysisModel` Pydantic model with the `market_volatility`, `regulatory_hurdles`, `company_specific_issues`, and `other_risks` fields populated.
+  agent: researcher
+
+writing_task:
+  description: >
+    Draft the "Risk Disclosure & Mitigation" section of the stock analysis report, incorporating the detailed findings from the research task and your knowledge source.
+    Structure the section with clear headings for each risk category, presenting the data and analysis in a concise and informative manner.
+    Use bullet points and concise paragraphs to present the information effectively, formatted as markdown without code blocks.
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, and compelling, and easy to understand.
+    Current date: {date_us}.
+  expected_output: >
+    A complete draft of the "Risk Disclosure & Mitigation" section, including:
+    - An introduction to the section.
+    - A subsection for **Market Volatility**, presenting the `market_volatility`.
+    - A subsection for **Regulatory Hurdles**, presenting the `regulatory_hurdles`.
+    - A subsection for **Company-Specific Issues**, presenting the `company_specific_issues`.
+    - A subsection for **Other Risks**, presenting the `other_risks`.
+    Each subsection should clearly present the data gathered, along with insightful analysis and context, including proposed mitigation strategies or actions investors might consider.
+    The output must be formatted as markdown without code blocks.
+    Begin the section with the title: ## Risk Disclosure & Mitigation
+  agent: writer
+
+critic_task:
+  description: >
+    Review the drafted "Risk Disclosure & Mitigation" section for accuracy, clarity, coherence, and completeness.
+    Provide specific, actionable feedback to improve the content and presentation.
+    Focus on data consistency, clarity of writing, and if the information is comprehensive.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A detailed critique of the draft, including specific suggestions for improvement. This should include feedback on:
+    - Accuracy of data and information.
+    - Clarity and conciseness of writing.
+    - Completeness of the content (addressing all key areas).
+    - Adherence to the specified format (bullet points, markdown formatting).
+    - Consistency of data across different parts of the section.
+    - Feasibility/effectiveness of the proposed mitigation strategies.
+    You must also output the full, verbatim draft section content that you have critiqued as well.
+  agent: critic
+
+editing_task:
+  description: >
+    Revise the "Risk Disclosure & Mitigation" section, incorporating the critic's feedback to enhance clarity, accuracy, and conciseness.
+    - Summarize the most severe or probable risks at the end of the section for quick reference.
+    - Enhance, rather than reduce, existing content, addressing all feedback points.
+    - Use only available information and your knowledge source; do not suggest further research.
+    - Avoid uncertainty and ambiguity. The writing should be clear, factual, and compelling, and easy to understand.
+    - Employ brief transition statements or lists to summarize subtopics in longer sections.
+    - Quantify impacts consistently (e.g., effects of percentage changes in interest rates or supply chain disruptions).
+    - Use bullet points for conciseness when presenting large datasets or multiple data points.
+    - Convert paragraphs with numerous data references into bulleted lists.
+    - Label timeframes (e.g., quarterly vs. yearly) clearly and consistently.
+    - Omit unnecessary disclaimers and do not explicitlyreference the critic's feedback.
+    - Don't include a publication date as a separate heading.
+    Current date: {date_us}.
+  expected_output: >
+    A final, polished version of the "Risk Disclosure & Mitigation" section, ready for inclusion in the stock analysis report.
+    This should be a fully revised and improved version, addressing all feedback from the critic.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

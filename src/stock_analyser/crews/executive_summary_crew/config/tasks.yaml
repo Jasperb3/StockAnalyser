@@ -1,0 +1,54 @@
+planning_task:
+  description: >
+    Read the "Stock Analysis Report" and gather and summarize key information for the "Executive Summary" section.
+
+    Report:
+    {report}
+
+    Include a high-level company overview (core business, industry, competitive stance),
+    recent stock performance highlights (price trend, percentage change, key events),
+    major takeaways (e.g., potential growth drivers, risks), and an investment thesis.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A concise outline with bullet points covering: 1. Company Overview, 2. Recent Stock Performance, 3. Major Takeaways, 4. Investment Thesis.
+    Each bullet point should be a single, impactful sentence.
+  agent: planner
+
+writing_task:
+  description: >
+    Expand the outline provided by the planner into a full draft of the "Executive Summary" section.
+    Develop each sub-section (Company Overview, Recent Stock Performance, Major Takeaways, Investment Thesis) with detailed,
+    yet concise, information. Ensure the writing is clear, factual, and engaging. Avoid uncertainty and ambiguity.
+    Current date: {date_us}.
+  expected_output: >
+    A complete draft of the Executive Summary.
+    Each section should be a well-written paragraph or series of paragraphs, providing a comprehensive overview without unnecessary detail.
+    The output must be formatted as markdown without code blocks.
+    Begin the section with the title: ## Executive Summary
+  agent: writer
+
+critic_task:
+  description: >
+    Critically review the draft "Executive Summary" for accuracy, clarity, coherence, and completeness.
+    Identify any gaps in information, areas of weakness, or potential improvements. Provide specific, actionable feedback.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A detailed critique of the "Executive Summary" draft, including specific suggestions for improvement and
+    identification of any factual errors, omissions, or areas needing clarification. Output should be in the `Critique` pydantic model,
+    so include the full, verbatim draft content that you have critiqued as well as the critique.
+  agent: critic
+
+editing_task:
+  description: >
+    Refine the "Executive Summary" based on the critic's feedback. Ensure the final version is polished,
+    error-free, and presents a clear, concise, and compelling overview of the company and its stock performance.
+    Focus on clarity, accuracy, and conciseness, using only the available information and your knowledge source.
+    Do not suggest further research or explicitly reference the critic's feedback.
+    Avoid unnecessary disclaimers.
+    Don't include a publication date as a separate heading.
+    Current date: {date_us}.
+  expected_output: >
+    A final, publication-ready "Executive Summary". The summary should be concise,
+    accurate, and effectively communicate the key findings of the analysis.
+    The output must be formatted as markdown without code blocks.
+  agent: editor

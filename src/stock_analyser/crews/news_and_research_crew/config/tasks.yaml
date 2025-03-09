@@ -1,0 +1,25 @@
+research_task:
+  description: >
+    Research and compile a list of 10 recent, interesting, and relevant news or research articles about {company_name}.
+    Prioritize articles that offer significant insights into the company's current performance, future outlook, and market position.
+    Compile the `NewsAndResearchModel` Pydantic model.
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A `NewsAndResearchModel` Pydantic model containing a list of 10 news articles, each with a title, URL, and the article's text (or a summary if the full text is not available).
+  agent: researcher
+
+writing_task:
+  description: >
+    Analyze the compiled `NewsAndResearchModel` from the research task and select the top 5 most impactful articles.
+    Write a concise summary for each of the selected articles, highlighting the key takeaways and their potential implications for the company.
+
+    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    Current date: {date_us}.
+  expected_output: >
+    A markdown section titled "## Recent News Articles" containing summaries of the top 5 news articles.
+    Each summary should include:
+    - The article title and publication date in bold.
+    - A brief, informative summary of the article's content and its relevance to the company.
+    - The source and a hyperlink to the original article.
+    Format the output as markdown without code blocks.
+  agent: writer
