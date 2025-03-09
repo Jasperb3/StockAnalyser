@@ -87,6 +87,7 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -94,31 +95,31 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
         try:
             financials = company_ticker.financials
             if financials is None or financials.empty:
-                return {"score": 0, "details": "No financial data available"}
+                return {"score": 0, "max_score": 0, "details": "No financial data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
     if not metrics:
-        return {"score": score, "details": "Insufficient data for earnings stability analysis"}
+        return {"score": score, "max_score": max_score, "details": "Insufficient data for earnings stability analysis"}
     
     # Get EPS data, trying alternative row names if needed
     eps_vals_df = safe_get_row(financials, "Basic EPS", ["Diluted EPS", "EPS - Earnings Per Share"])
     
     if eps_vals_df is None:
-        return {"score": score, "details": "EPS data not available in financial statements"}
+        return {"score": score, "max_score": max_score, "details": "EPS data not available in financial statements"}
     
     eps_vals = filter_valid_values(eps_vals_df)
     
     if len(eps_vals) < 2:
         details.append("Not enough multi-year EPS data (need at least 2 periods).")
-        return {"score": score, "details": "; ".join(details)}
+        return {"score": score, "max_score": max_score, "details": "; ".join(details)}
     
     # 1. Consistently positive EPS
     positive_eps_years = sum(1 for e in eps_vals if e > 0)
@@ -134,27 +135,44 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
     else:
         details.append(f"EPS was negative in {total_eps_years - positive_eps_years} of {total_eps_years} periods.")
     
+    max_score += 3 # Increment max_score
+
     # 2. EPS growth from earliest to latest
     # Note: yfinance data is typically in reverse chronological order (newest first)
     # So eps_vals[0] is the latest (newest) and eps_vals[-1] is the earliest (oldest)
     try:
         latest_eps = eps_vals[0]
-        earliest_eps = eps_vals[-1]
-        
-        if earliest_eps != 0 and not np.isnan(earliest_eps) and not np.isnan(latest_eps):
+        earliest_eps = None # Initialize
+
+        # Find a valid (non-zero) earliest EPS
+        for i in range(len(eps_vals) -1, -1, -1):
+            if eps_vals[i] != 0:
+                earliest_eps = eps_vals[i]
+                break
+
+        if earliest_eps is not None and not np.isnan(earliest_eps) and not np.isnan(latest_eps):
             growth_percentage = (latest_eps - earliest_eps) / abs(earliest_eps)
-            
+
             if latest_eps > earliest_eps:
                 score += 1
                 details.append(f"EPS grew from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} growth).")
             else:
                 details.append(f"EPS declined from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} change).")
-        else:
+
+            
+
+        elif len(eps_vals) > 1: # We did NOT find a valid earliest_eps, but there are at least two values
             details.append("Cannot calculate EPS growth due to zero or invalid values.")
+
+            max_score += 1 # Increment max_score
+
+        else: # We did not find a valid earliest_eps AND there is only one value
+            details.append("Cannot calculate EPS growth due to zero or invalid values.")
+
     except (IndexError, ZeroDivisionError, Exception) as e:
         details.append(f"Error calculating EPS growth: {str(e)}")
 
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, cash_flow=None):
@@ -172,6 +190,7 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -179,19 +198,19 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse cash_flow if provided, otherwise get from ticker
     if cash_flow is None:
         try:
             cash_flow = company_ticker.cashflow
             if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "details": "No cash flow data available"}
+                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
     
     if not metrics:
-        return {"score": score, "details": "Insufficient data for financial strength analysis"}
+        return {"score": score, "max_score": max_score, "details": "Insufficient data for financial strength analysis"}
     
     # Extract metrics with safe handling of None/NaN values
     total_assets = metrics.get("total_assets", 0)
@@ -213,6 +232,9 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
                 details.append(f"Current ratio = {current_ratio:.2f} (moderately strong).")
             else:
                 details.append(f"Current ratio = {current_ratio:.2f} (<1.5: weaker liquidity).")
+
+            max_score += 2 # Increment max_score
+
         except (ZeroDivisionError, Exception) as e:
             details.append(f"Error calculating current ratio: {str(e)}")
     else:
@@ -232,6 +254,9 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
                 details.append(f"Debt ratio = {debt_ratio:.2f}, somewhat high but could be acceptable.")
             else:
                 details.append(f"Debt ratio = {debt_ratio:.2f}, quite high by Graham standards.")
+
+            max_score += 2 # Increment max_score
+
         except (ZeroDivisionError, Exception) as e:
             details.append(f"Error calculating debt ratio: {str(e)}")
     else:
@@ -243,7 +268,7 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
     
     if cash_dividends_paid_df is None:
         details.append("Dividend data not available in cash flow statement.")
-        return {"score": score, "details": "; ".join(details)}
+        return {"score": score, "max_score": max_score, "details": "; ".join(details)}
     
     div_periods = filter_valid_values(cash_dividends_paid_df)
     
@@ -262,10 +287,13 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
                 details.append(f"Company has some dividend payments ({div_paid_years} of {total_periods} years).")
         else:
             details.append("Company did not pay dividends in these periods.")
+
+        max_score += 1 # Increment max_score
+
     else:
         details.append("No dividend data available to assess payout consistency.")
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
@@ -288,12 +316,12 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     market_cap = metrics.get("market_cap")
     
     if not metrics or market_cap is None or market_cap <= 0 or np.isnan(market_cap):
-        return {"score": 0, "details": "Insufficient data for valuation analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
     
     # Extract metrics with safe handling of None/NaN values
     current_assets = metrics.get("current_assets", 0)
@@ -316,6 +344,7 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
     
     details = []
     score = 0
+    max_score = 0
     
     # 1. Net-Net Check
     #   NCAV = Current Assets - Total Liabilities
@@ -345,6 +374,9 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
                 details.append("Cannot calculate per-share values (shares outstanding data invalid).")
             else:
                 details.append("NCAV not exceeding market cap or insufficient data for net-net approach.")
+
+        max_score += 4 # Increment max_score
+
     except (ZeroDivisionError, Exception) as e:
         details.append(f"Error calculating Net-Net values: {str(e)}")
     
@@ -382,12 +414,14 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
                     details.append("Some margin of safety relative to Graham Number.")
                 else:
                     details.append("Price close to or above Graham Number, low margin of safety.")
+
+                max_score += 3 # Increment max_score
             else:
                 details.append("Current price is zero or invalid; can't compute margin of safety.")
         except (ZeroDivisionError, Exception) as e:
             details.append(f"Error calculating margin of safety: {str(e)}")
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def calculate_graham_analysis_data(ticker: str):
@@ -416,7 +450,7 @@ def calculate_graham_analysis_data(ticker: str):
         return {
             "signal": "neutral",
             "score": 0,
-            "max_score": 15,
+            "max_score": 0,
             "error": f"Failed to compute financial metrics: {str(e)}"
         }
     
@@ -425,6 +459,7 @@ def calculate_graham_analysis_data(ticker: str):
     except Exception as e:
         earnings_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in earnings stability analysis: {str(e)}"
         }
     
@@ -433,6 +468,7 @@ def calculate_graham_analysis_data(ticker: str):
     except Exception as e:
         strength_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in financial strength analysis: {str(e)}"
         }
     
@@ -441,11 +477,12 @@ def calculate_graham_analysis_data(ticker: str):
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in valuation analysis: {str(e)}"
         }
     
     total_score = earnings_analysis.get("score", 0) + strength_analysis.get("score", 0) + valuation_analysis.get("score", 0)
-    max_possible_score = 15
+    max_possible_score = earnings_analysis.get("max_score", 0) + strength_analysis.get("max_score", 0) + valuation_analysis.get("max_score", 0)
     
     # Map total_score to signal
     if total_score >= 0.7 * max_possible_score:
@@ -468,7 +505,7 @@ def calculate_graham_analysis_data(ticker: str):
 
 
 if __name__ == "__main__":
-    TICKER = "NVDA"
+    TICKER = "DJT"
     graham_analysis_data = calculate_graham_analysis_data(TICKER)
     print(graham_analysis_data)
 

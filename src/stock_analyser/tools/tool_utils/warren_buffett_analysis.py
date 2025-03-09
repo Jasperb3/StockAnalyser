@@ -80,9 +80,10 @@ def analyse_fundamentals(metrics: dict):
         dict: Analysis results with score, details and metrics
     """
     if not metrics:
-        return {"score": 0, "details": "Insufficient fundamental data", "metrics": {}}
+        return {"score": 0, "max_score": 0, "details": "Insufficient fundamental data", "metrics": {}}
     
     score = 0
+    max_score = 0 # Initialize max_score
     reasoning = []
 
     # Check ROE (Return on Equity)
@@ -96,6 +97,8 @@ def analyse_fundamentals(metrics: dict):
     else:
         reasoning.append("ROE data not available")
 
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     # Check Debt to Equity
     debt_to_equity = metrics.get('debt_to_equity')
     if debt_to_equity is not None and not np.isnan(debt_to_equity):
@@ -106,6 +109,8 @@ def analyse_fundamentals(metrics: dict):
             reasoning.append(f"High debt to equity ratio of {debt_to_equity:.2f}")
     else:
         reasoning.append("Debt to equity data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
 
     # Check Operating Margin
     operating_margin = metrics.get('operating_margin')
@@ -118,6 +123,8 @@ def analyse_fundamentals(metrics: dict):
     else:
         reasoning.append("Operating margin data not available")
 
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     # Check Current Ratio
     current_ratio = metrics.get('current_ratio')
     if current_ratio is not None and not np.isnan(current_ratio):
@@ -129,7 +136,9 @@ def analyse_fundamentals(metrics: dict):
     else:
         reasoning.append("Current ratio data not available")
 
-    return {"score": score, "details": "; ".join(reasoning), "metrics": metrics}
+    max_score += 1 # Increment by the *highest* possible score for this section
+
+    return {"score": score, "max_score": max_score, "details": "; ".join(reasoning), "metrics": metrics}
 
 
 def analyse_consistency(ticker: str, company_ticker=None, financials=None):
@@ -149,32 +158,33 @@ def analyse_consistency(ticker: str, company_ticker=None, financials=None):
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
         try:
             financials = company_ticker.financials
             if financials is None or financials.empty:
-                return {"score": 0, "details": "No financial data available"}
+                return {"score": 0, "max_score": 0, "details": "No financial data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
 
     # Get Net Income data, trying alternative row names if needed
     net_income_df = safe_get_row(financials, "Net Income", 
                                 ["Net Income Common Stockholders", "Net Profit"])
     
     if net_income_df is None:
-        return {"score": 0, "details": "Net Income data not available in financial statements"}
+        return {"score": 0, "max_score": 0, "details": "Net Income data not available in financial statements"}
     
     earnings_values = filter_valid_values(net_income_df)
     
     n = len(earnings_values)
     
     if n < 4:  # Need at least 4 periods for trend analysis
-        return {"score": 0, "details": f"Insufficient historical data (have {n} periods, need at least 4)"}
+        return {"score": 0, "max_score": 0, "details": f"Insufficient historical data (have {n} periods, need at least 4)"}
     
     score = 0
+    max_score = 0 # Initialize max_score
     reasoning = []
     
     # Check if earnings are consistently growing
@@ -187,7 +197,7 @@ def analyse_consistency(ticker: str, company_ticker=None, financials=None):
                 earnings_growth = False
                 break
     except Exception as e:
-        return {"score": 0, "details": f"Error analyzing earnings growth pattern: {str(e)}"}
+        return {"score": 0, "max_score": 0, "details": f"Error analyzing earnings growth pattern: {str(e)}"}
 
     if earnings_growth:
         score += 3
@@ -195,15 +205,25 @@ def analyse_consistency(ticker: str, company_ticker=None, financials=None):
     else:
         reasoning.append(f"Inconsistent earnings growth pattern over {n} periods")
 
+    max_score += 3 # Increment by the *highest* possible score for this section
+
     # Calculate growth rate from earliest to latest
     if n >= 2:
         try:
             latest = earnings_values[0]
-            earliest = earnings_values[-1]
+            earliest = None
+
+            # Find a valid (positive) earliest earnings value
+            for i in range(len(earnings_values) - 1, -1, -1):
+                if earnings_values[i] > 0:
+                    earliest = earnings_values[i]
+                    break
             
-            if earliest > 0:  # Avoid division by zero or negative
+            if earliest is not None:
                 growth_rate = (latest - earliest) / earliest
                 reasoning.append(f"Total earnings growth of {growth_rate:.1%} over past {n} periods")
+            elif len(earnings_values) > 1:
+                reasoning.append("Cannot calculate growth rate (earliest earnings negative or zero)")
             else:
                 reasoning.append("Cannot calculate growth rate (earliest earnings negative or zero)")
         except (ZeroDivisionError, IndexError, Exception) as e:
@@ -213,6 +233,7 @@ def analyse_consistency(ticker: str, company_ticker=None, financials=None):
 
     return {
         "score": score,
+        "max_score": max_score,
         "details": "; ".join(reasoning),
     }
     
@@ -329,7 +350,7 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
             "ticker": ticker,
             "signal": "neutral",
             "score": 0,
-            "max_score": 10,
+            "max_score": 0, # Initialize max_score
             "error": f"Failed to compute financial metrics: {str(e)}"
         }
 
@@ -338,6 +359,7 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
     except Exception as e:
         fundamental_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in fundamental analysis: {str(e)}"
         }
 
@@ -346,6 +368,7 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
     except Exception as e:
         consistency_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in consistency analysis: {str(e)}"
         }
 
@@ -359,10 +382,12 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
         }
 
     fundamental_analysis_score = fundamental_analysis.get("score", 0)
+    fundamental_analysis_max_score = fundamental_analysis.get("max_score", 0)
     consistency_analysis_score = consistency_analysis.get("score", 0)
+    consistency_analysis_max_score = consistency_analysis.get("max_score", 0)
 
     total_score = fundamental_analysis_score + consistency_analysis_score
-    max_possible_score = 10
+    max_possible_score = fundamental_analysis_max_score + consistency_analysis_max_score
 
     margin_of_safety = None
     intrinsic_value = intrinsic_value_analysis.get("intrinsic_value")
@@ -377,7 +402,7 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
             # Add to score if there's a good margin of safety (>30%)
             if margin_of_safety > 0.3:
                 total_score += 2
-                max_possible_score += 2
+                max_possible_score += 2 # Increment max_possible_score
         except (ValueError, ZeroDivisionError, Exception) as e:
             if "details" in intrinsic_value_analysis:
                 if isinstance(intrinsic_value_analysis["details"], list):

@@ -85,6 +85,7 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
 
     # Reuse ticker object if provided, otherwise get a new one
@@ -92,25 +93,25 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
 
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
         try:
             financials = company_ticker.financials
             if financials is None or financials.empty:
-                return {"score": 0, "details": "No financial data available"}
+                return {"score": 0, "max_score": 0, "details": "No financial data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
             
     # Reuse cash_flow if provided, otherwise get from ticker
     if cash_flow is None:
         try:
             cash_flow = company_ticker.cashflow
             if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "details": "No cash flow data available"}
+                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
 
     # 1. Multi-period revenue growth analysis
     revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
@@ -124,9 +125,16 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
             try:
                 # Check if overall revenue grew from first to last
                 # Note: yfinance data is typically in reverse chronological order (newest first)
-                latest, earliest = revenues[0], revenues[-1]
-                
-                if latest > earliest:
+                latest = revenues[0]
+                earliest = None  # Initialize to None
+
+                # Loop backwards to find a valid (non-zero) earliest revenue
+                for i in range(len(revenues) - 1, -1, -1):
+                    if revenues[i] != 0:
+                        earliest = revenues[i]
+                        break
+
+                if earliest is not None:
                     # Simple growth rate
                     growth_rate = (latest - earliest) / abs(earliest)
                     if growth_rate > 0.5:  # e.g., 50% growth over the available time
@@ -135,13 +143,17 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
                     else:
                         score += 1
                         details.append(f"Revenue growth is positive but under 50% cumulatively ({(growth_rate*100):.1f}%).")
-                else:
-                    details.append(f"Revenue did not grow from {earliest:,.0f} to {latest:,.0f}.")
+                elif len(revenues) > 1: # We did NOT find a valid earliest_revenue, but there are at least two values
+                    details.append(f"Revenue did not grow from earliest to latest.")
+                else: # We did not find a valid earliest_revenue AND there is only one value
+                    details.append("Cannot calculate revenue growth (zero or negative base value)")
             except (IndexError, ZeroDivisionError, Exception) as e:
                 details.append(f"Error calculating revenue growth rate: {str(e)}")
         else:
             details.append("Not enough revenue data for multi-period trend (need at least 2 periods).")
     
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     # 2. Operating margin and free cash flow consistency
     fcf_df = safe_get_row(cash_flow, "Free Cash Flow")
     
@@ -177,6 +189,8 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
         else:
             details.append("Could not calculate operating margins (insufficient data).")
     
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     if fcf_vals:
         # Check if free cash flow is positive in most periods
         positive_fcf_count = sum(1 for f in fcf_vals if f > 0)
@@ -187,6 +201,8 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
             details.append(f"Free cash flow positive in only {positive_fcf_count} of {len(fcf_vals)} periods.")
     else:
         details.append("No free cash flow data available for analysis.")
+
+    max_score += 1 # Increment by the *highest* possible score for this section
     
     # 3. Return on Equity (ROE) check from the latest metrics
     return_on_equity = company_ticker.info.get('returnOnEquity', None)
@@ -199,8 +215,11 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
     else:
         details.append("ROE data not available in company information.")
     
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     return {
         "score": score,
+        "max_score": max_score,
         "details": "; ".join(details)
     }
 
@@ -222,6 +241,7 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
 
     # Reuse ticker object if provided, otherwise get a new one
@@ -229,7 +249,7 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
 
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
@@ -244,9 +264,9 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
         try:
             balance_sheet = company_ticker.balance_sheet
             if balance_sheet is None or balance_sheet.empty:
-                return {"score": 0, "details": "No balance sheet data available"}
+                return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
             
     # Reuse cash_flow if provided, otherwise get from ticker
     if cash_flow is None:
@@ -307,6 +327,8 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
                         details.append(f"Liabilities-to-assets >= 50% in {len(liab_to_assets) - below_50pct_count} of {len(liab_to_assets)} periods.")
                 else:
                     details.append("Could not calculate leverage ratios (insufficient data).")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
     # 2. Capital allocation approach (dividends + share counts)
     # If the company paid dividends or reduced share count over time, it may reflect discipline
@@ -326,6 +348,8 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
             details.append("No valid dividend data found across periods.")
     else:
         details.append("Dividend data not available in cash flow statement.")
+
+    max_score += 1 # Increment by the *highest* possible score for this section
     
     # Check for decreasing share count (simple approach):
     # We can compare first vs last if we have at least two data points
@@ -338,17 +362,33 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
         shares = filter_valid_values(shares_df)
         if len(shares) >= 2:
             # Note: yfinance data is typically in reverse chronological order (newest first)
-            latest, earliest = shares[0], shares[-1]
-            if latest < earliest:
-                score += 1
-                details.append(f"Outstanding shares decreased from {earliest:,.0f} to {latest:,.0f} (possible buybacks).")
+            latest = shares[0]
+            earliest = None
+
+            for i in range(len(shares) - 1, -1, -1):
+                if shares[i] != 0:
+                    earliest = shares[i]
+                    break
+
+            if earliest is not None:
+                if latest < earliest:
+                    score += 1
+                    details.append(f"Outstanding shares decreased from {earliest:,.0f} to {latest:,.0f} (possible buybacks).")
+                else:
+                    details.append(f"Outstanding shares increased from {earliest:,.0f} to {latest:,.0f}.")
+            elif len(shares) > 1:
+                details.append("Cannot calculate share change due to zero or invalid values.")
             else:
-                details.append(f"Outstanding shares increased from {earliest:,.0f} to {latest:,.0f}.")
+                details.append("Insufficient share count data to assess buybacks (need at least 2 periods).")
+
         else:
             details.append("Insufficient share count data to assess buybacks (need at least 2 periods).")
     
+    max_score += 1 # Increment by the *highest* possible score for this section
+
     return {
         "score": score,
+        "max_score": max_score,
         "details": "; ".join(details)
     }
 
@@ -379,6 +419,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
         except Exception as e:
             return {
                 "score": 0,
+                "max_score": 0,
                 "details": f"Failed to get ticker data: {str(e)}",
                 "intrinsic_value": None
             }
@@ -390,12 +431,14 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
             if cash_flow is None or cash_flow.empty:
                 return {
                     "score": 0,
+                    "max_score": 0,
                     "details": "No cash flow data available",
                     "intrinsic_value": None
                 }
         except Exception as e:
             return {
                 "score": 0,
+                "max_score": 0,
                 "details": f"Error retrieving cash flow data: {str(e)}",
                 "intrinsic_value": None
             }
@@ -404,6 +447,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
     if market_cap is None or np.isnan(market_cap) or market_cap <= 0:
         return {
             "score": 0,
+            "max_score": 0,
             "details": "Market cap data not available or invalid",
             "intrinsic_value": None
         }
@@ -413,6 +457,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
     if fcf_df is None:
         return {
             "score": 0,
+            "max_score": 0,
             "details": "Free cash flow data not available in cash flow statement",
             "intrinsic_value": None
         }
@@ -421,6 +466,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
     if not fcf_vals:
         return {
             "score": 0,
+            "max_score": 0,
             "details": "No valid free cash flow values available",
             "intrinsic_value": None
         }
@@ -431,6 +477,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
     if fcf <= 0:
         return {
             "score": 0,
+            "max_score": 0,
             "details": f"Most recent FCF is negative or zero (${fcf:,.0f}), cannot perform valuation",
             "intrinsic_value": None
         }
@@ -466,9 +513,12 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
             f"Margin of safety: {margin_of_safety:.2%}",
             safety_description
         ]
+
+        max_score = 3 # Increment by the *highest* possible score for this section
         
         return {
             "score": score,
+            "max_score": max_score,
             "details": "; ".join(details),
             "intrinsic_value": f"${intrinsic_value:,.2f}",
             "margin_of_safety": f"{margin_of_safety:.2%}"
@@ -476,6 +526,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
     except Exception as e:
         return {
             "score": 0,
+            "max_score": 0,
             "details": f"Error in DCF calculation: {str(e)}",
             "intrinsic_value": None
         }
@@ -509,7 +560,7 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
         return {
             "signal": "neutral",
             "score": 0,
-            "max_score": 15,
+            "max_score": 0,
             "error": f"Failed to get ticker data: {str(e)}"
         }
 
@@ -518,6 +569,7 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
     except Exception as e:
         quality_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in business quality analysis: {str(e)}"
         }
     
@@ -526,6 +578,7 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
     except Exception as e:
         balance_sheet_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in financial discipline analysis: {str(e)}"
         }
     
@@ -535,13 +588,14 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
+            "max_score": 0,
             "details": f"Error in valuation analysis: {str(e)}",
             "intrinsic_value": None
         }
 
     # Combine partial scores or signals
     total_score = quality_analysis.get("score", 0) + balance_sheet_analysis.get("score", 0) + valuation_analysis.get("score", 0)
-    max_possible_score = 15  # Adjust weighting as desired
+    max_possible_score = quality_analysis.get("max_score", 0) + balance_sheet_analysis.get("max_score", 0) + valuation_analysis.get("max_score", 0)
     
     # Generate a simple buy/hold/sell (bullish/neutral/bearish) signal
     if total_score >= 0.7 * max_possible_score:

@@ -97,7 +97,7 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
         return {
             "signal": "neutral",
             "score": 0,
-            "max_score": 15,
+            "max_score": 0,  # Initialize max_score to 0
             "error": f"Failed to compute financial metrics: {str(e)}"
         }
 
@@ -106,6 +106,7 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     except Exception as e:
         disruptive_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize to zero
             "details": f"Error in disruptive potential analysis: {str(e)}"
         }
 
@@ -114,6 +115,7 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     except Exception as e:
         innovation_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize to zero
             "details": f"Error in innovation growth analysis: {str(e)}"
         }
 
@@ -124,13 +126,14 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize to zero
             "details": f"Error in valuation analysis: {str(e)}"
         }
 
-    # Combine partial scores
+    # Combine partial scores and max_scores
     total_score = disruptive_analysis.get("score", 0) + innovation_analysis.get("score", 0) + valuation_analysis.get("score", 0)
-    max_possible_score = 15
-    
+    max_possible_score = disruptive_analysis.get("max_score", 0) + innovation_analysis.get("max_score", 0) + valuation_analysis.get("max_score", 0)
+
     # Generate signal based on score
     if total_score >= 0.7 * max_possible_score:
         signal = "bullish"
@@ -164,6 +167,7 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -171,10 +175,10 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for disruptive potential analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for disruptive potential analysis"}
     
     # Get company info and sector
     info = company_ticker.info
@@ -183,16 +187,40 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
     
     # 1. Check if company is in a disruptive/innovative sector
     disruptive_sectors = [
-        "Technology", "Information Technology", "Healthcare", "Biotechnology", 
-        "Renewable Energy", "Electric Vehicles", "Artificial Intelligence",
-        "Fintech", "Genomics", "Robotics", "Cloud Computing", "Cybersecurity"
+        "technology",
+        "healthcare",
+        "communication-services",
+        "consumer-cyclical",
+        "energy",
+        "industrials"
     ]
-    
+
     disruptive_industries = [
-        "Software", "Semiconductors", "Biotechnology", "Medical Devices",
-        "Internet Content & Information", "Diagnostics & Research",
-        "Solar", "Electronic Components", "Information Technology Services",
-        "Communication Equipment", "Computer Hardware", "Healthcare Information Services"
+        # Genomics
+        'biotechnology', 'diagnostics-research', 'health-information-services', 'medical-devices',
+
+        # Robotics
+        'semiconductors', 'software-application', 'software-infrastructure','electronic-components',
+        'information-technology-services', 'communication-equipment', 'computer-hardware',
+        'aerospace-defense', 'specialty-industrial-machinery',
+
+        # Energy Storage
+        'solar', 'utilities-renewable', 'oil-gas-e-p', 'electronic-components',
+
+        # Artificial Intelligence (AI)
+        'semiconductors', 'software-application', 'software-infrastructure',
+        'information-technology-services',
+
+        # Blockchain Technology
+        'software-application', 'software-infrastructure', 'information-technology-services',
+         'financial-data-stock-exchanges',
+
+        # Space Exploration
+        'aerospace-defense',
+
+        # Next Generation Internet (Web3, Metaverse)
+        'internet-content-information', 'software-application', 'software-infrastructure', 'electronic-gaming-multimedia',
+        'communication-equipment',
     ]
     
     if any(disruptive_term.lower() in sector.lower() for disruptive_term in disruptive_sectors):
@@ -203,7 +231,8 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
         details.append(f"Company operates in innovative industry: {industry}")
     else:
         details.append(f"Company sector ({sector}) and industry ({industry}) not identified as highly disruptive")
-    
+    max_score += 2 
+
     # 2. Revenue Growth Rate - Cathie Wood looks for high growth
     revenue_growth = metrics.get("revenue_growth")
     if revenue_growth is not None and not np.isnan(revenue_growth):
@@ -218,6 +247,7 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
             details.append(f"Moderate revenue growth rate of {revenue_growth:.1%}")
         else:
             details.append(f"Limited revenue growth rate of {revenue_growth:.1%}")
+        max_score += 3 # Increment max_score
     else:
         details.append("Revenue growth data not available")
     
@@ -232,6 +262,7 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
             details.append(f"Strong gross margin of {gross_margin:.1%}")
         else:
             details.append(f"Moderate gross margin of {gross_margin:.1%}")
+        max_score += 2 # Increment max_score
     else:
         details.append("Gross margin data not available")
     
@@ -248,10 +279,11 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
             details.append("Growth-stage company with high disruptive potential")
         else:
             details.append("Smaller company, disruptive potential uncertain")
+        max_score += 2 # Increment max_score
     else:
         details.append("Market cap data not available")
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
@@ -267,6 +299,7 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -274,17 +307,17 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     try:
         financials = company_ticker.financials
         if financials is None or financials.empty:
-            return {"score": 0, "details": "No financial data available"}
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
     except Exception as e:
-        return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for innovation growth analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for innovation growth analysis"}
     
     # 1. R&D Spending Growth and Intensity
     # Try to find R&D expenses in the financials
@@ -298,11 +331,17 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
             try:
                 # Note: yfinance data is typically in reverse chronological order (newest first)
                 latest_rd = rd_expenses[0]
-                earliest_rd = rd_expenses[-1]
-                
-                if earliest_rd > 0:  # Avoid division by zero
+                earliest_rd = None  # Initialize to None
+
+                # Loop backwards to find a non-zero earliest_rd
+                for i in range(len(rd_expenses) - 1, -1, -1):
+                    if rd_expenses[i] > 0:
+                        earliest_rd = rd_expenses[i]
+                        break  # Exit the loop after finding a valid value
+
+                if earliest_rd is not None: # We found a valid earliest_rd
                     rd_growth = (latest_rd - earliest_rd) / earliest_rd
-                    
+
                     if rd_growth > 0.25:  # 25%+ R&D growth
                         score += 3
                         details.append(f"Strong R&D spending growth of {rd_growth:.1%}")
@@ -314,7 +353,11 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
                         details.append(f"Modest R&D spending growth of {rd_growth:.1%}")
                     else:
                         details.append(f"Declining R&D spending: {rd_growth:.1%}")
-                else:
+                    max_score += 3 # Increment max_score
+
+                elif len(rd_expenses) > 1: # We did NOT find a valid earliest_rd, but there are at least two values
+                    details.append("Cannot calculate R&D growth (zero or negative base value)")
+                else: # We did not find a valid earliest_rd AND there is only one value
                     details.append("Cannot calculate R&D growth (zero or negative base value)")
             except (IndexError, ZeroDivisionError, Exception) as e:
                 details.append(f"Error calculating R&D growth: {str(e)}")
@@ -337,6 +380,8 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
                             details.append(f"Moderate R&D intensity: {rd_intensity:.1%} of revenue")
                         else:
                             details.append(f"Lower R&D intensity: {rd_intensity:.1%} of revenue")
+                        max_score += 2 # Increment max_score
+
                     else:
                         details.append("Cannot calculate R&D intensity (revenue data invalid)")
                 else:
@@ -358,11 +403,17 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
             try:
                 # Note: yfinance data is typically in reverse chronological order (newest first)
                 latest_gp = gross_profits[0]
-                earliest_gp = gross_profits[-1]
+                earliest_gp = None  # Initialize to None
                 
-                if earliest_gp > 0:  # Avoid division by zero
+                # Loop backwards to find a non-zero earliest_gp
+                for i in range(len(gross_profits) - 1, -1, -1):
+                    if gross_profits[i] > 0:
+                        earliest_gp = gross_profits[i]
+                        break  # Exit loop once a valid value is found
+
+                if earliest_gp is not None: # We found a valid earliest_gp
                     gp_growth = (latest_gp - earliest_gp) / earliest_gp
-                    
+
                     if gp_growth > 0.30:  # 30%+ gross profit growth
                         score += 2
                         details.append(f"Strong gross profit growth of {gp_growth:.1%}")
@@ -370,10 +421,16 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
                         score += 1
                         details.append(f"Solid gross profit growth of {gp_growth:.1%}")
                     elif gp_growth > 0:  # 0-15% gross profit growth
+                        score += 1  # Added missing score increment
                         details.append(f"Modest gross profit growth of {gp_growth:.1%}")
                     else:
                         details.append(f"Declining gross profit: {gp_growth:.1%}")
-                else:
+                    
+                    max_score += 2 # Increment max_score
+
+                elif len(gross_profits) > 1 : # We did NOT find a valid earliest_gp, but there are at least two values
+                    details.append("Cannot calculate gross profit growth (zero or negative base values)")
+                else: # We did not find a valid earliest_gp AND there is only one value
                     details.append("Cannot calculate gross profit growth (zero or negative base value)")
             except (IndexError, ZeroDivisionError, Exception) as e:
                 details.append(f"Error calculating gross profit growth: {str(e)}")
@@ -394,8 +451,14 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
             try:
                 # Calculate operating margins for earliest and latest periods
                 latest_margin = op_incomes[0] / revenues[0] if revenues[0] > 0 else None
-                earliest_margin = op_incomes[-1] / revenues[-1] if revenues[-1] > 0 else None
-                
+
+                # Find the earliest year with non-zero revenue
+                earliest_margin = None
+                for i in range(len(revenues) - 1, -1, -1):  # Iterate backwards
+                    if revenues[i] > 0:
+                        earliest_margin = op_incomes[i] / revenues[i]
+                        break  # Exit loop once a valid margin is calculated
+
                 if latest_margin is not None and earliest_margin is not None:
                     margin_change = latest_margin - earliest_margin
                     
@@ -405,8 +468,17 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
                     elif margin_change > 0:  # 0-5 percentage point improvement
                         score += 1
                         details.append(f"Slightly improving operating margin: +{margin_change:.1%} points")
-                    else:
+                    elif margin_change > -0.05:  # 0 to -5 percentage point decrease
+                        score -= 1
+                        details.append(f"Slightly declining operating margin: {margin_change:.1%} points")
+                    else: # more than -5 percentage point decrease
+                        score -= 2
                         details.append(f"Declining operating margin: {margin_change:.1%} points")
+                    
+                    max_score += 2 # Increment max_score
+
+                elif latest_margin is None or earliest_margin is None: # More descriptive error message
+                    details.append("Cannot calculate operating margin trend (division by zero or invalid data)")
                 else:
                     details.append("Cannot calculate operating margin trend (division by zero)")
             except (IndexError, ZeroDivisionError, Exception) as e:
@@ -416,7 +488,7 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
     else:
         details.append("Operating income or revenue data not available for margin analysis")
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float = 0.20, 
@@ -442,12 +514,13 @@ def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for valuation analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
     
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Get key metrics for valuation
@@ -455,10 +528,10 @@ def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float
     market_cap = metrics.get("market_cap")
     
     if revenue is None or np.isnan(revenue) or revenue <= 0:
-        return {"score": 0, "details": "Revenue data not available or invalid"}
+        return {"score": 0, "max_score": 0, "details": "Revenue data not available or invalid"}
     
     if market_cap is None or np.isnan(market_cap) or market_cap <= 0:
-        return {"score": 0, "details": "Market cap data not available or invalid"}
+        return {"score": 0, "max_score": 0, "details": "Market cap data not available or invalid"}
     
     # 1. Price-to-Sales Ratio - Cathie Wood often looks at this for growth companies
     ps_ratio = market_cap / revenue
@@ -473,6 +546,8 @@ def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float
         details.append(f"High but potentially justified P/S ratio of {ps_ratio:.2f}x")
     else:
         details.append(f"Very high P/S ratio of {ps_ratio:.2f}x")
+
+    max_score += 2 # Increment max_score
     
     # 2. Revenue Growth-Adjusted Valuation
     # Cathie Wood often considers growth rates in context of valuation
@@ -489,6 +564,9 @@ def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float
             details.append(f"Good growth-adjusted P/S of {growth_adjusted_ps:.2f}")
         else:
             details.append(f"Higher growth-adjusted P/S of {growth_adjusted_ps:.2f}")
+
+        max_score += 2 # Increment max_score
+
     else:
         details.append("Cannot calculate growth-adjusted valuation (growth data unavailable)")
     
@@ -524,12 +602,15 @@ def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float
             details.append(f"Limited upside potential: {potential_return:.1%}")
         else:
             details.append(f"Potential downside: {potential_return:.1%}")
+
+        max_score += 3 # Increment max_score
+        
     except Exception as e:
         details.append(f"Error in future value projection: {str(e)}")
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 if __name__ == "__main__":
-    analysis = calculate_cathie_wood_analysis_data("TSLA")
+    analysis = calculate_cathie_wood_analysis_data("DJT")
     print(analysis)    

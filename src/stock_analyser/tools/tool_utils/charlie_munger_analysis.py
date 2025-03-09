@@ -84,6 +84,7 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -91,19 +92,19 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
         try:
             financials = company_ticker.financials
             if financials is None or financials.empty:
-                return {"score": 0, "details": "No financial data available"}
+                return {"score": 0, "max_score": 0, "details": "No financial data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for moat strength analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for moat strength analysis"}
     
     # 1. Return on Equity (ROE) - Munger looks for consistently high ROE
     roe = metrics.get("return_on_equity")
@@ -121,6 +122,8 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
             details.append(f"Moderate ROE of {roe:.1%}")
     else:
         details.append("ROE data not available")
+
+    max_score += 3 # Increment by the *highest* possible score for this section
     
     # 2. Gross Margin - High margins often indicate pricing power
     gross_margin = metrics.get("gross_margin")
@@ -135,6 +138,8 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
             details.append(f"Lower gross margin of {gross_margin:.1%}")
     else:
         details.append("Gross margin data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
     # 3. Operating Margin Consistency - Munger values stable, high operating margins
     operating_income_df = safe_get_row(financials, "Operating Income", ["Operating Profit"])
@@ -182,6 +187,8 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
             details.append("Insufficient data for operating margin analysis")
     else:
         details.append("Operating income or revenue data not available")
+
+    max_score += 4 # Increment by the *highest* possible score for this section (3 + 1)
     
     # 4. Capital Efficiency - Munger likes businesses that don't require much capital
     asset_turnover = metrics.get("asset_turnover")
@@ -196,8 +203,10 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
             details.append(f"Lower capital efficiency (asset turnover: {asset_turnover:.2f})")
     else:
         details.append("Asset turnover data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, balance_sheet=None, cash_flow=None) -> dict:
@@ -215,6 +224,7 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -222,28 +232,28 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse balance_sheet if provided, otherwise get from ticker
     if balance_sheet is None:
         try:
             balance_sheet = company_ticker.balance_sheet
             if balance_sheet is None or balance_sheet.empty:
-                return {"score": 0, "details": "No balance sheet data available"}
+                return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
             
     # Reuse cash_flow if provided, otherwise get from ticker
     if cash_flow is None:
         try:
             cash_flow = company_ticker.cashflow
             if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "details": "No cash flow data available"}
+                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for management quality analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for management quality analysis"}
     
     # 1. Capital Allocation - Check for share repurchases when appropriate
     shares_df = safe_get_row(balance_sheet, "Share Issued", 
@@ -253,22 +263,37 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
         shares = filter_valid_values(shares_df)
         if len(shares) >= 2:
             # Note: yfinance data is typically in reverse chronological order (newest first)
-            latest, earliest = shares[0], shares[-1]
-            if latest < earliest:
-                # Check if the company has a good ROE while buying back shares
-                roe = metrics.get("return_on_equity")
-                if roe is not None and not np.isnan(roe) and roe > 0.15:
-                    score += 3
-                    details.append(f"Intelligent capital allocation: share count reduced with high ROE ({roe:.1%})")
+            latest = shares[0]
+            earliest = None
+
+            # Find a valid (non-zero) earliest share count
+            for i in range(len(shares) - 1, -1, -1):
+                if shares[i] != 0:
+                    earliest = shares[i]
+                    break
+
+            if earliest is not None:
+                if latest < earliest:
+                    # Check if the company has a good ROE while buying back shares
+                    roe = metrics.get("return_on_equity")
+                    if roe is not None and not np.isnan(roe) and roe > 0.15:
+                        score += 3
+                        details.append(f"Intelligent capital allocation: share count reduced with high ROE ({roe:.1%})")
+                    else:
+                        score += 2
+                        details.append("Share count reduced over time (potential buybacks)")
                 else:
-                    score += 2
-                    details.append("Share count reduced over time (potential buybacks)")
+                    details.append("Share count has increased over time")
+            elif len(shares) > 1:
+                details.append("Cannot calculate share change due to zero or invalid values.")
             else:
-                details.append("Share count has increased over time")
+                details.append("Insufficient share count data for trend analysis")
         else:
             details.append("Insufficient share count data for trend analysis")
     else:
         details.append("Share count data not available")
+
+    max_score += 3 # Increment by the *highest* possible score for this section
     
     # 2. Debt Management - Munger prefers conservative debt levels
     debt_to_equity = metrics.get("debt_to_equity")
@@ -285,6 +310,8 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
             details.append(f"Higher debt levels (D/E ratio: {debt_to_equity:.2f})")
     else:
         details.append("Debt to equity data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
     # 3. Free Cash Flow Generation - Munger values consistent FCF
     fcf_df = safe_get_row(cash_flow, "Free Cash Flow")
@@ -305,6 +332,8 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
             details.append("Insufficient free cash flow data for trend analysis")
     else:
         details.append("Free cash flow data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
     # 4. Capital Expenditure Efficiency
     capex = metrics.get("capex")
@@ -322,8 +351,10 @@ def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, 
             details.append(f"Higher capital expenditure (CapEx/Depreciation: {capex_to_depreciation:.2f})")
     else:
         details.append("Capital expenditure or depreciation data not available")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, financials=None) -> dict:
@@ -340,6 +371,7 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
         dict: Analysis results with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -347,19 +379,19 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     # Reuse financials if provided, otherwise get from ticker
     if financials is None:
         try:
             financials = company_ticker.financials
             if financials is None or financials.empty:
-                return {"score": 0, "details": "No financial data available"}
+                return {"score": 0, "max_score": 0, "details": "No financial data available"}
         except Exception as e:
-            return {"score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for predictability analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for predictability analysis"}
     
     # 1. Revenue Consistency - Munger values predictable revenue streams
     revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
@@ -368,15 +400,36 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
         revenues = filter_valid_values(revenue_df)
         if len(revenues) >= 3:
             # Check if revenue is consistently growing
-            is_growing = True
-            for i in range(len(revenues) - 1):
-                if revenues[i] <= revenues[i+1]:  # Remember yfinance data is newest first
-                    is_growing = False
-                    break
+            # is_growing = True
+            # for i in range(len(revenues) - 1):
+            #     if revenues[i] <= revenues[i+1]:  # Remember yfinance data is newest first
+            #         is_growing = False
+            #         break
             
-            if is_growing:
-                score += 2
-                details.append(f"Consistent revenue growth across {len(revenues)} periods")
+            # if is_growing:
+            #     score += 2
+            #     details.append(f"Consistent revenue growth across {len(revenues)} periods")
+
+            # MODIFIED SECTION:
+            latest = revenues[0]
+            earliest = None
+
+            for i in range(len(revenues) - 1, -1, -1):
+                if revenues[i] != 0:
+                    earliest = revenues[i]
+                    break
+
+            if earliest is not None:
+                if latest > earliest:
+                    score += 2
+                    details.append(f"Revenue grew from {earliest} to {latest}")
+                else:
+                    details.append(f"Revenue did not grow from {earliest} to {latest}")
+            elif len(revenues) > 1:
+                details.append("Cannot calculate revenue growth due to zero or invalid values.")
+            else:
+                details.append("Insufficient data for revenue growth analysis")
+            # END MODIFIED SECTION
             
             # Check revenue volatility
             if len(revenues) >= 4:
@@ -404,6 +457,8 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
             details.append("Insufficient revenue data for trend analysis")
     else:
         details.append("Revenue data not available")
+
+    max_score += 4 # Increment by the *highest* possible score for this section (2 + 2)
     
     # 2. Earnings Consistency - Munger values predictable earnings
     net_income_df = safe_get_row(financials, "Net Income", 
@@ -449,6 +504,8 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
             details.append("Insufficient earnings data for trend analysis")
     else:
         details.append("Net income data not available")
+
+    max_score += 4 # Increment by the *highest* possible score for this section (2 + 2)
     
     # 3. Business Model Simplicity - Munger prefers simple, understandable businesses
     # This is more qualitative, but we can use sector/industry as a proxy
@@ -470,8 +527,10 @@ def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, fina
         details.append(f"Potentially simple business model in {sector} sector")
     elif any(s.lower() in sector.lower() for s in complex_sectors):
         details.append(f"Potentially complex business model in {sector} sector")
+
+    max_score += 1 # Increment by the *highest* possible score for this section
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) -> dict:
@@ -487,6 +546,7 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
         dict: Valuation analysis with score and details
     """
     score = 0
+    max_score = 0 # Initialize max_score
     details = []
     
     # Reuse ticker object if provided, otherwise get a new one
@@ -494,10 +554,10 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
         try:
             company_ticker = get_ticker(ticker)
         except Exception as e:
-            return {"score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     if not metrics:
-        return {"score": 0, "details": "Insufficient data for valuation analysis"}
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
     
     # 1. P/E Ratio - Munger is willing to pay more for quality, but still values reasonable P/E
     pe_ratio = metrics.get("price_to_earnings_ratio")
@@ -531,6 +591,8 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
                 details.append(f"Higher P/E ratio of {pe_ratio:.1f}")
     else:
         details.append("P/E ratio data not available or negative")
+
+    max_score += 3 # Increment by the *highest* possible score for this section
     
     # 2. Price to Free Cash Flow - Munger values companies generating strong FCF
     fcf = metrics.get("free_cash_flow_per_share")
@@ -551,6 +613,8 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
             details.append("Current price data not available")
     else:
         details.append("Free cash flow per share data not available or negative")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
     # 3. Price to Book Value - Munger considers this but with less emphasis than earnings power
     pb_ratio = metrics.get("price_to_book_ratio")
@@ -577,8 +641,10 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
                 details.append(f"Higher P/B ratio of {pb_ratio:.1f}")
     else:
         details.append("Price to book ratio data not available or negative")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
     
-    return {"score": score, "details": "; ".join(details)}
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
 def analyse_news_sentiment(ticker: str, number_of_articles: int = 10) -> str:
@@ -622,7 +688,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         return {
             "signal": "neutral",
             "score": 0,
-            "max_score": 30,
+            "max_score": 0, # Initialize max_score
             "error": f"Failed to compute financial metrics: {str(e)}"
         }
     
@@ -631,6 +697,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     except Exception as e:
         moat_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in moat strength analysis: {str(e)}"
         }
     
@@ -639,6 +706,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     except Exception as e:
         management_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in management quality analysis: {str(e)}"
         }
     
@@ -647,6 +715,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     except Exception as e:
         predictability_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in predictability analysis: {str(e)}"
         }
     
@@ -655,6 +724,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
+            "max_score": 0, # Initialize max_score
             "details": f"Error in valuation analysis: {str(e)}"
         }
     
@@ -670,7 +740,12 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         predictability_analysis.get("score", 0) + 
         valuation_analysis.get("score", 0)
     )
-    max_possible_score = 30
+    max_possible_score = (
+        moat_analysis.get("max_score", 0) +
+        management_analysis.get("max_score", 0) +
+        predictability_analysis.get("max_score", 0) +
+        valuation_analysis.get("max_score", 0)
+    )
     
     # Generate signal based on score
     if total_score >= 0.7 * max_possible_score:
@@ -685,6 +760,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         "signal": signal,
         "score": total_score,
         "max_score": max_possible_score,
+        "moat_analysis": moat_analysis,
         "management_analysis": management_analysis,
         "predictability_analysis": predictability_analysis,
         "valuation_analysis": valuation_analysis,

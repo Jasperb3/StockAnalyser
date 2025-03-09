@@ -14,3 +14,7 @@ sandboxing/
 virattt-ai-hedge-fund.txt
 tests/
 timings/
+.cursorignore
+.cursorrules
+src/stock_analyser/tools/token.json
+src/stock_analyser/tools/credentials.json
