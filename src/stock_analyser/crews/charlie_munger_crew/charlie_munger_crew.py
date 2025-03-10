@@ -1,9 +1,8 @@
 import os
-from pathlib import Path
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ExpertAnalystSignal
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.tools.yfinance_munger_analysis_tool import YFinanceMungerAnalysisTool
 
 from dotenv import load_dotenv
@@ -51,10 +50,8 @@ class CharlieMungerCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, knowledge_source=None):
-		self.knowledge_source = knowledge_source
 
-
+	# ----Agents----#
 	@agent
 	def charlie_munger_agent(self) -> Agent:
 		return Agent(
@@ -86,7 +83,7 @@ class CharlieMungerCrew():
 	def charlie_munger_writeup_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['charlie_munger_writeup_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Charlie_Munger_writeup.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Charlie_Munger_writeup.md"
 		)
 
 	@crew
@@ -98,13 +95,5 @@ class CharlieMungerCrew():
 			agents=self.agents, # Automatically created by the @agent decorator
 			tasks=self.tasks, # Automatically created by the @task decorator
 			process=Process.sequential,
-			verbose=True,
-			knowledge_sources=[self.knowledge_source] if self.knowledge_source else [],
-			embedder={
-				"provider": "google",
-				"config": {
-					"model": "models/text-embedding-004",
-					"api_key": os.getenv("GEMINI_API_KEY")
-				}
-			}
+			verbose=True
 		)

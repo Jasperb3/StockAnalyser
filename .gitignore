@@ -4,6 +4,7 @@ lib/
 .DS_Store
 filings/
 knowledge/
+qdrant_knowledge/
 final_reports/
 timeit.txt
 archived/
@@ -18,3 +19,4 @@ timings/
 .cursorrules
 src/stock_analyser/tools/token.json
 src/stock_analyser/tools/credentials.json
+reference/

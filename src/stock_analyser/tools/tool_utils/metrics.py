@@ -1,6 +1,63 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import math
+
+def calculate_tangible_book_value_per_share(ticker):
+    try:
+        balance_sheet = yf.Ticker(ticker).balance_sheet
+        info = yf.Ticker(ticker).info
+
+        stockholders_equity = balance_sheet.loc['Stockholders Equity'].iloc[0]
+        print(f"stockholders_equity: {stockholders_equity:,.2f}")
+        goodwill = balance_sheet.loc['Goodwill'].iloc[0]
+        other_intangible_assets = balance_sheet.loc['Other Intangible Assets'].iloc[0]
+        shares_outstanding = info.get('sharesOutstanding')
+        print(f"shares_outstanding: {shares_outstanding:,.2f}")
+
+        if shares_outstanding is None:
+            return "Shares Outstanding data not found"
+
+        total_intangible_assets = goodwill + other_intangible_assets
+        tangible_book_value = stockholders_equity - total_intangible_assets
+        tangible_book_value_per_share = tangible_book_value / shares_outstanding
+
+        return tangible_book_value_per_share
+
+    except KeyError as e:
+        return f"KeyError: {e}. Data might be missing for {ticker}"
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+
+def calculate_eps_without_nri(ticker):
+    try:
+        income_statement = yf.Ticker(ticker).income_stmt
+        info = yf.Ticker(ticker).info
+
+        net_income = income_statement.loc['Net Income'].iloc[0]
+        print(f"net_income: {net_income:,.2f}")
+        # Preferred dividends, often not found, so we will set to zero.
+        preferred_dividends = income_statement.loc['Preferred Dividends'].iloc[0] if 'Preferred Dividends' in income_statement.index else 0
+        print(f"preferred_dividends: {preferred_dividends:,.2f}")
+        # Non-recurring items, very hard to find, so we will set to zero.
+        non_recurring_items = 0
+        print(f"non_recurring_items: {non_recurring_items:,.2f}")
+        # Weighted average shares outstanding, yfinance might not have this, so we will use shares outstanding.
+        shares_outstanding = info.get('sharesOutstanding')
+        print(f"shares_outstanding: {shares_outstanding:,.2f}")
+        if shares_outstanding is None:
+            return "Shares Outstanding data not found"
+
+        eps_without_nri = (net_income - preferred_dividends - non_recurring_items) / shares_outstanding
+        print(f"eps_without_nri: {eps_without_nri:,.2f}")
+        return eps_without_nri
+
+    except KeyError as e:
+        return f"KeyError: {e}. Data might be missing for {ticker}"
+    except Exception as e:
+        return f"An error occurred: {e}"
+
 
 
 def compute_growth(df: pd.DataFrame, row_name: str, start_date: str, end_date: str):
@@ -59,7 +116,47 @@ def compute_financial_metrics(ticker_symbol: str):
     except Exception:
         cf_data = pd.DataFrame()
 
-    # Get dates for growth calculations.  Assumes columns are sorted chronologically.
+    try:
+        quarterly_balancesheet = ticker.quarterly_balancesheet
+    except Exception:
+        quarterly_balancesheet = pd.DataFrame()
+
+    # Helper function to find the most recent common date between DataFrames
+    def find_most_recent_common_date(*dataframes):
+        """
+        Find the most recent common date (column) across multiple DataFrames.
+        
+        Args:
+            *dataframes: Variable number of pandas DataFrames to compare
+        
+        Returns:
+            str or None: The most recent common date, or None if no common dates exist
+        """
+        # Filter out empty DataFrames
+        valid_dfs = [df for df in dataframes if not df.empty]
+        if not valid_dfs:
+            return None
+            
+        # Find common dates across all DataFrames
+        common_dates = valid_dfs[0].columns
+        for df in valid_dfs[1:]:
+            common_dates = common_dates.intersection(df.columns)
+            
+        if common_dates.empty:
+            return None
+            
+        # Return the most recent date (assuming columns are sorted chronologically)
+        return common_dates[0]
+    
+    # Helper function to get a value from a specific date and row
+    def get_value_for_date(df, row_name, date):
+        """Get a value from a DataFrame for a specific row and date"""
+        try:
+            return df.loc[row_name, date]
+        except Exception:
+            return None
+    
+    # Get dates for growth calculations. Assumes columns are sorted chronologically.
     try:
         dates = bs_data.columns.to_list()
         end_period = dates[0]  # Most recent
@@ -126,8 +223,9 @@ def compute_financial_metrics(ticker_symbol: str):
 
     # 8. Free Cash Flow Yield = Free Cash Flow / Market Cap
     #   Yahoo sometimes provides 'freeCashflow' in .info
+    # fcf_val = get_most_recent(quarterly_balancesheet, "Free Cash Flow")
     fcf_val = info_data.get("freeCashflow", None)
-    mc = info_data.get("marketCap", None)
+    mc = metrics["market_cap"]
     if fcf_val is not None and mc is not None and mc != 0:
         metrics["free_cash_flow_yield"] = fcf_val / mc
     else:
@@ -162,56 +260,84 @@ def compute_financial_metrics(ticker_symbol: str):
     #   ROIC = NOPAT / InvestedCapital
     #   NOPAT ~ Operating Income * (1 - tax_rate), if we have those fields.
     
-    invested_capital = get_most_recent(bs_data, "Invested Capital")
-    operating_income = get_most_recent(fin_data, "Operating Income")
-    tax_rate_for_calcs = get_most_recent(fin_data, "Tax Rate For Calcs")  # Might be None
+    # Find the most recent common date index
+    common_dates = []
+    if quarterly_balancesheet is not None and fin_data is not None:
+        common_dates = quarterly_balancesheet.columns.intersection(fin_data.columns)
 
-    if (invested_capital is not None
-            and operating_income is not None
-            and invested_capital != 0):
-
-        # If we have a direct tax rate, use that; otherwise, try computing from tax provision / pretax income
-        if tax_rate_for_calcs is None:
-            tax_rate_for_calcs = get_next_most_recent(fin_data, "Tax Rate For Calcs")
-
-        if tax_rate_for_calcs is not None:
-            nopat = operating_income * (1 - tax_rate_for_calcs)
-        else:
-            tax_provision = get_most_recent(fin_data, "Tax Provision")
-            pretax_income = get_most_recent(fin_data, "Pretax Income")
-            if tax_provision is not None and pretax_income not in (None, 0):
-                estimated_tax_rate = tax_provision / pretax_income
-                nopat = operating_income * (1 - estimated_tax_rate)
-            else:
-                # Use a default tax rate of 20%
-                nopat = operating_income * (1 - 0.20)
-
-        metrics["return_on_invested_capital"] = nopat / invested_capital
-    else:
+    if common_dates.empty:
         metrics["return_on_invested_capital"] = None
+    else:
+        most_recent_date = common_dates[0]  # Get the most recent common date
+
+        invested_capital = quarterly_balancesheet.get(most_recent_date, {}).get("Invested Capital")
+        operating_income = fin_data.get(most_recent_date, {}).get("Operating Income")
+        tax_rate_for_calcs = fin_data.get(most_recent_date, {}).get("Tax Rate For Calcs")
+
+        if (invested_capital is not None
+                and operating_income is not None
+                and invested_capital != 0):
+
+            if tax_rate_for_calcs is not None:
+                nopat = operating_income * (1 - tax_rate_for_calcs)
+            else:
+                tax_provision = fin_data.get(most_recent_date, {}).get("Tax Provision")
+                pretax_income = fin_data.get(most_recent_date, {}).get("Pretax Income")
+                if tax_provision is not None and pretax_income is not None and pretax_income != 0:
+                    estimated_tax_rate = tax_provision / pretax_income
+                    nopat = operating_income * (1 - estimated_tax_rate)
+                else:
+                    # Use a default tax rate of 20%
+                    nopat = operating_income * (1 - 0.20)
+
+            metrics["return_on_invested_capital"] = nopat / invested_capital
+        else:
+            metrics["return_on_invested_capital"] = None
 
     # 16. Asset Turnover = Total Revenue / Total Assets
     #   We can approximate by using info_data['totalRevenue'] and the most recent 'Total Assets' from balance_sheet
-    total_assets = get_most_recent(bs_data, "Total Assets")
+    total_assets = get_most_recent(quarterly_balancesheet, "Total Assets")
     if total_revenue is not None and total_assets not in (None, 0):
         metrics["asset_turnover"] = total_revenue / total_assets
     else:
         metrics["asset_turnover"] = None
 
     # 17. Inventory Turnover = Cost of Revenue / Inventory (approx for single period)
-    cost_of_revenue = get_most_recent(fin_data, "Cost Of Revenue")
-    inventory = get_most_recent(bs_data, "Inventory")
-    if cost_of_revenue is not None and inventory not in (None, 0):
-        metrics["inventory_turnover"] = cost_of_revenue / inventory
+    # Find most recent common date between fin_data and quarterly_balancesheet
+    common_date = find_most_recent_common_date(fin_data, quarterly_balancesheet)
+    if common_date:
+        cost_of_revenue = get_value_for_date(fin_data, "Cost Of Revenue", common_date)
+        inventory = get_value_for_date(quarterly_balancesheet, "Inventory", common_date)
+        if cost_of_revenue is not None and inventory not in (None, 0):
+            metrics["inventory_turnover"] = cost_of_revenue / inventory
+        else:
+            metrics["inventory_turnover"] = None
     else:
-        metrics["inventory_turnover"] = None
+        # Fallback to the original method if no common date
+        cost_of_revenue = get_most_recent(fin_data, "Cost Of Revenue")
+        inventory = get_most_recent(quarterly_balancesheet, "Inventory")
+        if cost_of_revenue is not None and inventory not in (None, 0):
+            metrics["inventory_turnover"] = cost_of_revenue / inventory
+        else:
+            metrics["inventory_turnover"] = None
 
     # 18. Receivables Turnover = Total Revenue / Accounts Receivable (approx)
-    accounts_receivable = get_most_recent(bs_data, "Accounts Receivable")
-    if total_revenue is not None and accounts_receivable not in (None, 0):
-        metrics["receivables_turnover"] = total_revenue / accounts_receivable
+    common_date = find_most_recent_common_date(fin_data, bs_data)
+    if common_date:
+        total_revenue_date = get_value_for_date(fin_data, "Total Revenue", common_date)
+        accounts_receivable = get_value_for_date(quarterly_balancesheet, "Accounts Receivable", common_date)
+        if total_revenue_date is not None and accounts_receivable not in (None, 0):
+            metrics["receivables_turnover"] = total_revenue_date / accounts_receivable
+        else:
+            metrics["receivables_turnover"] = None
     else:
-        metrics["receivables_turnover"] = None
+        # Fallback to original method
+        total_revenue = info_data.get("totalRevenue", None)
+        accounts_receivable = get_most_recent(bs_data, "Accounts Receivable")
+        if total_revenue is not None and accounts_receivable not in (None, 0):
+            metrics["receivables_turnover"] = total_revenue / accounts_receivable
+        else:
+            metrics["receivables_turnover"] = None
 
     # 19. Days Sales Outstanding = 365 / Receivables Turnover
     rt = metrics["receivables_turnover"]
@@ -232,7 +358,7 @@ def compute_financial_metrics(ticker_symbol: str):
 
     # 21. Working Capital Turnover = Total Revenue / Working Capital
     #   Yahoo has "Working Capital" in balance_sheet
-    working_cap = get_most_recent(bs_data, "Working Capital")
+    working_cap = get_most_recent(quarterly_balancesheet, "Working Capital")
     if total_revenue is not None and working_cap not in (None, 0):
         metrics["working_capital_turnover"] = total_revenue / working_cap
     else:
@@ -244,8 +370,8 @@ def compute_financial_metrics(ticker_symbol: str):
     if "currentRatio" in info_data:
         metrics["current_ratio"] = info_data["currentRatio"]
     else:
-        current_assets = get_most_recent(bs_data, "Current Assets")
-        current_liabilities = get_most_recent(bs_data, "Current Liabilities")
+        current_assets = get_most_recent(quarterly_balancesheet, "Current Assets")
+        current_liabilities = get_most_recent(quarterly_balancesheet, "Current Liabilities")
         if current_assets and current_liabilities not in (None, 0):
             metrics["current_ratio"] = current_assets / current_liabilities
         else:
@@ -256,15 +382,15 @@ def compute_financial_metrics(ticker_symbol: str):
     metrics["quick_ratio"] = info_data.get("quickRatio", None)
 
     # 24. Cash Ratio = (Cash and Cash Equivalents) / Current Liabilities
-    cash_equiv = get_most_recent(bs_data, "Cash And Cash Equivalents")
-    current_liab = get_most_recent(bs_data, "Current Liabilities")
+    cash_equiv = get_most_recent(quarterly_balancesheet, "Cash And Cash Equivalents")
+    current_liab = get_most_recent(quarterly_balancesheet, "Current Liabilities")
     if cash_equiv not in (None, 0) and current_liab not in (None, 0):
         metrics["cash_ratio"] = cash_equiv / current_liab
     else:
         metrics["cash_ratio"] = None
 
     # 25. Operating Cash Flow Ratio = Operating Cash Flow / Current Liabilities
-    ocf = info_data.get("operatingCashflow", None)
+    ocf = get_most_recent(cf_data, "Operating Cash Flow")
     if ocf not in (None, 0) and current_liab not in (None, 0):
         metrics["operating_cash_flow_ratio"] = ocf / current_liab
     else:
@@ -347,9 +473,17 @@ def compute_financial_metrics(ticker_symbol: str):
     eps_val = get_most_recent(fin_data, "Diluted EPS")
     metrics["earnings_per_share"] = eps_val
 
+    # # Alternatively, we might try the following (not recommended):
+    # eps_without_nri = calculate_eps_without_nri(ticker_symbol)
+    # metrics["earnings_per_share_without_nri"] = eps_without_nri
+
+    # average_eps = (eps_val + eps_without_nri) / 2
+    # metrics["average_earnings_per_share"] = average_eps
+
     # 38. Book Value Per Share
     #   From info: 'bookValue' is typically the per share figure on Yahoo
-    metrics["book_value_per_share"] = info_data.get("bookValue", None)
+
+    metrics["book_value_per_share"] = quarterly_balancesheet.loc['Tangible Book Value'].iloc[0]
 
     # 39. Free Cash Flow Per Share
     #   If 'freeCashflow' and 'sharesOutstanding' are available in info, we can compute approximate FCF/share
@@ -399,14 +533,29 @@ def compute_financial_metrics(ticker_symbol: str):
 
     # 52. Total Liabilities
     metrics["total_liabilities"] = get_most_recent(bs_data, "Total Liabilities Net Minority Interest")
-    
+
+    # 53. Tangible Book Value Per Share
+    metrics["tangible_book_value_per_share"] = calculate_tangible_book_value_per_share(ticker_symbol)
 
     return metrics
 
 
 
 if __name__ == "__main__":
-    ticker_symbol = "AAPL"
+    ticker_symbol = "MSFT"
     results = compute_financial_metrics(ticker_symbol)
     for metric_name, value in results.items():
         print(f"{metric_name}: {value}")
+    #
+    # print(f"tangible_book_value_per_share: {calculate_tangible_book_value_per_share(ticker_symbol)}")
+    # book_value_ps = calculate_tangible_book_value_per_share(ticker_symbol)
+    # print(f"eps: {metrics["earnings_per_share"]}")
+    # eps = calculate_eps_without_nri(ticker_symbol)
+
+    # graham_number = math.sqrt(22.5 * eps * book_value_ps)
+    # print(f"graham_number: {graham_number:,.2f}")
+
+    # price_per_share = yf.Ticker(ticker_symbol).info.get("regularMarketPrice", None)
+    # print(f"price_per_share: {price_per_share:,.2f}")
+    
+    

@@ -138,6 +138,11 @@ def analyse_fundamentals(metrics: dict):
 
     max_score += 1 # Increment by the *highest* possible score for this section
 
+    # round all values in metrics to 2 decimal places
+    for key, value in metrics.items():
+        if isinstance(value, float):
+            metrics[key] = round(value, 2)
+
     return {"score": score, "max_score": max_score, "details": "; ".join(reasoning), "metrics": metrics}
 
 
@@ -435,7 +440,7 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
 
 
 if __name__ == "__main__":
-    buffett_analysis_data = calculate_buffett_analysis_data("AAPL", 0.05, 0.09, 12, 10)
+    buffett_analysis_data = calculate_buffett_analysis_data("MSFT", 0.05, 0.09, 12, 10)
     print(buffett_analysis_data)
 
 

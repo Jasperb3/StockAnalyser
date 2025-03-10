@@ -110,7 +110,7 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
         return {"score": score, "max_score": max_score, "details": "Insufficient data for earnings stability analysis"}
     
     # Get EPS data, trying alternative row names if needed
-    eps_vals_df = safe_get_row(financials, "Basic EPS", ["Diluted EPS", "EPS - Earnings Per Share"])
+    eps_vals_df = safe_get_row(financials, "Diluted EPS", ["Basic EPS", "EPS - Earnings Per Share"])
     
     if eps_vals_df is None:
         return {"score": score, "max_score": max_score, "details": "EPS data not available in financial statements"}
@@ -326,7 +326,7 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
     # Extract metrics with safe handling of None/NaN values
     current_assets = metrics.get("current_assets", 0)
     total_liabilities = metrics.get("total_liabilities", 0)
-    book_value_ps = metrics.get("book_value_per_share", 0)
+    book_value_ps = metrics.get("tangible_book_value_per_share", 0)
     eps = metrics.get("earnings_per_share", 0)
     shares_outstanding = metrics.get("shares_outstanding", 0)
     
@@ -505,7 +505,7 @@ def calculate_graham_analysis_data(ticker: str):
 
 
 if __name__ == "__main__":
-    TICKER = "DJT"
+    TICKER = "MSFT"
     graham_analysis_data = calculate_graham_analysis_data(TICKER)
     print(graham_analysis_data)
 

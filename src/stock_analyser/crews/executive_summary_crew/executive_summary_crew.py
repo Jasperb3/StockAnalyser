@@ -2,7 +2,7 @@ import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -109,7 +109,7 @@ class ExecutiveSummaryCrew():
 	def editing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['editing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Executive_Summary.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Executive_Summary.md"
 		)
 
 	@crew

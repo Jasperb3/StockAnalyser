@@ -96,6 +96,12 @@ class MarketIndustryContextModel(BaseModel):
     """
     Defines the scope and structure for the Market & Industry Context section.
     """
+    company_information: str
+    """Example: "Apple Inc. is a technology company that manufactures and sells smartphones, tablets, and computers." """
+
+    management_information: str
+    """Example: "Apple Inc. is managed by Tim Cook, who has been the CEO since 2011." """
+    
     market_overview: Optional[str] = None
     """Example: "The global smartphone market reached $400B in 2023, growing at 8% CAGR." """
     
@@ -335,6 +341,7 @@ class FutureOutlookModel(BaseModel):
         "expected_industry_disruptions": "AI integration changing competitive landscape...",
         "long_term_strategic_initiatives": "5-year roadmap includes healthcare expansion...",
         "macro_trends_impact": "Demographic shifts and digital transformation...",
+        "catalysts_and_triggers": "New product launches, M&A activity, and regulatory changes...",
         "other_outlook_possibilities": "Potential expansion into AR/VR..."
     }
     ```
@@ -347,6 +354,9 @@ class FutureOutlookModel(BaseModel):
     
     macro_trends_impact: Optional[str] = None
     """Example: "Demographic shifts and digital transformation driving demand for connected devices and services." """
+
+    catalysts_and_triggers: Optional[str] = None
+    """Example: "New product launches, M&A activity, and regulatory changes." """
     
     other_outlook_possibilities: Optional[str] = None
     """Example: "Potential expansion into AR/VR hardware, autonomous vehicles, and healthcare devices." """
@@ -527,6 +537,7 @@ class RiskAnalysisModel(BaseModel):
     {
         "market_volatility": "High interest rate sensitivity with beta of 1.2...",
         "regulatory_hurdles": "Antitrust investigations in EU and US...",
+        "esg_risks": "Carbon footprint and supply chain sustainability concerns...",
         "company_specific_issues": "Supply chain concentration in Asia...",
         "other_risks": "Cybersecurity threats and talent retention challenges..."
     }
@@ -537,6 +548,9 @@ class RiskAnalysisModel(BaseModel):
     
     regulatory_hurdles: Optional[str] = None
     """Example: "Antitrust investigations in EU and US markets could impact app store revenue model." """
+
+    esg_risks: Optional[str] = None
+    """Example: "Carbon footprint and supply chain sustainability concerns." """
     
     company_specific_issues: Optional[str] = None
     """Example: "Supply chain concentration in Asia poses geopolitical risk; 70% of manufacturing in single region." """

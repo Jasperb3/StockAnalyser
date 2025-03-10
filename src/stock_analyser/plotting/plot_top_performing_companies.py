@@ -17,7 +17,7 @@ def get_top_performing_companies(ticker: str):
     industry_key = company_ticker.info['industryKey']
     print(f"Industry key: {industry_key}")
 
-    top_performing_companies = yf.Industry(industry_key).get_top_performing_companies()
+    top_performing_companies = yf.Industry(industry_key).top_performing_companies
     print(f"Top performing companies in industry dataframe:\n{top_performing_companies.to_markdown()}")
 
     return top_performing_companies
@@ -161,7 +161,7 @@ def top_performing_dumbbell_chart(ticker: str, output_dir: str, timestamp: str):
 if __name__ == "__main__":
     # TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
     TIMESTAMP = "20250303_120000"
-    PLOTS_DIR = "./plots"
+    PLOTS_DIR = "sandboxing"
     os.makedirs(PLOTS_DIR, exist_ok=True)
     # top_performing_bar_chart("NVDA", PLOTS_DIR, TIMESTAMP)
     top_performing_dumbbell_chart("GOOG", PLOTS_DIR, TIMESTAMP)

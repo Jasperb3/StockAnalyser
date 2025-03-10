@@ -1,7 +1,8 @@
 import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
+from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.utils.models import RiskList, RiskSeverityList
 
@@ -9,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))	
+# google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))	
 
 gemini_pro = LLM(
 	model="gemini/gemini-2.0-pro-exp-02-05",
@@ -67,7 +68,7 @@ class RiskSeverityCrew():
 	def risk_severity_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['risk_severity_agent'],
-			tools=[TrafilaturaWebscrapeTool(), google_search_tool],
+			tools=[TrafilaturaWebscrapeTool(), GeminiSearchTool(), CompanyNewsSearchTool()],
 			llm=gemini_pro,
 			verbose=True,
 			max_iter=5

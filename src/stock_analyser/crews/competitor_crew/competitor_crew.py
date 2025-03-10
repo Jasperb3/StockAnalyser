@@ -1,19 +1,20 @@
 import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.yfinance_competitor_kpis_tool import YFinanceCompetitorKPIsTool
-from stock_analyser.tools.yfinance_competitor_news_tool import YFinanceCompetitorNewsTool
+from stock_analyser.tools.gemini_competitor_news_search_tool import CompetitorNewsSearchTool
 from stock_analyser.tools.yfinance_stock_kpi_tool import YFinanceStockKPITool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
+from stock_analyser.tools.google_search_tool import GoogleSearchTool
 from stock_analyser.utils.models import CompetitorList, CompetitorFinancialData, CompetitorSection
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))	
+google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
 
 gemini_pro = LLM(
 	model="gemini/gemini-2.0-pro-exp-02-05",
@@ -62,9 +63,12 @@ class CompetitorCrew():
 		return Agent(
 			config=self.agents_config['competitor_identifier_agent'],
 			verbose=True,
-			tools=[google_search_tool, TrafilaturaWebscrapeTool()],
-			llm=gpt4_mini,
-			max_rpm=10
+			tools=[
+				GeminiSearchTool(),
+				google_search_tool,
+				TrafilaturaWebscrapeTool()
+			],
+			llm=gpt4_mini
 		)
 
 	@agent
@@ -73,9 +77,8 @@ class CompetitorCrew():
 			config=self.agents_config['competitor_financial_data_agent'],
 			tools=[
 				YFinanceCompetitorKPIsTool(),
-				YFinanceCompetitorNewsTool(),
-				YFinanceStockKPITool(),
-				TrafilaturaWebscrapeTool()
+				CompetitorNewsSearchTool(),
+				YFinanceStockKPITool()
 			],
 			llm=gpt4_mini,
 			verbose=True,
@@ -102,7 +105,7 @@ class CompetitorCrew():
 		return Task(
 			config=self.tasks_config['competitor_financial_data_task'],
 			output_pydantic=CompetitorFinancialData,
-			output_file=f"knowledge/{TIMESTAMP}_competitor_financial_data.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_competitor_financial_data.md"
 		)
 	
 	@task
@@ -110,7 +113,7 @@ class CompetitorCrew():
 		return Task(
 			config=self.tasks_config['competitor_section_writing_task'],
 			output_pydantic=CompetitorSection,
-			output_file=f"knowledge/{TIMESTAMP}_competitor_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_competitor_section.md"
 		)
 
 

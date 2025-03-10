@@ -2,9 +2,9 @@ import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique, FutureOutlookModel
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from crewai_tools import EXASearchTool
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
@@ -12,8 +12,6 @@ from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
 from dotenv import load_dotenv
 
 load_dotenv()
-
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
 
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
@@ -58,8 +56,8 @@ class FutureOutlookCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, knowledge_source=None):
-		self.knowledge_source = knowledge_source
+	def __init__(self, qdrant_tool=None):
+		self.qdrant_tool = qdrant_tool
 
 
 	# ----Agents----#
@@ -69,7 +67,8 @@ class FutureOutlookCrew():
 			config=self.agents_config['researcher'],
 			llm=gpt4_mini,
 			tools=[
-				google_search_tool,
+				self.qdrant_tool,
+				GeminiSearchTool(),
 				YFinanceNewsTool(),
 				exasearch_tool,
 				TavilySearchTool(),
@@ -110,7 +109,7 @@ class FutureOutlookCrew():
 		return Task(
 			config=self.tasks_config['research_task'],
 			output_pydantic=FutureOutlookModel,
-			output_file=f"knowledge/{TIMESTAMP}_Future_Outlook_research.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Future_Outlook_research.md"
 		)
 
 	@task
@@ -130,7 +129,7 @@ class FutureOutlookCrew():
 	def editing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['editing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Future_Outlook_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Future_Outlook_section.md"
 		)
 
 	@crew
@@ -142,13 +141,5 @@ class FutureOutlookCrew():
 			agents=self.agents, # Automatically created by the @agent decorator
 			tasks=self.tasks, # Automatically created by the @task decorator
 			process=Process.sequential,
-			verbose=True,
-			knowledge_sources=[self.knowledge_source] if self.knowledge_source else [],
-			embedder={
-				"provider": "google",
-				"config": {
-					"model": "models/text-embedding-004",
-					"api_key": os.getenv("GEMINI_API_KEY")
-				}
-			}
+			verbose=True
 		)

@@ -2,8 +2,9 @@ import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique, ResearchQuestions, ResearchAnswers
-from stock_analyser.utils.constants import TIMESTAMP
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
+from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
@@ -13,8 +14,6 @@ from stock_analyser.tools.yfinance_financials_tool import YFinanceStockFinancial
 
 from dotenv import load_dotenv
 load_dotenv()
-
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
 
 gemini_pro = LLM(
 	model="gemini/gemini-2.0-pro-exp-02-05",
@@ -74,7 +73,8 @@ class InvestmentRecommendationCrew():
 			llm=gpt4_mini,
 			verbose=True,
 			tools=[
-				google_search_tool,
+				GeminiSearchTool(),
+				CompanyNewsSearchTool(),
 				YFinanceStockKPITool(),
 				YFinanceStockFinancialsTool(),
 				YFinanceNewsTool(),
@@ -139,7 +139,7 @@ class InvestmentRecommendationCrew():
 	def editing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['editing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Investment_Recommendation_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Investment_Recommendation_section.md"
 		)
 
 	@crew

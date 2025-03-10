@@ -44,6 +44,7 @@ research_task:
     - `expected_industry_disruptions`: Analyze emerging technologies, shifting consumer preferences, and other potential disruptions.
     - `long_term_strategic_initiatives`: Analyze R&D investments, partnerships, and other long-term strategic initiatives.
     - `macro_trends_impact`: Analyze the potential impact of interest rate changes, global economic policies, and other macro trends.
+    - `catalysts_and_triggers`: Analyze new product launches, M&A activity, and regulatory changes as potential catalysts and triggers for the company.
     - `other_outlook_possibilities`: Analyze other potential future developments relevant to the company.
     Current date (ISO format): {date_iso}.
   expected_output: >
@@ -64,6 +65,7 @@ writing_task:
     - A subsection for **Expected Industry Disruptions**, presenting the `expected_industry_disruptions`.
     - A subsection for **Long-Term Strategic Initiatives**, presenting the `long_term_strategic_initiatives`.
     - A subsection for **Macro Trends Impact**, presenting the `macro_trends_impact`.
+    - A subsection for **Catalysts and Triggers**, presenting the `catalysts_and_triggers`.
     - A subsection for **Other Outlook Possibilities**, presenting the `other_outlook_possibilities`.
     Each subsection should clearly present the data gathered, along with insightful analysis and context.
     The output must be formatted as markdown without code blocks.

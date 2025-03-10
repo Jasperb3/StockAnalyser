@@ -33,7 +33,7 @@ benjamin_graham_writeup_task:
     Current date: {date_us}
 
     Formatting and Style Guidelines:
-    - Begin with the title: ### Benjamin Graham investment analysis
+    - Begin with the title: ### Benjamin Graham-style investment analysis
     - The section must be formatted in Markdown.
     - Adopt a first-person perspective, writing as if you are Benjamin Graham.
     - Use quotation marks and _italics_ for direct quotes.

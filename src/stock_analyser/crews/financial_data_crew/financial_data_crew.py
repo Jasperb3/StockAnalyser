@@ -3,7 +3,7 @@ from pathlib import Path
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique, FinancialData
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.tools.calculator_tool import CalculatorTool
 from stock_analyser.tools.yfinance_cash_flow_tool import YFinanceStockCashFlowTool
 from stock_analyser.tools.yfinance_balance_sheet_tool import YFinanceStockBalanceSheetTool
@@ -58,8 +58,8 @@ class FinancialDataCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, knowledge_source=None):
-		self.knowledge_source = knowledge_source
+	def __init__(self, qdrant_tool=None):
+		self.qdrant_tool = qdrant_tool
 
 
 	# ----Agents----#
@@ -69,6 +69,12 @@ class FinancialDataCrew():
 			config=self.agents_config['researcher'],
 			llm=gpt4_mini,
 			tools=[
+
+				# Add Qdrant tool if available
+
+				self.qdrant_tool,
+
+				
 				YFinanceStockKPITool(),
 				YFinanceIncomeTool(),
 				YFinanceStockCashFlowTool(),
@@ -92,6 +98,36 @@ class FinancialDataCrew():
 					),
 					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
 				)
+			
+
+			] if self.qdrant_tool else [
+
+				
+				YFinanceStockKPITool(),
+				YFinanceIncomeTool(),
+				YFinanceStockCashFlowTool(),
+				YFinanceStockBalanceSheetTool(),
+				YFinanceStockFinancialsTool(),
+				CalculatorTool(),
+				FilingsSearchTool(
+					config=dict(
+						llm=dict(
+							provider="google",
+							config=dict(
+								model="gemini/gemini-2.0-pro-exp-02-05"
+							),
+						),
+						embedder={
+							"provider": "google",
+							"config": {
+								"model": "models/text-embedding-004"
+							}
+						}
+					),
+					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
+				)
+			
+
 			],
 			verbose=True,
 			max_iter=10,
@@ -128,7 +164,7 @@ class FinancialDataCrew():
 		return Task(
 			config=self.tasks_config['comprehensive_financial_analysis_task'],
 			output_pydantic=FinancialData,
-			output_file=f"knowledge/{TIMESTAMP}_Financial_Data_complete.md",
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Financial_Data_complete.md",
 		)
 
 	@task
@@ -148,7 +184,7 @@ class FinancialDataCrew():
 	def editing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['editing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Financial_Data_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Financial_Data_section.md"
 		)
 
 	@crew
@@ -159,13 +195,5 @@ class FinancialDataCrew():
 			agents=self.agents, # Automatically created by the @agent decorator
 			tasks=self.tasks, # Automatically created by the @task decorator
 			process=Process.sequential,
-			verbose=True,
-			knowledge_sources=[self.knowledge_source] if self.knowledge_source else [],
-			embedder={
-				"provider": "google",
-				"config": {
-					"model": "models/text-embedding-004",
-					"api_key": os.getenv("GEMINI_API_KEY")
-				}
-			}
+			verbose=True
 		)

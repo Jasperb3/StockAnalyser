@@ -1,9 +1,8 @@
 import os
-from pathlib import Path
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ExpertAnalystSignal
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.tools.yfinance_buffett_analysis_tool import YFinanceBuffettAnalysisTool
 
 from dotenv import load_dotenv
@@ -51,9 +50,6 @@ class WarrenBuffetCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, knowledge_source=None):
-		self.knowledge_source = knowledge_source
-
 
 	@agent
 	def warren_buffet_agent(self) -> Agent:
@@ -86,7 +82,7 @@ class WarrenBuffetCrew():
 	def warren_buffet_writeup_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['warren_buffet_writeup_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Warren_Buffet_writeup.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Warren_Buffet_writeup.md"
 		)
 	
 
@@ -99,13 +95,5 @@ class WarrenBuffetCrew():
 			agents=self.agents, # Automatically created by the @agent decorator
 			tasks=self.tasks, # Automatically created by the @task decorator
 			process=Process.sequential,
-			verbose=True,
-			knowledge_sources=[self.knowledge_source] if self.knowledge_source else [],
-			embedder={
-				"provider": "google",
-				"config": {
-					"model": "models/text-embedding-004",
-					"api_key": os.getenv("GEMINI_API_KEY")
-				}
-			}
+			verbose=True
 		)

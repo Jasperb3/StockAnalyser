@@ -48,17 +48,19 @@ research_task:
 
     Gather data and insights on the market and industry to populate the `MarketIndustryContextModel`.
     Focus on gathering information for the following fields:
+    - `company_information`: Topline information about the company.
+    - `management_information`: Information about the company's management, especially its CEO or equivalent.
     - `market_overview`: Overall market size and current conditions.
+    - `macroeconomic_factors`: Current economic trends (e.g., interest rates, inflation) and geopolitical factors impacting the industry.
+    - `regulatory_environment`: Key regulations and policies impacting the industry.
     - `industry_trends`: Key trends shaping the industry.
     - `industry_growth_forecasts`: Projections for industry growth, including size and demand drivers.
     - `industry_leaders`: Information about the industry leaders.
     - `competitor_landscape`: Market share and product differentiation strategies of key competitors.
-    - `macroeconomic_factors`: Current economic trends (e.g., interest rates, inflation) and geopolitical factors impacting the industry.
-    - `regulatory_environment`: Key regulations and policies impacting the industry.
 
     Use your tools and knowledge source to gather information on market size, demand drivers, market share of key competitors, and product differentiation strategies.
   expected_output: >
-    A `MarketIndustryContextModel` Pydantic model with the `market_overview`, `industry_trends`, `industry_growth_forecasts`, `competitor_landscape`, `macroeconomic_factors`, and `regulatory_environment` fields populated.
+    A `MarketIndustryContextModel` Pydantic model with the `company_information`, `management_information`, `market_overview`, `macroeconomic_factors`, `regulatory_environment`, `industry_trends`, `industry_growth_forecasts`, `industry_leaders`, and `competitor_landscape` fields populated.
   agent: researcher
 
 writing_task:
@@ -71,13 +73,15 @@ writing_task:
   expected_output: >
     A complete draft of the "Market & Industry Context" section, including:
     - An introduction to the section.
+    - A subsection for **Company Information**, presenting the `company_information`.
+    - A subsection for **Management Information**, presenting the `management_information`.
     - A subsection for **Market Overview**, presenting the `market_overview`.
+    - A subsection for **Macroeconomic Factors**, presenting the `macroeconomic_factors`.
+    - A subsection for **Regulatory Environment**, presenting the `regulatory_environment`.
     - A subsection for **Industry Trends**, presenting the `industry_trends`.
     - A subsection for **Industry Growth Forecasts**, presenting the `industry_growth_forecasts`.
     - A subsection for **Industry Leaders**, presenting the `industry_leaders`.
     - A subsection for **Competitor Landscape**, presenting the `competitor_landscape`.
-    - A subsection for **Macroeconomic Factors**, presenting the `macroeconomic_factors`.
-    - A subsection for **Regulatory Environment**, presenting the `regulatory_environment`.
     Each subsection should clearly present the data gathered, along with insightful analysis and context.
     The output must be formatted as markdown without code blocks. Don't use emojis.
     Begin the section with the title: ## Market & Industry Context

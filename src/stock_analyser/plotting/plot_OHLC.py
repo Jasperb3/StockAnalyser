@@ -13,12 +13,11 @@ def plot_OHLC(ticker: str):
     company = yf.Ticker(ticker)
 
     end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=35)).strftime("%Y-%m-%d")
 
     historical_data = company.history(start=start_date, end=end_date)
 
     output_path = f"/home/j/ai/crewAI/finance/stock_analyser/sandboxing/OHLC_{ticker}_{start_date}_{end_date}.png"
-
 
     mystyle=mpf.make_mpf_style(rc={'figure.titlesize': 48})
 
@@ -29,11 +28,11 @@ def plot_OHLC(ticker: str):
         mav=(5, 30),
         figratio=(16, 9),
         figscale=2.0,
-        title=f'{ticker} OHLC Chart for the last 30 days',
+        title=f'{ticker} OHLC 30 days',
         ylabel='Price ($)',
         volume=True,
         savefig=output_path,
-        show_nontrading=True,
+        # show_nontrading=True,
         tight_layout=True,
         scale_padding=dict(left=0.0, right=0.0, top=5.0, bottom=0.0),
         returnfig=True

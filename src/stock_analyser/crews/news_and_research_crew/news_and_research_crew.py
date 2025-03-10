@@ -2,17 +2,16 @@ import os
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import NewsAndResearchModel
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from crewai_tools import EXASearchTool
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
 from dotenv import load_dotenv
 
 load_dotenv()
-
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
 
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
@@ -68,7 +67,8 @@ class NewsAndResearchCrew():
 				TavilySearchTool(),
 				TrafilaturaWebscrapeTool(),
 				exasearch_tool,
-				google_search_tool,
+				GeminiSearchTool(),
+				CompanyNewsSearchTool(),
 				YFinanceNewsTool(),
 			],
 			verbose=True,
@@ -91,14 +91,14 @@ class NewsAndResearchCrew():
 		return Task(
 			config=self.tasks_config['research_task'],
 			output_pydantic=NewsAndResearchModel,
-			output_file=f"knowledge/{TIMESTAMP}_News_and_Research_research.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_News_and_Research_research.md"
 		)
 
 	@task
 	def writing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['writing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_News_and_Research_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_News_and_Research_section.md"
 		)
 
 	@crew

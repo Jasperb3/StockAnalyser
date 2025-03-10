@@ -17,8 +17,6 @@ from .utils.decorators import timeit
 from .utils.constants import TIMESTAMP, OUTPUT_DIR, PLOTS_DIR, KNOWLEDGE_DIR
 
 from crewai.flow.flow import Flow, listen, start
-from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
-
 from .crews.news_and_research_crew.news_and_research_crew import NewsAndResearchCrew
 from .crews.market_and_industry_crew.market_and_industry_crew import MarketAndIndustryCrew
 from .crews.competitor_crew.competitor_crew import CompetitorCrew
@@ -37,19 +35,19 @@ from .crews.executive_summary_crew.executive_summary_crew import ExecutiveSummar
 from .crews.conclusion_crew.conclusion_crew import ConclusionCrew
 from .crews.gmail_crew.gmail_crew import GmailCrew
 
-
 beginning_time = time.time()
-
 
 class ReportFlow(Flow[ReportState]):
     knowledge_source = None
+    qdrant_tool = None
+    setup_instance = None  # Class variable to store the Setup instance
 
 
     @timeit
     @start()
     def confirm_company_stock(self):
         while True:
-            self.state.company_ticker = input("\n\033[1;34mEnter the stock ticker symbol of the company you want to analyse or hint 'ENTER' for a random ticker:\033[0m ").strip().upper()
+            self.state.company_ticker = input("\n\033[1;34mEnter the stock ticker symbol of the company you want to analyse or hit 'ENTER' for a random ticker:\033[0m ").strip().upper()
             if self.state.company_ticker == "":
                 while True:
                     self.state.company_ticker = random.choice(tickers)
@@ -78,27 +76,29 @@ class ReportFlow(Flow[ReportState]):
 
     @timeit
     @listen(confirm_company_stock)
-    def set_up_dirs(self):
+    def set_up(self):
+        # Create a Setup instance and store it as a class variable
+        ReportFlow.setup_instance = Setup(self.state)
 
-        setup = Setup(self.state)
-
-        setup.check_knowledge_dir()
-        setup.download_filings()
-        setup.download_financial_data()
-
-        print("Creating knowledge source...")
-
-        md_files = [str(f.name) for f in KNOWLEDGE_DIR.glob("*.md")]
-
-        if not md_files:
-            print("⚠️ No .md files found in knowledge directory after downloading filings")
-
-        ReportFlow.knowledge_source = TextFileKnowledgeSource(file_paths=md_files)
-        print("Knowledge source created ✅\n")
+        ReportFlow.setup_instance.check_knowledge_dir()
+        ReportFlow.setup_instance.download_filings()
+        ReportFlow.setup_instance.download_financial_data()
+        
+        # Set up Qdrant vector search
+        qdrant_setup_success = ReportFlow.setup_instance.setup_qdrant_vector_search()
+        
+        if qdrant_setup_success and ReportFlow.setup_instance.qdrant_tool:
+            print("Using Qdrant vector search tool from setup ✅\n")
+            # Store the qdrant_tool from setup
+            ReportFlow.qdrant_tool = ReportFlow.setup_instance.qdrant_tool
+        else:
+            print("⚠️ Failed to set up Qdrant vector search.")
+            print("⚠️ Please check QDRANT_CLUSTER_URL, QDRANT_API_KEY, and GEMINI_API_KEY environment variables.")
+            print("⚠️ Also verify that the Qdrant server is running and accessible.")
 
 
     @timeit
-    @listen(set_up_dirs)
+    @listen(set_up)
     def generate_news_and_research_section(self):
         print("Generating news and research section...")
 
@@ -120,6 +120,10 @@ class ReportFlow(Flow[ReportState]):
         print("News and research section generated ✅")
         print(f"🪙 Number of tokens used: {news_and_research_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += news_and_research_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -137,7 +141,7 @@ class ReportFlow(Flow[ReportState]):
         }
 
         market_and_industry_section = (
-            MarketAndIndustryCrew(knowledge_source=ReportFlow.knowledge_source)
+            MarketAndIndustryCrew(qdrant_tool=ReportFlow.qdrant_tool)
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -146,6 +150,10 @@ class ReportFlow(Flow[ReportState]):
         print("Market and industry section generated ✅")
         print(f"🪙 Number of tokens used: {market_and_industry_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += market_and_industry_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -194,10 +202,27 @@ class ReportFlow(Flow[ReportState]):
             self.state.competitor_landscape_section += f"\n\n### Competitor Prices\n![Competitor Price Plot]({competitor_prices_plot})"
         else:
             print("❌ Competitor prices plot not generated. Skipping...")
+            
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
     @listen(generate_competitor_landscape_section)
+    def plot_OHLC_30_days(self):
+        print("Plotting OHLC 30 days...")
+
+        try:
+            ohlc_30_days_plot = plot_OHLC(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+            print(f"📊 OHLC 30 days plot saved to {ohlc_30_days_plot}\n")
+            self.state.competitor_landscape_section += f"\n\n### {self.state.company_name} OHLC for the last 30 days\n![OHLC 30 days Plot]({ohlc_30_days_plot})"
+        except Exception as e:
+            print(f"❌ Error plotting OHLC 30 days: {str(e)}")
+
+
+    @timeit
+    @listen(plot_OHLC_30_days)
     def generate_financial_data_section(self):
         print("Generating financial data section...")
 
@@ -211,7 +236,7 @@ class ReportFlow(Flow[ReportState]):
         }
 
         financial_data_section = (
-            FinancialDataCrew(knowledge_source=ReportFlow.knowledge_source)
+            FinancialDataCrew(qdrant_tool=ReportFlow.qdrant_tool)
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -220,23 +245,14 @@ class ReportFlow(Flow[ReportState]):
         print("Financial data section generated ✅")
         print(f"🪙 Number of tokens used: {financial_data_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += financial_data_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
     @listen(generate_financial_data_section)
-    def plot_OHLC_30_days(self):
-        print("Plotting OHLC 30 days...")
-
-        try:
-            ohlc_30_days_plot = plot_OHLC(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
-            print(f"📊 OHLC 30 days plot saved to {ohlc_30_days_plot}\n")
-            self.state.financial_data_section += f"\n\n**Open, High, Low, Close (OHLC) Chart for the last 30 days of prices**\n![OHLC 30 days Plot]({ohlc_30_days_plot})"
-        except Exception as e:
-            print(f"❌ Error plotting OHLC 30 days: {str(e)}")
-
-
-    @timeit
-    @listen(plot_OHLC_30_days)
     def generate_analyst_insights_section(self):
         print("Generating analyst insights section...")
 
@@ -250,7 +266,7 @@ class ReportFlow(Flow[ReportState]):
         }
 
         analyst_insights_section = (
-            AnalystInsightsCrew(knowledge_source=ReportFlow.knowledge_source)
+            AnalystInsightsCrew(qdrant_tool=ReportFlow.qdrant_tool)
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -259,6 +275,10 @@ class ReportFlow(Flow[ReportState]):
         print("Analyst insights section generated ✅")
         print(f"🪙 Number of tokens used: {analyst_insights_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += analyst_insights_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -299,6 +319,10 @@ class ReportFlow(Flow[ReportState]):
         print("Warren Buffet section generated ✅")
         print(f"🪙 Number of tokens used: {warren_buffet_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += warren_buffet_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -322,7 +346,10 @@ class ReportFlow(Flow[ReportState]):
         print("Cathie Wood section generated ✅")
         print(f"🪙 Number of tokens used: {cathie_wood_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += cathie_wood_section.token_usage.total_tokens
-
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
         time.sleep(30)
         for remaining in range(30, 0, -1):
@@ -352,7 +379,10 @@ class ReportFlow(Flow[ReportState]):
         print("Benjamin Graham section generated ✅")
         print(f"🪙 Number of tokens used: {benjamin_graham_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += benjamin_graham_section.token_usage.total_tokens
-
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
         time.sleep(30)
         for remaining in range(30, 0, -1):
@@ -382,6 +412,10 @@ class ReportFlow(Flow[ReportState]):
         print("Charlie Munger section generated ✅")
         print(f"🪙 Number of tokens used: {charlie_munger_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += charlie_munger_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
         time.sleep(30)
         for remaining in range(30, 0, -1):
@@ -411,6 +445,10 @@ class ReportFlow(Flow[ReportState]):
         print("Bill Ackman section generated ✅")
         print(f"🪙 Number of tokens used: {bill_ackman_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += bill_ackman_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -428,7 +466,7 @@ class ReportFlow(Flow[ReportState]):
         }
 
         risk_analysis_section = (
-            RiskAnalysisCrew(knowledge_source=ReportFlow.knowledge_source)
+            RiskAnalysisCrew(qdrant_tool=ReportFlow.qdrant_tool)
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -437,6 +475,10 @@ class ReportFlow(Flow[ReportState]):
         print("Risk analysis section generated ✅")
         print(f"🪙 Number of tokens used: {risk_analysis_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += risk_analysis_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -466,9 +508,6 @@ class ReportFlow(Flow[ReportState]):
         except Exception as e:
             print(f"❌ Error plotting risk severity: {str(e)}")
 
-        print(f"🪙 Number of tokens used: {identified_risks.token_usage.total_tokens:,}")
-        self.state.total_token_usage += identified_risks.token_usage.total_tokens
-
 
     @timeit
     @listen(generate_risk_analysis_section)
@@ -485,7 +524,7 @@ class ReportFlow(Flow[ReportState]):
         }
 
         future_outlook_section = (
-            FutureOutlookCrew(knowledge_source=ReportFlow.knowledge_source)
+            FutureOutlookCrew(qdrant_tool=ReportFlow.qdrant_tool)
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -494,6 +533,10 @@ class ReportFlow(Flow[ReportState]):
         print("Future outlook section generated ✅")
         print(f"🪙 Number of tokens used: {future_outlook_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += future_outlook_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -531,6 +574,10 @@ class ReportFlow(Flow[ReportState]):
         print("Investment recommendations section generated ✅")
         print(f"🪙 Number of tokens used: {investment_recommendations_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += investment_recommendations_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -551,8 +598,8 @@ class ReportFlow(Flow[ReportState]):
         {self.state.bill_ackman_section}
         {self.state.risk_analysis_section}
         {self.state.news_and_research_section}
-        {self.state.investment_recommendations_section}
         {self.state.future_outlook_section}
+        {self.state.investment_recommendations_section}
         """
 
         inputs = {
@@ -575,6 +622,10 @@ class ReportFlow(Flow[ReportState]):
         print("Executive summary generated ✅")
         print(f"🪙 Number of tokens used: {executive_summary.token_usage.total_tokens:,}")
         self.state.total_token_usage += executive_summary.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -602,8 +653,8 @@ class ReportFlow(Flow[ReportState]):
         report = f"""
         {self.state.executive_summary}
         {self.state.market_and_industry_section}
-        {self.state.financial_data_section}
         {self.state.competitor_landscape_section}
+        {self.state.financial_data_section}
         {self.state.analyst_insights_section}
         {self.state.warren_buffet_section}
         {self.state.cathie_wood_section}
@@ -612,8 +663,8 @@ class ReportFlow(Flow[ReportState]):
         {self.state.bill_ackman_section}
         {self.state.risk_analysis_section}
         {self.state.news_and_research_section}
-        {self.state.investment_recommendations_section}
         {self.state.future_outlook_section}
+        {self.state.investment_recommendations_section}
         """
 
         inputs = {
@@ -633,6 +684,10 @@ class ReportFlow(Flow[ReportState]):
         print("Conclusion generated ✅")
         print(f"🪙 Number of tokens used: {conclusion.token_usage.total_tokens:,}")
         self.state.total_token_usage += conclusion.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -654,8 +709,8 @@ class ReportFlow(Flow[ReportState]):
             f.write(f"{intro}\n\n")
             f.write(f"{self.state.executive_summary}\n\n")
             f.write(f"{self.state.market_and_industry_section}\n\n")
-            f.write(f"{self.state.financial_data_section}\n\n")
             f.write(f"{self.state.competitor_landscape_section}\n\n")
+            f.write(f"{self.state.financial_data_section}\n\n")
             f.write(f"{self.state.analyst_insights_section}\n\n")
             f.write(f"{self.state.warren_buffet_section}\n\n")
             f.write(f"{self.state.cathie_wood_section}\n\n")
@@ -663,12 +718,16 @@ class ReportFlow(Flow[ReportState]):
             f.write(f"{self.state.charlie_munger_section}\n\n")
             f.write(f"{self.state.bill_ackman_section}\n\n")
             f.write(f"{self.state.risk_analysis_section}\n\n")
-            f.write(f"{self.state.investment_recommendations_section}\n\n")
-            f.write(f"{self.state.future_outlook_section}\n\n")
             f.write(f"{self.state.news_and_research_section}\n\n")
+            f.write(f"{self.state.future_outlook_section}\n\n")
+            f.write(f"{self.state.investment_recommendations_section}\n\n")
             f.write(f"{self.state.conclusion}\n\n")
 
         print(f"Report saved to {report_path} ✅\n")
+        
+        # Final processing of any new markdown files
+        if ReportFlow.setup_instance:
+            ReportFlow.setup_instance.process_new_markdown_files()
         
         return report_path
 

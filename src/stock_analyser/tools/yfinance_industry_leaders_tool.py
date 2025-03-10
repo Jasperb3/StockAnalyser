@@ -12,14 +12,14 @@ class YFinanceIndustryLeadersToolInput(BaseModel):
 # Define the tool class
 class YFinanceIndustryLeadersTool(BaseTool):
     name: str = "YFinance Industry Leaders Tool"
-    description: str = "Fetches information about the industry leaders for a given ticker using yfinance."
+    description: str = "Fetches information about the leading companies in an industry for a given ticker using yfinance."
     args_schema: Type[BaseModel] = YFinanceIndustryLeadersToolInput
 
     def _run(self, ticker: str) -> str:
         """
-        Fetches the industry leaders for a given ticker using yfinance.
+        Fetches info on the leading companies in an industry for a given ticker using yfinance.
         :param ticker: Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)
-        :return: A string containing information about the leaders of the industry to which the ticker belongs.
+        :return: A string containing information about the leading companies in the industry to which the ticker belongs.
         """
         # Fetch the stock data
         stock = yf.Ticker(ticker)

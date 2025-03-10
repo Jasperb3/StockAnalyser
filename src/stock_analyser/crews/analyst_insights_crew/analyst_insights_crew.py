@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
-from stock_analyser.utils.constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.utils.models import ReportCritique, AnalystsInsightsModel
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import EXASearchTool
 from stock_analyser.tools.calculator_tool import CalculatorTool
-from stock_analyser.tools.google_search_tool import GoogleSearchTool
+from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.filings_search_tool import FilingsSearchTool
 from stock_analyser.tools.yfinance_analysis_and_holdings_tool import YFinanceAnalysisAndHoldingsTool
 from stock_analyser.tools.yfinance_income_tool import YFinanceIncomeTool
@@ -14,8 +14,6 @@ from stock_analyser.tools.yfinance_income_tool import YFinanceIncomeTool
 from dotenv import load_dotenv
 
 load_dotenv()
-
-google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
 
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
@@ -61,8 +59,8 @@ class AnalystInsightsCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, knowledge_source=None):
-		self.knowledge_source = knowledge_source
+	def __init__(self, qdrant_tool=None):
+		self.qdrant_tool = qdrant_tool
 
 
 	@agent
@@ -71,9 +69,15 @@ class AnalystInsightsCrew():
 			config=self.agents_config['researcher'],
 			llm=gpt4_mini,
 			tools=[
+
+				# Add Qdrant tool if available
+
+				self.qdrant_tool,
+
+				
 				YFinanceAnalysisAndHoldingsTool(),
 				YFinanceIncomeTool(),
-				google_search_tool,
+				GeminiSearchTool(),
 				CalculatorTool(),
 				FilingsSearchTool(
 					config=dict(
@@ -92,6 +96,34 @@ class AnalystInsightsCrew():
 					),
 					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
 				)
+			
+
+			] if self.qdrant_tool else [
+
+				
+				YFinanceAnalysisAndHoldingsTool(),
+				YFinanceIncomeTool(),
+				GeminiSearchTool(),
+				CalculatorTool(),
+				FilingsSearchTool(
+					config=dict(
+						llm=dict(
+							provider="google",
+							config=dict(
+								model="gemini/gemini-2.0-pro-exp-02-05"
+							),
+						),
+						embedder={
+							"provider": "google",
+							"config": {
+								"model": "models/text-embedding-004"
+							}
+						}
+					),
+					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
+				)
+			
+
 			],
 			verbose=True,
 			max_iter=7,
@@ -127,7 +159,7 @@ class AnalystInsightsCrew():
 	def research_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['research_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Analyst_Insights_research.md",
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Analyst_Insights_research.md",
 			output_pydantic=AnalystsInsightsModel
 		)
 
@@ -148,7 +180,7 @@ class AnalystInsightsCrew():
 	def editing_task(self) -> Task:
 		return Task(
 			config=self.tasks_config['editing_task'],
-			output_file=f"knowledge/{TIMESTAMP}_Analyst_Insights_section.md"
+			output_file=f"{REL_KNOW_DIR}/{TIMESTAMP}_Analyst_Insights_section.md"
 		)
 
 	@crew
@@ -160,13 +192,5 @@ class AnalystInsightsCrew():
 			agents=self.agents, # Automatically created by the @agent decorator
 			tasks=self.tasks, # Automatically created by the @task decorator
 			process=Process.sequential,
-			verbose=True,
-			knowledge_sources=[self.knowledge_source] if self.knowledge_source else [],
-			embedder={
-				"provider": "google",
-				"config": {
-					"model": "models/text-embedding-004",
-					"api_key": os.getenv("GEMINI_API_KEY")
-				}
-			}
+			verbose=True
 		)

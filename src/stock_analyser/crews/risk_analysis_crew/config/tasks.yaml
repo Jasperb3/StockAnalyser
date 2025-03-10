@@ -16,7 +16,8 @@ research_task:
     Focus on gathering information for the following fields:
     - `market_volatility`: Analyze current market conditions and identify potential volatility risks.
     - `regulatory_hurdles`: Identify and analyze regulatory challenges and their potential impact.
-    - `company_specific_issues`: Analyze company-specific risks, such as operational, financial, or strategic risks.
+    - `company_specific_issues`: Search the company's SEC 10-Q and 10-K filings for specific operational, financial, or strategic risks that could materially impact future stock performance.
+    - `esg_risks`: Identify and analyze any ESG risks that could impact the company's future stock performance.
     - `other_risks`: Identify and analyze any other relevant risks not covered in the previous categories.
     Use your tools and knowledge source to gather information on each risk, including specific examples, data, and potential consequences.
   expected_output: >
@@ -36,6 +37,7 @@ writing_task:
     - A subsection for **Market Volatility**, presenting the `market_volatility`.
     - A subsection for **Regulatory Hurdles**, presenting the `regulatory_hurdles`.
     - A subsection for **Company-Specific Issues**, presenting the `company_specific_issues`.
+    - A subsection for **ESG Risks**, presenting the `esg_risks`.
     - A subsection for **Other Risks**, presenting the `other_risks`.
     Each subsection should clearly present the data gathered, along with insightful analysis and context, including proposed mitigation strategies or actions investors might consider.
     The output must be formatted as markdown without code blocks.

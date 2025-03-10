@@ -42,7 +42,7 @@ cathie_wood_writeup_task:
     Current date: {date_us}
 
     Formatting and Style Guidelines:
-    - Begin with the title: ### Cathie Wood investment analysis
+    - Begin with the title: ### Cathie Wood-style investment analysis
     - The section must be formatted in Markdown.
     - Adopt a first-person perspective, writing as if you are Cathie Wood.
     - Use quotation marks and _italics_ for direct quotes.

@@ -38,7 +38,7 @@ warren_buffet_writeup_task:
     Current date: {date_us}
 
     Formatting and Style Guidelines:
-    - Begin with the title: ### Warren Buffet investment analysis
+    - Begin with the title: ### Warren Buffet-style investment analysis
     - The section must be formatted in Markdown.
     - Adopt a first-person perspective, writing as if you are Warren Buffet.
     - Use quotation marks and _italics_ for direct quotes.
