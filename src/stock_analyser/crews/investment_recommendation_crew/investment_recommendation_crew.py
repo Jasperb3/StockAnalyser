@@ -1,52 +1,14 @@
-import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique, ResearchQuestions, ResearchAnswers
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL, EXPERT_MODEL
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
-from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
-from stock_analyser.tools.tavily_search import TavilySearchTool
-from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
-from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
-from stock_analyser.tools.yfinance_stock_kpi_tool import YFinanceStockKPITool
-from stock_analyser.tools.yfinance_financials_tool import YFinanceStockFinancialsTool
-
+from stock_analyser.tools.yfinance_swing_trading_tool import YFinanceSwingTradingTool
 
 from dotenv import load_dotenv
+
 load_dotenv()
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 
 @CrewBase
@@ -62,7 +24,7 @@ class InvestmentRecommendationCrew():
 	def planner(self) -> Agent:
 		return Agent(
 			config=self.agents_config['planner'],
-			llm=gemini_pro,
+			llm=EXPERT_MODEL,
 			verbose=True
 		)
 
@@ -70,16 +32,11 @@ class InvestmentRecommendationCrew():
 	def researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['researcher'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			verbose=True,
 			tools=[
 				GeminiSearchTool(),
-				CompanyNewsSearchTool(),
-				YFinanceStockKPITool(),
-				YFinanceStockFinancialsTool(),
-				YFinanceNewsTool(),
-				TrafilaturaWebscrapeTool(),
-				TavilySearchTool()
+				YFinanceSwingTradingTool()
 			],
 			max_iter=10
 		)
@@ -88,7 +45,7 @@ class InvestmentRecommendationCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_thinking,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 
@@ -96,7 +53,7 @@ class InvestmentRecommendationCrew():
 	def critic(self) -> Agent:
 		return Agent(
 			config=self.agents_config['critic'],
-			llm=gemini_pro,
+			llm=CRITIC_MODEL,
 			verbose=True
 		)
 
@@ -104,7 +61,7 @@ class InvestmentRecommendationCrew():
 	def editor(self) -> Agent:
 		return Agent(
 			config=self.agents_config['editor'],
-			llm=gemini_pro,
+			llm=EDITOR_MODEL,
 			verbose=True
 		)
 

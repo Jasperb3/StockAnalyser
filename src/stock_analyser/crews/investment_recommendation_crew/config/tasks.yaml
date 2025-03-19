@@ -26,19 +26,19 @@ planning_task:
     - {risk_analysis_section}
     - {future_outlook_section}
 
-    Then write a comprehensive research plan with maximum 5 prioritized research questions addressing information not already present in the report, for example:
-    - valuation_factors: valuation metrics (P/E, P/S, P/B, etc.) compared to industry peers
-    - fundamental_assessment: company's fundamental strengths and weaknesses (competitive advantages, management quality, etc.)
-    - market_outlook: market trends and outlook for the company's industry
-    - potential_catalysts: potential catalysts that could impact the stock price (product launches, regulatory changes, etc.)
-    - technical_considerations: stock's technical indicators, support/resistance levels, and potential entry/exit points
-    - other_recommendations: any other relevant recommendations, such as a staged buying approach
+    Then, formulate prioritized research questions to guide the investment decision. Consider these areas:
+    - Valuation: How do the company's valuation metrics (P/E, P/S, P/B, Revenue Growth, Net Margin, ROE, PSR) compare to those of its competitors?
+    - Fundamentals: What are the company's core strengths and weaknesses (e.g., competitive advantages, management quality)?
+    - Market Outlook: What are the prevailing market trends and outlook for the company's industry, and how might they affect the company?
+    - Catalysts: What potential catalysts (e.g., product launches, regulatory changes) could significantly impact the stock price?
+    - Technical Analysis: What do the stock's technical indicators, support/resistance levels, and chart patterns suggest about potential entry/exit points?
+    - Additional Considerations: Are there any other pertinent factors to consider, such as a staged buying approach or specific risk mitigation strategies?
 
     The research questions should be specific, actionable, and relevant to the report's contents.
     Don't ask about information that is already present in the report.
     
   expected_output: >
-    A structured research plan with up to 5 prioritized research questions to supplement the report and inform the investment recommendation.
+    A structured research plan with prioritized research questions to supplement the report and inform the investment recommendation.
     Output in a `ResearchQuestions` Pydantic model.
   agent: planner
 
@@ -56,11 +56,10 @@ research_task:
 
     Current date (ISO format): {date_iso}.
 
-    Use the tools you have available to you to gather information in answer to the research questions provided to you.
+    Refer to the content of the report and use the tools you have available to you to gather information in answer to the research questions.
 
     Provide the answers to the research questions in the `ResearchAnswers` Pydantic model.
     
-
   expected_output: >
     A structured set of self-contained answers to each of the research questions, crafted for contextual independence.
     Output in the `ResearchAnswers` Pydantic model.
@@ -68,36 +67,45 @@ research_task:
 
 writing_task:
   description: >
-    Draft the "Investment Recommendation" section based on the report's contents and the supplementary research provided to you.
-    Clearly and emphatically state a Buy, Sell, or Hold recommendation, supported by an evidence-based rationale and justification.
-    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    Craft a compelling and easily understandable narrative for the "Investment Recommendation" section based on the report's contents and the supplementary research provided to you.
+    Clearly and emphatically state a BUY, SELL, or HOLD recommendation, supported by an evidence-based rationale and justified by the research provided.
+    While avoiding repetition of existing report content, leverage the report's information to substantiate your recommendation.
     
-    Here is the full report:
+    Here is the full report to draw on:
     - {market_and_industry_section}
     - {competitor_landscape_section}  
     - {financial_data_section}
+    - {trends_section}
     - {analyst_insights_section}
     - {warren_buffet_section}
     - {cathie_wood_section}
+    - {stanley_druckenmiller_section}
     - {benjamin_graham_section}
+    - {charlie_munger_section}
+    - {bill_ackman_section}
     - {risk_analysis_section}
     - {future_outlook_section}
 
+    Guidelines:
+    {writer_guidelines}
+
+    - Do not have an explicit conclusion sub-section header, but do finish the section with conclusory remarks.
+
+
   expected_output: >
-    A draft of the "Investment Recommendation" section including a clear Buy/Sell/Hold recommendation supported by a concise rationale linking the key information from the report and the supplementary research.
+    The "Investment Recommendation" section of the report including a clear BUY, SELL, or HOLD recommendation supported by evidence from the report and the supplementary research.
     The output must be formatted as markdown without code blocks.
-    Begin the section with the title: ## Investment Recommendation
+    You must begin the section with the heading: ## Investment Recommendation
   agent: writer
 
 critic_task:
   description: >
-    Critically review the draft "Investment Recommendation" section for accuracy, clarity, coherence, and completeness.
-    Assess the strength of the recommendation and rationale, the relevance of catalysts, and the validity of technical considerations.
-    Provide specific, actionable feedback to improve the content, presentation, and markdown formatting.
+    Perform a rigorous critical review of the draft "Investment Recommendation" section, focusing on accuracy, clarity, coherence, completeness, and overall impact.
+    {critic_guidelines}
+    - Assessment of the recommendation's clarity and justification.
     Current date (ISO format): {date_iso}.
   expected_output: >
     A detailed critique of the draft, including:
-    - Assessment of the recommendation's clarity and justification.
     - Evaluation of the rationale's strength and supporting evidence.
     - Feedback on the relevance and impact of identified catalysts.
     - Review of technical considerations (if any) for accuracy and feasibility.
@@ -107,14 +115,12 @@ critic_task:
 
 editing_task:
   description: >
-    Refine the "Investment Recommendation" section, incorporating the critic's feedback to strengthen the justification, clarity, and conciseness of the rationale.
+    Refine and finalize the "Investment Recommendation" section, incorporating the critic's feedback to strengthen the justification, clarity, and conciseness of the rationale to achieve the highest possible quality.
     Ensure all supporting information is accurate and consistent, enhancing rather than reducing the existing content.
-    - The final version should be well-presented and aligned with the overall report.
-    - Prioritize clarity, accuracy, and conciseness, leveraging the information provided.
-    - Make full use of the provided information; do not suggest further research.
-    - Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
-    - Omit unnecessary disclaimers and do not explicitly reference the critic's feedback.
-    - Don't include a publication date as a separate heading.
+    Guidelines:
+    {editor_guidelines}
+    - Make sure the section begins with the heading: ## Investment Recommendation
+    - Do not include an explicit conclusion sub-section header, but do finish the section with conclusory remarks.
     
     Current date: {date_us}.
   expected_output: >

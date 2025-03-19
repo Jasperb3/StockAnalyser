@@ -1,4 +1,6 @@
 import os
+import base64
+import markdown
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -6,6 +8,9 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from markdown.inlinepatterns import InlineProcessor
+from markdown.extensions import Extension
+import xml.etree.ElementTree as etree
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.compose']
 
@@ -17,11 +22,11 @@ def authenticate_gmail():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     token_path = os.path.join(current_dir, 'token.json')
     credentials_path = os.path.join(current_dir, 'credentials.json')
-
+    
     creds = None
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
+    
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -35,58 +40,72 @@ def authenticate_gmail():
             creds = flow.run_local_server(port=0)
         with open(token_path, 'w') as token:
             token.write(creds.to_json())
-
+    
     service = build('gmail', 'v1', credentials=creds)
     return service
 
+# Custom Markdown inline processor to handle images.
+class InlineImageProcessor(InlineProcessor):
+    def __init__(self, pattern, md, image_list):
+        super().__init__(pattern, md)
+        self.image_list = image_list
+
+    def handleMatch(self, m, data):
+        alt_text = m.group(1)
+        img_src = m.group(2)
+        # Create a unique CID using the current count; note the angle brackets will be added later in headers.
+        cid = f'Image_{len(self.image_list)}'
+        self.image_list.append({
+            'cid': cid,
+            'filename': img_src,
+            'alt_text': alt_text
+        })
+        # Instead of returning a bare <img> tag, wrap it in a <div> (block element)
+        container = etree.Element("div")
+        container.set("style", "display:block;")
+        img = etree.SubElement(container, "img")
+        # Set the src with angle brackets around the CID (Gmail requires them in the MIME part)
+        img.set("src", f"cid:{cid}")
+        img.set("alt", alt_text)
+        # Optionally add inline styles to force size if needed:
+        img.set("style", "max-width:600px;width:100%;height:auto;margin:20px auto;display:block;")
+        return container, m.start(0), m.end(0)
+
+class ImageExtension(Extension):
+    def __init__(self, **kwargs):
+        self.image_list = []
+        super().__init__(**kwargs)
+
+    def extendMarkdown(self, md):
+        # Standard Markdown image pattern: ![alt](src)
+        IMAGE_RE = r'!\[([^\]]*)\]\(([^)]+)\)'
+        md.inlinePatterns.register(InlineImageProcessor(IMAGE_RE, md, self.image_list), 'custom_image', 175)
+
+def convert_markdown_to_html_with_images(markdown_text, image_list):
+    """
+    Convert Markdown to HTML while using a custom extension to process images.
+    The extension will populate `image_list` with image details in the exact order encountered.
+    """
+    image_ext = ImageExtension()
+    html = markdown.markdown(markdown_text, extensions=[image_ext, 'fenced_code', 'tables'])
+    image_list.extend(image_ext.image_list)
+    return html
+
 def create_message_with_inline_image(sender: str, to: str, subject: str, markdown_text: str) -> dict:
     """
-    Create an email message with inline images using the Content-ID (CID) method.
-    Converts markdown to HTML, replaces markdown image references with HTML <img> tags, and attaches images inline.
+    Create an email with inline images using a custom Markdown extension.
+    This version wraps each image in a block <div> to help preserve order in Gmail.
     """
-    # Start by processing the markdown text for image references
+    # This list will be populated in order by the Markdown processor
     image_references = []
-    lines = markdown_text.split('\n')
-    for i, line in enumerate(lines):
-        if line.startswith('![') and '](' in line and line.endswith(')'):
-            # Extract the alt text and image filename
-            alt_text = line[2:line.index(']')]
-            img_filename = line[line.index('(')+1:-1]
+    html_content = convert_markdown_to_html_with_images(markdown_text, image_references)
 
-            # Create a unique CID *before* we modify the line.  Crucially,
-            # use a consistent, predictable naming scheme based on the
-            # *order* of the images in the markdown. Using `len(image_references)`
-            # inside the loop *could* cause issues if the list is modified
-            # during iteration, though it's unlikely here. Using the index `i`
-            # is safer and more directly reflects the image's position.
-            cid = f'Image_{i}'
-
-            # Replace the markdown image with an HTML <img> tag referencing the CID
-            image_html = (
-                f'<img src="cid:{cid}" alt="{alt_text}" '
-                f'style="max-width: 600px; width: 100%; height: auto; display: block; margin: 20px auto;">'
-            )
-            lines[i] = image_html
-
-            # Store the image reference for later attachment.  Store the *index*
-            # as part of the reference to be absolutely sure of the order.
-            image_references.append({
-                'filename': img_filename,
-                'cid': cid,
-                'alt_text': alt_text,
-                'index': i  # Store the original index
-            })
-
-    # Reassemble the modified markdown text and convert it to HTML
-    markdown_text = '\n'.join(lines)
-    import markdown
-    md = markdown.Markdown(extensions=['tables', 'fenced_code'])
-    html_content = md.convert(markdown_text)
-
-    # Wrap the converted HTML in a full HTML document with inline CSS
-    html = f"""\
+    # Wrap the content in a full HTML document
+    full_html = f"""\
 <html>
   <head>
+    <meta charset="utf-8">
+    <title>{subject}</title>
     <style>
       body {{
           font-family: Arial, sans-serif;
@@ -109,58 +128,41 @@ def create_message_with_inline_image(sender: str, to: str, subject: str, markdow
 </html>
 """
 
-    # Create a multipart/alternative container for the plain-text and HTML parts
-    alternative_part = MIMEMultipart("alternative")
-    # Provide a plain-text fallback
-    plain_text = "This email contains HTML content. Please view in a HTML-supporting email client."
-    alternative_part.attach(MIMEText(plain_text, "plain"))
-    alternative_part.attach(MIMEText(html, "html"))
+    # Build the multipart/related MIME message
+    msg = MIMEMultipart('related')
+    msg['From'] = sender
+    msg['To'] = to
+    msg['Subject'] = subject
 
-    # Create the outer multipart/related container and attach the alternative part
-    message = MIMEMultipart("related")
-    message["Subject"] = subject
-    message["From"] = sender
-    message["To"] = to
-    message.attach(alternative_part)
+    # Create the alternative part with plain text and HTML
+    alternative_part = MIMEMultipart('alternative')
+    plain_text = "This email contains HTML content. Please view it in a HTML-supporting email client."
+    alternative_part.attach(MIMEText(plain_text, 'plain'))
+    alternative_part.attach(MIMEText(full_html, 'html'))
+    msg.attach(alternative_part)
 
-    # Attach each image as an inline MIMEImage part. Sort by the stored index
-    # to guarantee the correct order, even if something unexpected happens
-    # during list processing.
-
-    for img_ref in sorted(image_references, key=lambda x: x['index']):
-        # use the filename from markdown
+    # Attach the images in the exact order collected
+    for img_ref in image_references:
         img_path = img_ref['filename']
-
-        try:
-            with open(img_path, 'rb') as fp:
-                img_data = fp.read()
-            image = MIMEImage(img_data)
-            # Set the Content-ID header so that the HTML can reference it (must be enclosed in angle brackets)
-            image.add_header('Content-ID', f'<{img_ref["cid"]}>')
-            # Set Content-Disposition to inline so that email clients treat it as an inline image
-            image.add_header('Content-Disposition', 'inline', filename=os.path.basename(img_path))
-            message.attach(image)
-        except FileNotFoundError:
-            print(f"Warning: Could not find image file: {img_path}")
+        if not os.path.exists(img_path):
+            print(f"Warning: Image file {img_path} not found.")
             continue
+        with open(img_path, 'rb') as f:
+            img_data = f.read()
+        mime_img = MIMEImage(img_data)
+        # Set the Content-ID wrapped in angle brackets
+        mime_img.add_header('Content-ID', f'<{img_ref["cid"]}>')
+        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename(img_path))
+        msg.attach(mime_img)
 
-    # Encode the entire message in base64url for the Gmail API
-    import base64
-    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+    # Encode message for sending via Gmail API (base64url encoded)
+    raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
     return {'raw': raw_message}
 
 
 def create_draft(service, user_id: str, message_body: dict) -> dict:
     """
     Create and insert a draft email using the Gmail API.
-    
-    Args:
-        service: Authorized Gmail API service instance
-        user_id: User's email address or 'me'
-        message_body: Dict containing the raw base64url encoded message
-    
-    Returns:
-        Created draft object or None if error occurs
     """
     try:
         draft = service.users().drafts().create(
@@ -171,4 +173,16 @@ def create_draft(service, user_id: str, message_body: dict) -> dict:
         return draft
     except Exception as error:
         print(f"An error occurred while creating draft: {error}")
-        return None 
+        return None
+
+# Example usage:
+if __name__ == '__main__':
+    sender = os.getenv("CLIENT_EMAIL")
+    recipient = os.getenv("CLIENT_EMAIL")
+    subject = "Test Email with Inline Images"
+    with open("/home/j/ai/crewAI/finance/stock_analyser/final_reports/2025-03-12/MSFT_Stock_Analysis_Report_20250312_132728.md", "r") as f:
+        markdown_body = f.read()
+    message_body = create_message_with_inline_image(sender, recipient, subject, markdown_body)
+    # Now use the Gmail API to send `message_body`
+    # For example: service.users().messages().send(userId="me", body=message_body).execute()
+    print("Message created. (Use Gmail API to send)")

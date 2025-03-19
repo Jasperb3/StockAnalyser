@@ -11,20 +11,20 @@ planning_task:
     Current date (ISO format): {date_iso}.
   expected_output: >
     A concise summary of the report's main points, forming the foundation for the conclusion.
-    Presented as approximately five bullet points, each a single, impactful sentence.
+    Presented as bullet points, each a single, impactful sentence.
     Output in markdown, excluding code blocks.
   agent: planner
 
 writing_task:
   description: >
-    Compose a comprehensive and persuasive conclusion for a stock analysis report about {company_name} using the provided context.
-    This conclusion should offer a holistic overview of the report, enabling investors to assess the investment case.
-    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
-    Make sure the ultimate investment recommendation is clear and emphasised, and provide sufficient justification for why this recommendation has been provided.
-    Don't include a publication date as a separate heading.
+    Synthesize a comprehensive and compelling conclusion for the stock analysis report on {company_name}, drawing directly from the provided context and planner's outline.
+    This conclusion must provide a holistic, insightful overview of the entire report, culminating in a definitive, clearly emphasized, and well-justified investment recommendation (Buy, Sell, or Hold).
+    The justification should be robust, citing specific evidence and key findings from within the report to support the recommendation. The conclusion should leave no ambiguity about the investment decision.
+    Prioritize clarity, conciseness, and persuasive reasoning. Use accessible language, avoiding technical jargon. Focus on the most critical findings of the report that directly inform the investment recommendation, omitting any non-essential details.
+    Adhere strictly to the information provided; do not introduce external data or suggest additional research. The conclusion should stand alone as a concise, decisive summary of the investment case.
     Current date: {date_us}.
   expected_output: >
     A complete conclusion that clearly indicates whether the data supports a case for investment in {company_name}.
-    Output in markdown, excluding code blocks.
-    Begin the section with the title: ## Conclusion
+    Output in markdown formatting, excluding code blocks. Make sure that special characters such as '$', '%', and '&' are not escaped.
+    You must begin the section with the heading: ## Conclusion
   agent: writer

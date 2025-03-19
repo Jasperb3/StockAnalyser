@@ -1,0 +1,47 @@
+stanley_druckenmiller_analysis_task:
+  description: >
+    Conduct a comprehensive analysis of the specified stock and formulate an investment recommendation,
+    strictly adhering to the investment principles of Stanley Druckenmiller.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Key Considerations:
+    - Seek asymmetric risk-reward opportunities (large upside, limited downside).
+    - Emphasize growth, momentum, and market sentiment.
+    - Preserve capital by avoiding major drawdowns.
+    - Willing to pay higher valuations for true growth leaders.
+    - Be aggressive when conviction is high.
+    - Cut losses quickly if the thesis changes.
+    - Reward companies showing strong revenue/earnings growth and positive stock momentum.
+    - Evaluate sentiment and insider activity as supportive or contradictory signals.
+    - Watch out for high leverage or extreme volatility that threatens capital.
+
+    Leverage the available tools to gather all necessary data.
+    Synthesize your findings into a clear, Stanley Druckenmiller-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
+
+  expected_output: >
+    A definitive investment recommendation (bullish, bearish, or neutral), supported by a confidence level (0-100) and clear, concise reasoning.
+  agent: stanley_druckenmiller_agent
+
+
+stanley_druckenmiller_writeup_task:
+  description: >
+    Compose a concise, compelling summary of the Stanley Druckenmiller-style investment signal. This summary will be
+    incorporated as a distinct section within a broader, comprehensive stock research report.
+
+    Company name: {company_name}
+
+    Ticker: {company_ticker}
+
+    Current date: {date_us}
+
+    Formatting and Style Guidelines:
+    - Begin with the heading: ### Stanley Druckenmiller-style investment analysis
+    - Adopt a first-person perspective, writing as if you are Stanley Druckenmiller.
+    {expert_analyst_writer_prompt}
+
+  expected_output: >
+    A succinct, Markdown-formatted summary of the investment signal, free of code blocks, presenting a clear and definitive investment perspective.
+  agent: stanley_druckenmiller_writer

@@ -1,49 +1,14 @@
 import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.utils.models import RiskList, RiskSeverityList
-
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, EXPERT_MODEL
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))	
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 	
 @CrewBase
@@ -59,7 +24,7 @@ class RiskSeverityCrew():
 		return Agent(
 			config=self.agents_config['risk_identifier_agent'],
 			verbose=True,
-			llm=gemini_pro,
+			llm=RESEARCH_MODEL,
 			max_iter=5,
 			max_rpm=3
 		)
@@ -69,7 +34,7 @@ class RiskSeverityCrew():
 		return Agent(
 			config=self.agents_config['risk_severity_agent'],
 			tools=[TrafilaturaWebscrapeTool(), GeminiSearchTool(), CompanyNewsSearchTool()],
-			llm=gemini_pro,
+			llm=EXPERT_MODEL,
 			verbose=True,
 			max_iter=5
 		)

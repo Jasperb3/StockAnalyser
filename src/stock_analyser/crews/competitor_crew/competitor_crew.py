@@ -1,53 +1,23 @@
 import os
-from crewai import Agent, Crew, Process, Task, LLM
+from stock_analyser.utils.models import CompetitorList, CompetitorFinancialData, CompetitorSection
+from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, EXPERT_MODEL
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.yfinance_competitor_kpis_tool import YFinanceCompetitorKPIsTool
 from stock_analyser.tools.gemini_competitor_news_search_tool import CompetitorNewsSearchTool
 from stock_analyser.tools.yfinance_stock_kpi_tool import YFinanceStockKPITool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
+from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.google_search_tool import GoogleSearchTool
-from stock_analyser.utils.models import CompetitorList, CompetitorFinancialData, CompetitorSection
-from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
-
+from stock_analyser.tools.yfinance_competitor_news_tool import YFinanceCompetitorNewsTool
+from stock_analyser.tools.yfinance_industry_leaders_tool import YFinanceIndustryLeadersTool
 from dotenv import load_dotenv
 
 load_dotenv()
 
 google_search_tool = GoogleSearchTool(api_key=os.getenv("GOOGLE_SEARCH_API_KEY"), cx=os.getenv("SEARCH_ENGINE_ID"))
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 	
 @CrewBase
@@ -65,10 +35,12 @@ class CompetitorCrew():
 			verbose=True,
 			tools=[
 				GeminiSearchTool(),
+				YFinanceIndustryLeadersTool(),
+				TavilySearchTool(),
 				google_search_tool,
 				TrafilaturaWebscrapeTool()
 			],
-			llm=gpt4_mini
+			llm=RESEARCH_MODEL
 		)
 
 	@agent
@@ -77,10 +49,12 @@ class CompetitorCrew():
 			config=self.agents_config['competitor_financial_data_agent'],
 			tools=[
 				YFinanceCompetitorKPIsTool(),
-				CompetitorNewsSearchTool(),
-				YFinanceStockKPITool()
+				YFinanceCompetitorNewsTool(),
+				TrafilaturaWebscrapeTool(),
+				google_search_tool,
+				# CompetitorNewsSearchTool()
 			],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			verbose=True,
 		)
 	
@@ -88,7 +62,7 @@ class CompetitorCrew():
 	def competitor_section_writing_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['competitor_section_writing_agent'],
-			llm=gemini_pro,
+			llm=EXPERT_MODEL,
 			verbose=True,
 		)
 

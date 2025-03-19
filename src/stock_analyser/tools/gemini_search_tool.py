@@ -20,7 +20,7 @@ class GeminiSearchToolInput(BaseModel):
 class GeminiSearchTool(BaseTool):
     name: str = "Gemini Search Tool"
     description: str = (
-        "Use this tool to get Gemini-curated web search results for a given query."
+        "Use this tool to get Gemini-curated web search results for a given query. Provide a natural language query as a single string."
     )
     args_schema: Type[BaseModel] = GeminiSearchToolInput
 

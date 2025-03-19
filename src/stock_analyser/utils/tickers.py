@@ -1,3 +1,6 @@
+import yfinance as yf
+import time
+
 tickers = [
     "A",
     "AA",
@@ -9213,3 +9216,14 @@ tickers = [
     "ZYME",
     "ZYXI"
   ]
+
+def check_if_delisted(ticker: str) -> bool:
+    delisted = {}
+    try:
+        yf.Ticker(ticker)
+        time.sleep(1)
+    except Exception as e:
+        delisted[ticker] = e
+
+    return delisted
+

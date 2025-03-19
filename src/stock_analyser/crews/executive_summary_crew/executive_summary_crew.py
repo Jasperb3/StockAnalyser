@@ -1,47 +1,13 @@
 import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
 
 from dotenv import load_dotenv
+
 load_dotenv()
-
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
-
-
 
 
 @CrewBase
@@ -57,7 +23,7 @@ class ExecutiveSummaryCrew():
 	def planner(self) -> Agent:
 		return Agent(
 			config=self.agents_config['planner'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			verbose=True
 		)
 
@@ -65,7 +31,7 @@ class ExecutiveSummaryCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_pro,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 
@@ -73,7 +39,7 @@ class ExecutiveSummaryCrew():
 	def critic(self) -> Agent:
 		return Agent(
 			config=self.agents_config['critic'],
-			llm=gemini_flash,
+			llm=CRITIC_MODEL,
 			verbose=True
 		)
 
@@ -81,7 +47,7 @@ class ExecutiveSummaryCrew():
 	def editor(self) -> Agent:
 		return Agent(
 			config=self.agents_config['editor'],
-			llm=gemini_pro,
+			llm=EDITOR_MODEL,
 			verbose=True
 		)
 

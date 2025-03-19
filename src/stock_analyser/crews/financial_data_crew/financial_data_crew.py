@@ -1,7 +1,8 @@
 import os
-from pathlib import Path
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
+from crewai_tools import QdrantVectorSearchTool
+from stock_analyser.utils.embeddings_fn import custom_gemini_embedding_fn
 from stock_analyser.utils.models import ReportCritique, FinancialData
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.tools.calculator_tool import CalculatorTool
@@ -10,44 +11,21 @@ from stock_analyser.tools.yfinance_balance_sheet_tool import YFinanceStockBalanc
 from stock_analyser.tools.yfinance_financials_tool import YFinanceStockFinancialsTool
 from stock_analyser.tools.yfinance_stock_kpi_tool import YFinanceStockKPITool
 from stock_analyser.tools.yfinance_income_tool import YFinanceIncomeTool
-from stock_analyser.tools.filings_search_tool import FilingsSearchTool
+from stock_analyser.tools.yfinance_analysis_and_holdings_tool import YFinanceAnalysisAndHoldingsTool
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
+qdrant_tool = QdrantVectorSearchTool(
+    qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
+    qdrant_api_key=os.getenv("QDRANT_API_KEY"),
+    collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
+    limit=5,
+    score_threshold=0.35,
+	custom_embedding_fn=custom_gemini_embedding_fn,
+	description = "A tool to search the SEC filings."
 )
 
 
@@ -58,76 +36,38 @@ class FinancialDataCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, qdrant_tool=None):
-		self.qdrant_tool = qdrant_tool
-
 
 	# ----Agents----#
 	@agent
 	def researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['researcher'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			tools=[
-
-				# Add Qdrant tool if available
-
-				self.qdrant_tool,
-
-				
 				YFinanceStockKPITool(),
 				YFinanceIncomeTool(),
 				YFinanceStockCashFlowTool(),
 				YFinanceStockBalanceSheetTool(),
 				YFinanceStockFinancialsTool(),
+				YFinanceAnalysisAndHoldingsTool(),
 				CalculatorTool(),
-				FilingsSearchTool(
-					config=dict(
-						llm=dict(
-							provider="google",
-							config=dict(
-								model="gemini/gemini-2.0-pro-exp-02-05"
-							),
-						),
-						embedder={
-							"provider": "google",
-							"config": {
-								"model": "models/text-embedding-004"
-							}
-						}
-					),
-					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
-				)
-			
-
-			] if self.qdrant_tool else [
-
-				
-				YFinanceStockKPITool(),
-				YFinanceIncomeTool(),
-				YFinanceStockCashFlowTool(),
-				YFinanceStockBalanceSheetTool(),
-				YFinanceStockFinancialsTool(),
-				CalculatorTool(),
-				FilingsSearchTool(
-					config=dict(
-						llm=dict(
-							provider="google",
-							config=dict(
-								model="gemini/gemini-2.0-pro-exp-02-05"
-							),
-						),
-						embedder={
-							"provider": "google",
-							"config": {
-								"model": "models/text-embedding-004"
-							}
-						}
-					),
-					directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
-				)
-			
-
+				# FilingsSearchTool(
+				# 	config=dict(
+				# 		llm=dict(
+				# 			provider="google",
+				# 			config=dict(
+				# 				model="gemini/gemini-2.0-pro-exp-02-05"
+				# 			),
+				# 		),
+				# 		embedder={
+				# 			"provider": "google",
+				# 			"config": {
+				# 				"model": "models/text-embedding-004"
+				# 			}
+				# 		}
+				# 	),
+				# 	directory=str(Path(__file__).parent.parent.parent.parent.parent / "filings")
+				# )
 			],
 			verbose=True,
 			max_iter=10,
@@ -138,7 +78,7 @@ class FinancialDataCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_thinking,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 
@@ -146,7 +86,7 @@ class FinancialDataCrew():
 	def critic(self) -> Agent:
 		return Agent(
 			config=self.agents_config['critic'],
-			llm=gemini_flash,
+			llm=CRITIC_MODEL,
 			verbose=True
 		)
 
@@ -154,7 +94,7 @@ class FinancialDataCrew():
 	def editor(self) -> Agent:
 		return Agent(
 			config=self.agents_config['editor'],
-			llm=gemini_pro,
+			llm=EDITOR_MODEL,
 			verbose=True
 		)
 	

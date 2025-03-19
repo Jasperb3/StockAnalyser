@@ -26,3 +26,8 @@ class PEGRatioTool(BaseTool):
         ng = nasdaq_grabber()
         df = ng.nasdaq_data(ticker, 2)  # 2 => PEG Ratio
         return df.to_json(orient="records")
+    
+
+if __name__ == "__main__":
+    tool = PEGRatioTool()
+    print(tool.run("AAPL"))

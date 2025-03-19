@@ -542,7 +542,7 @@ def compute_financial_metrics(ticker_symbol: str):
 
 
 if __name__ == "__main__":
-    ticker_symbol = "MSFT"
+    ticker_symbol = "SOUN"
     results = compute_financial_metrics(ticker_symbol)
     for metric_name, value in results.items():
         print(f"{metric_name}: {value}")

@@ -1,11 +1,11 @@
 import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import NewsAndResearchModel
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL
 from crewai_tools import EXASearchTool
-from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
-from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
+from stock_analyser.tools.google_search_tool import GoogleSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
@@ -16,38 +16,7 @@ load_dotenv()
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
 
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
+google_search_tool = GoogleSearchTool(api_key = os.getenv("GOOGLE_SEARCH_API_KEY"), cx = os.getenv("SEARCH_ENGINE_ID"))
 
 
 @CrewBase
@@ -62,14 +31,13 @@ class NewsAndResearchCrew():
 	def researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['researcher'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			tools=[
 				TavilySearchTool(),
+				YFinanceNewsTool(),
 				TrafilaturaWebscrapeTool(),
 				exasearch_tool,
-				GeminiSearchTool(),
-				CompanyNewsSearchTool(),
-				YFinanceNewsTool(),
+				google_search_tool,
 			],
 			verbose=True,
 			max_iter=10,
@@ -80,7 +48,7 @@ class NewsAndResearchCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_thinking,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 

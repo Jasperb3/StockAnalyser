@@ -1,10 +1,13 @@
 import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
+from stock_analyser.utils.embeddings_fn import custom_gemini_embedding_fn
 from stock_analyser.utils.models import ReportCritique, FutureOutlookModel
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
-from crewai_tools import EXASearchTool
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
+from crewai_tools import EXASearchTool, QdrantVectorSearchTool
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
+from stock_analyser.tools.qdrant_sec_filings_search_tool import QdrantSECFilingsSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
@@ -13,41 +16,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+# qdrant_tool = QdrantVectorSearchTool(
+#     qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
+#     qdrant_api_key=os.getenv("QDRANT_API_KEY"),
+#     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
+#     limit=5,
+#     score_threshold=0.35,
+# 	custom_embedding_fn=custom_gemini_embedding_fn
+# )
+
+qdrant_sec_filings_tool = QdrantSECFilingsSearchTool(
+	qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
+    qdrant_api_key=os.getenv("QDRANT_API_KEY"),
+    collection_name=os.getenv("QDRANT_COLLECTION_NAME")
+)
+
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
 
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 @CrewBase
 class FutureOutlookCrew():
@@ -56,18 +43,15 @@ class FutureOutlookCrew():
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	def __init__(self, qdrant_tool=None):
-		self.qdrant_tool = qdrant_tool
-
 
 	# ----Agents----#
 	@agent
 	def researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['researcher'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			tools=[
-				self.qdrant_tool,
+				qdrant_sec_filings_tool,
 				GeminiSearchTool(),
 				YFinanceNewsTool(),
 				exasearch_tool,
@@ -83,7 +67,7 @@ class FutureOutlookCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_thinking,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 
@@ -91,7 +75,7 @@ class FutureOutlookCrew():
 	def critic(self) -> Agent:
 		return Agent(
 			config=self.agents_config['critic'],
-			llm=gemini_pro,
+			llm=CRITIC_MODEL,
 			verbose=True
 		)
 
@@ -99,7 +83,7 @@ class FutureOutlookCrew():
 	def editor(self) -> Agent:
 		return Agent(
 			config=self.agents_config['editor'],
-			llm=gemini_pro,
+			llm=EDITOR_MODEL,
 			verbose=True
 		)
 	

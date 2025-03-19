@@ -100,7 +100,7 @@ def plot_awesome_oscillator(ticker: str, period: str, output_dir: str, timestamp
 
     # Plotting Awesome Oscillator and saving
     plot_dir = output_dir
-    file_path = plot_dir / f'{ticker}_{period}_awesome_oscillator_{timestamp}.png'
+    file_path = f'{plot_dir}/{ticker}_{period}_awesome_oscillator_{timestamp}.png'
 
     # Use returnfig=True to get the figure and axes objects
     fig, axes = mpf.plot(df,
@@ -160,8 +160,8 @@ def plot_awesome_oscillator(ticker: str, period: str, output_dir: str, timestamp
 
 
 if __name__ == "__main__":
-    ticker = "NVDA"
+    ticker = "MSFT"
     period = "1y"
-    plots_dir = Path(__file__).parent.parent.parent.parent.parent / "plots"
+    plots_dir = "plots/ao"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     plot_awesome_oscillator(ticker, period, plots_dir, timestamp)

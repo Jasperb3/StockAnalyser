@@ -1,6 +1,5 @@
-from stock_analyser.tools.tool_utils.metrics import compute_financial_metrics
 import yfinance as yf
-import math
+from pprint import pprint
 import numpy as np
 import pandas as pd
 
@@ -87,52 +86,39 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     Returns:
         dict: Complete analysis with signal, score, and detailed components
     """
-    try:
-        # Get ticker data once and reuse
-        company_ticker = get_ticker(ticker)
-        
-        # Get metrics once
-        metrics = compute_financial_metrics(ticker)
-    except Exception as e:
-        return {
-            "signal": "neutral",
-            "score": 0,
-            "max_score": 0,  # Initialize max_score to 0
-            "error": f"Failed to compute financial metrics: {str(e)}"
-        }
 
     try:
-        disruptive_analysis = analyse_disruptive_potential(metrics, ticker, company_ticker)
+        disruptive_analysis = analyse_disruptive_potential(ticker)
     except Exception as e:
         disruptive_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize to zero
+            "max_score": 0,
             "details": f"Error in disruptive potential analysis: {str(e)}"
         }
 
     try:
-        innovation_analysis = analyse_innovation_growth(metrics, ticker, company_ticker)
+        innovation_analysis = analyse_innovation_growth(ticker)
     except Exception as e:
         innovation_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize to zero
+            "max_score": 0,
             "details": f"Error in innovation growth analysis: {str(e)}"
         }
 
     try:
-        valuation_analysis = analyse_cathie_wood_valuation(metrics, ticker, growth_rate, 
+        valuation_analysis = analyse_cathie_wood_valuation(ticker, growth_rate, 
                                                          discount_rate, terminal_multiple, 
-                                                         projection_years, company_ticker)
+                                                         projection_years)
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize to zero
+            "max_score": 0,
             "details": f"Error in valuation analysis: {str(e)}"
         }
 
     # Combine partial scores and max_scores
     total_score = disruptive_analysis.get("score", 0) + innovation_analysis.get("score", 0) + valuation_analysis.get("score", 0)
-    max_possible_score = disruptive_analysis.get("max_score", 0) + innovation_analysis.get("max_score", 0) + valuation_analysis.get("max_score", 0)
+    max_possible_score = disruptive_analysis.get("normalized_max_score", 0) + innovation_analysis.get("normalized_max_score", 0) + valuation_analysis.get("normalized_max_score", 0)
 
     # Generate signal based on score
     if total_score >= 0.7 * max_possible_score:
@@ -144,8 +130,8 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     
     analysis_data = {
         "signal": signal,
-        "score": total_score,
-        "max_score": max_possible_score,
+        "score": round(total_score, 2),
+        "max_score": round(max_possible_score, 2),
         "disruptive_analysis": disruptive_analysis,
         "innovation_analysis": innovation_analysis,
         "valuation_analysis": valuation_analysis
@@ -154,31 +140,61 @@ def calculate_cathie_wood_analysis_data(ticker: str, growth_rate: float = 0.20,
     return analysis_data
 
 
-def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None):
+def analyse_disruptive_potential(ticker: str):
     """
-    Analyze the company's potential for disruption and innovation.
+    Analyze whether the company has disruptive products, technology, or business model.
+    Evaluates multiple dimensions of disruptive potential:
+    1. Sector analysis - identifies if the company is in a disruptive sector
+    2. Revenue Growth Acceleration - indicates market adoption
+    3. R&D Intensity - shows innovation investment
+    4. Gross Margin Trends - suggests pricing power and scalability
+    5. Operating Leverage - demonstrates business model efficiency
+    6. Market Share Dynamics - indicates competitive position
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
     score = 0
-    max_score = 0 # Initialize max score
+    max_score = 0
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    # Get company info and sector
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for disruptive potential analysis"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+    
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+    
+    try:
+        income_statement = company_ticker.income_stmt
+        if income_statement is None or income_statement.empty:
+            return {"score": 0, "max_score": 0, "details": "No income statement data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving income statement data: {str(e)}"}
+
     
     # Get company info and sector
     info = company_ticker.info
@@ -231,83 +247,163 @@ def analyse_disruptive_potential(metrics: dict, ticker: str, company_ticker=None
         details.append(f"Company operates in innovative industry: {industry}")
     else:
         details.append(f"Company sector ({sector}) and industry ({industry}) not identified as highly disruptive")
+    
     max_score += 2 
 
-    # 2. Revenue Growth Rate - Cathie Wood looks for high growth
-    revenue_growth = metrics.get("revenue_growth")
-    if revenue_growth is not None and not np.isnan(revenue_growth):
-        if revenue_growth > 0.30:  # 30%+ annual growth
-            score += 3
-            details.append(f"Exceptional revenue growth rate of {revenue_growth:.1%}")
-        elif revenue_growth > 0.15:  # 15-30% growth
-            score += 2
-            details.append(f"Strong revenue growth rate of {revenue_growth:.1%}")
-        elif revenue_growth > 0.05:  # 5-15% growth
-            score += 1
-            details.append(f"Moderate revenue growth rate of {revenue_growth:.1%}")
+    # 2. Revenue Growth Analysis - Check for accelerating growth
+    
+    revenue = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
+    if not revenue.empty:
+        revenue_values = filter_valid_values(revenue)
+        if len(revenue_values) >= 3:
+            growth_rates = []
+            for i in range(len(revenue_values)-1):
+                if revenue_values[i] and revenue_values[i+1]:
+                    growth_rate = (revenue_values[i] - revenue_values[i+1]) / abs(revenue_values[i+1]) if revenue_values[i+1] != 0 else 0
+                    growth_rates.append(growth_rate)
+
+            if len(growth_rates) >= 2:
+                latest_growth = growth_rates[0]
+                earliest_growth = growth_rates[-1]
+                
+                if latest_growth > earliest_growth:
+                    score += 2
+                    details.append(f"Revenue growth is accelerating: {(latest_growth*100):.1f}% vs {(earliest_growth*100):.1f}%")
+                
+                # Check absolute growth rate
+                if latest_growth > 1.0:
+                    score += 3
+                    details.append(f"Exceptional revenue growth: {(latest_growth*100):.1f}%")
+                elif latest_growth > 0.5:
+                    score += 2
+                    details.append(f"Strong revenue growth: {(latest_growth*100):.1f}%")
+                elif latest_growth > 0.2:
+                    score += 1
+                    details.append(f"Moderate revenue growth: {(latest_growth*100):.1f}%")
+            else:
+                details.append("Insufficient revenue data for growth analysis")
+
         else:
-            details.append(f"Limited revenue growth rate of {revenue_growth:.1%}")
-        max_score += 3 # Increment max_score
+            details.append("Insufficient revenue data for growth analysis")
     else:
-        details.append("Revenue growth data not available")
+        details.append("Insufficient revenue data for growth analysis")
+
+    max_score += 5
     
     # 3. Gross Margin - High margins suggest pricing power and innovation
-    gross_margin = metrics.get("gross_margin")
-    if gross_margin is not None and not np.isnan(gross_margin):
-        if gross_margin > 0.60:  # 60%+ gross margin
-            score += 2
-            details.append(f"Exceptional gross margin of {gross_margin:.1%}")
-        elif gross_margin > 0.40:  # 40-60% gross margin
+    try:
+        gross_profit = safe_get_row(financials, "Gross Profit")
+    except Exception as e:
+        gross_profit = None
+
+    try:
+        total_revenue = safe_get_row(financials, "Total Revenue")
+    except Exception as e:
+        total_revenue = None
+
+    if not gross_profit.empty and not total_revenue.empty:
+        gross_margins = gross_profit / total_revenue
+        gross_margin_values = [gm for gm in gross_margins if gm is not None and not np.isnan(gm)]
+
+        if len(gross_margin_values) >= 2:
+            margin_trend = gross_margin_values[0] - gross_margin_values[-1]
+            if margin_trend > 0.05:  # 5% improvement
+                score += 2
+            details.append(f"Expanding gross margins: +{(margin_trend*100):.1f}%")
+        elif margin_trend > 0:
             score += 1
-            details.append(f"Strong gross margin of {gross_margin:.1%}")
-        else:
-            details.append(f"Moderate gross margin of {gross_margin:.1%}")
-        max_score += 2 # Increment max_score
-    else:
-        details.append("Gross margin data not available")
-    
-    # 4. Market Position - Check if company is a leader in its space
-    market_cap = metrics.get("market_cap")
-    if market_cap is not None and not np.isnan(market_cap):
-        if market_cap > 100e9:  # $100B+ market cap
-            details.append("Large established company, may be driving innovation")
-        elif market_cap > 10e9:  # $10B-$100B
-            score += 1
-            details.append("Mid-sized company with potential for market disruption")
-        elif market_cap > 1e9:  # $1B-$10B
+            details.append(f"Slightly improving gross margins: +{(margin_trend*100):.1f}%")
+
+        # Check absolute margin level
+        if gross_margin_values[0] > 0.50:  # High margin business
             score += 2
-            details.append("Growth-stage company with high disruptive potential")
+            details.append(f"High gross margin: {(gross_margin_values[0]*100):.1f}%")
         else:
-            details.append("Smaller company, disruptive potential uncertain")
-        max_score += 2 # Increment max_score
+            details.append("Insufficient gross margin data")
     else:
-        details.append("Market cap data not available")
+        details.append("Insufficient gross margin data")
+
+    max_score += 4
     
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+    # 4. Operating Leverage Analysis
+
+    operating_expense = safe_get_row(financials, "Operating Expense")
+    if not operating_expense.empty:
+        operating_expense_values = filter_valid_values(operating_expense)
+
+    if len(revenue_values) >= 2 and len(operating_expense_values) >= 2:
+        rev_growth = (revenue_values[0] - revenue_values[-1]) / abs(revenue_values[-1])
+        opex_growth = (operating_expense_values[0] - operating_expense_values[-1]) / abs(operating_expense_values[-1])
+
+        if rev_growth > opex_growth:
+            score += 2
+            details.append("Positive operating leverage: Revenue growing faster than expenses")
+        else:
+            details.append("Negative operating leverage: Expenses growing faster than revenue")
+    else:
+        details.append("Insufficient data for operating leverage analysis")
+
+    max_score += 2
 
 
-def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
+    # 5. R&D Investment Analysis
+
+    research_and_development = safe_get_row(financials, "Research And Development")
+
+    r_and_d_values = filter_valid_values(research_and_development)
+
+    if r_and_d_values and revenue_values:
+        rd_intensity = r_and_d_values[0] / revenue_values[0]
+        if rd_intensity > 0.15:  # High R&D intensity
+            score += 3
+            details.append(f"High R&D investment: {(rd_intensity*100):.1f}% of revenue")
+        elif rd_intensity > 0.08:
+            score += 2
+            details.append(f"Moderate R&D investment: {(rd_intensity*100):.1f}% of revenue")
+        elif rd_intensity > 0.05:
+            score += 1
+            details.append(f"Some R&D investment: {(rd_intensity*100):.1f}% of revenue")
+    else:
+        details.append("No R&D data available")
+
+    max_score += 3
+
+    # Normalize score to be out of 5
+    normalized_score = round((score / max_score) * 5, 2)
+
+    return {
+        "score": normalized_score,
+        "details": "; ".join(details),
+        "raw_score": score,
+        "normalized_max_score": 5
+    }
+
+
+def analyse_innovation_growth(ticker: str):
     """
-    Analyze the company's innovation metrics and growth trajectory.
+    Evaluate the company's commitment to innovation and potential for exponential growth.
+    Analyzes multiple dimensions:
+    1. R&D Investment Trends - measures commitment to innovation
+    2. Free Cash Flow Generation - indicates ability to fund innovation
+    3. Operating Efficiency - shows scalability of innovation
+    4. Capital Allocation - reveals innovation-focused management
+    5. Growth Reinvestment - demonstrates commitment to future growth
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
     score = 0
-    max_score = 0 # Initialize max_score
+    max_score = 0
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
     try:
         financials = company_ticker.financials
@@ -316,301 +412,247 @@ def analyse_innovation_growth(metrics: dict, ticker: str, company_ticker=None):
     except Exception as e:
         return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for innovation growth analysis"}
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+    
     
     # 1. R&D Spending Growth and Intensity
     # Try to find R&D expenses in the financials
-    rd_expense_df = safe_get_row(financials, "Research Development", 
-                                ["Research And Development", "R&D Expense"])
+    research_and_development = safe_get_row(financials, "Research And Development")
+    revenue = safe_get_row(financials, "Total Revenue")
+
+    r_and_d_values = filter_valid_values(research_and_development)
+    # print(f"r_and_d_values: {r_and_d_values}")
+    revenue_values = filter_valid_values(revenue)
+    # print(f"revenue_values: {revenue_values}")
     
-    if rd_expense_df is not None:
-        rd_expenses = filter_valid_values(rd_expense_df)
-        
-        if len(rd_expenses) >= 2:
-            try:
-                # Note: yfinance data is typically in reverse chronological order (newest first)
-                latest_rd = rd_expenses[0]
-                earliest_rd = None  # Initialize to None
+    if r_and_d_values and revenue_values and len(r_and_d_values) >= 2:
+        rd_growth = (r_and_d_values[0] - r_and_d_values[-1]) / abs(r_and_d_values[-1]) if r_and_d_values[-1] != 0 else 0
+        # print(f"rd_growth: {rd_growth}")
+        if rd_growth > 0.5:  # 50% growth in R&D
+            score += 3
+            details.append(f"Strong R&D investment growth: +{(rd_growth*100):.1f}%")
+    elif rd_growth > 0.2:
+        score += 2
+        details.append(f"Moderate R&D investment growth: +{(rd_growth*100):.1f}%")
 
-                # Loop backwards to find a non-zero earliest_rd
-                for i in range(len(rd_expenses) - 1, -1, -1):
-                    if rd_expenses[i] > 0:
-                        earliest_rd = rd_expenses[i]
-                        break  # Exit the loop after finding a valid value
+    # Check R&D intensity trend
+    rd_intensity_start = r_and_d_values[-1] / revenue_values[-1] if r_and_d_values and revenue_values and len(r_and_d_values) > 0 and len(revenue_values) > 0 and revenue_values[-1] != 0 else 0
+    # print(f"rd_intensity_start: {rd_intensity_start}")
+    rd_intensity_end = r_and_d_values[0] / revenue_values[0] if r_and_d_values and revenue_values and len(r_and_d_values) > 0 and len(revenue_values) > 0 and revenue_values[0] != 0 else 0
+    # print(f"rd_intensity_end: {rd_intensity_end}")
 
-                if earliest_rd is not None: # We found a valid earliest_rd
-                    rd_growth = (latest_rd - earliest_rd) / earliest_rd
-
-                    if rd_growth > 0.25:  # 25%+ R&D growth
-                        score += 3
-                        details.append(f"Strong R&D spending growth of {rd_growth:.1%}")
-                    elif rd_growth > 0.10:  # 10-25% R&D growth
-                        score += 2
-                        details.append(f"Solid R&D spending growth of {rd_growth:.1%}")
-                    elif rd_growth > 0:  # 0-10% R&D growth
-                        score += 1
-                        details.append(f"Modest R&D spending growth of {rd_growth:.1%}")
-                    else:
-                        details.append(f"Declining R&D spending: {rd_growth:.1%}")
-                    max_score += 3 # Increment max_score
-
-                elif len(rd_expenses) > 1: # We did NOT find a valid earliest_rd, but there are at least two values
-                    details.append("Cannot calculate R&D growth (zero or negative base value)")
-                else: # We did not find a valid earliest_rd AND there is only one value
-                    details.append("Cannot calculate R&D growth (zero or negative base value)")
-            except (IndexError, ZeroDivisionError, Exception) as e:
-                details.append(f"Error calculating R&D growth: {str(e)}")
-            
-            # Check R&D intensity (R&D as % of revenue)
-            try:
-                revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
-                
-                if revenue_df is not None:
-                    revenues = filter_valid_values(revenue_df)
-                    
-                    if revenues and len(revenues) >= 1 and revenues[0] > 0:
-                        rd_intensity = rd_expenses[0] / revenues[0]
-                        
-                        if rd_intensity > 0.15:  # 15%+ of revenue on R&D
-                            score += 2
-                            details.append(f"High R&D intensity: {rd_intensity:.1%} of revenue")
-                        elif rd_intensity > 0.08:  # 8-15% of revenue on R&D
-                            score += 1
-                            details.append(f"Moderate R&D intensity: {rd_intensity:.1%} of revenue")
-                        else:
-                            details.append(f"Lower R&D intensity: {rd_intensity:.1%} of revenue")
-                        max_score += 2 # Increment max_score
-
-                    else:
-                        details.append("Cannot calculate R&D intensity (revenue data invalid)")
-                else:
-                    details.append("Revenue data not available for R&D intensity calculation")
-            except (IndexError, ZeroDivisionError, Exception) as e:
-                details.append(f"Error calculating R&D intensity: {str(e)}")
-        else:
-            details.append("Insufficient R&D data for trend analysis (need at least 2 periods)")
+    if rd_intensity_end > rd_intensity_start:
+        score += 2
+        details.append(f"Increasing R&D intensity: {(rd_intensity_end*100):.1f}% vs {(rd_intensity_start*100):.1f}%")
     else:
-        details.append("R&D expense data not available in financial statements")
+        details.append("Insufficient R&D data for trend analysis")
+
+    max_score += 3
     
-    # 2. Gross Profit Growth - Indicator of scaling innovation
-    gross_profit_df = safe_get_row(financials, "Gross Profit")
-    
-    if gross_profit_df is not None:
-        gross_profits = filter_valid_values(gross_profit_df)
-        
-        if len(gross_profits) >= 2:
-            try:
-                # Note: yfinance data is typically in reverse chronological order (newest first)
-                latest_gp = gross_profits[0]
-                earliest_gp = None  # Initialize to None
-                
-                # Loop backwards to find a non-zero earliest_gp
-                for i in range(len(gross_profits) - 1, -1, -1):
-                    if gross_profits[i] > 0:
-                        earliest_gp = gross_profits[i]
-                        break  # Exit loop once a valid value is found
+    # 2. Free Cash Flow Analysis
+    free_cash_flow = safe_get_row(cash_flow, "Free Cash Flow")
+    fcf_values = filter_valid_values(free_cash_flow)
+    # print(f"fcf_values: {fcf_values}")
 
-                if earliest_gp is not None: # We found a valid earliest_gp
-                    gp_growth = (latest_gp - earliest_gp) / earliest_gp
+    if fcf_values and len(fcf_values) >= 2:
+        # Check FCF growth and consistency
+        fcf_growth = (fcf_values[0] - fcf_values[-1]) / abs(fcf_values[-1]) if fcf_values[-1] != 0 else 0
+        # print(f"fcf_growth: {fcf_growth}")
+        positive_fcf_count = sum(1 for f in fcf_values if f > 0)
+        # print(f"positive_fcf_count: {positive_fcf_count}")
 
-                    if gp_growth > 0.30:  # 30%+ gross profit growth
-                        score += 2
-                        details.append(f"Strong gross profit growth of {gp_growth:.1%}")
-                    elif gp_growth > 0.15:  # 15-30% gross profit growth
-                        score += 1
-                        details.append(f"Solid gross profit growth of {gp_growth:.1%}")
-                    elif gp_growth > 0:  # 0-15% gross profit growth
-                        score += 1  # Added missing score increment
-                        details.append(f"Modest gross profit growth of {gp_growth:.1%}")
-                    else:
-                        details.append(f"Declining gross profit: {gp_growth:.1%}")
-                    
-                    max_score += 2 # Increment max_score
-
-                elif len(gross_profits) > 1 : # We did NOT find a valid earliest_gp, but there are at least two values
-                    details.append("Cannot calculate gross profit growth (zero or negative base values)")
-                else: # We did not find a valid earliest_gp AND there is only one value
-                    details.append("Cannot calculate gross profit growth (zero or negative base value)")
-            except (IndexError, ZeroDivisionError, Exception) as e:
-                details.append(f"Error calculating gross profit growth: {str(e)}")
-        else:
-            details.append("Insufficient gross profit data for trend analysis (need at least 2 periods)")
+        if fcf_growth > 0.3 and positive_fcf_count == len(fcf_values):
+            score += 3
+            details.append("Strong and consistent FCF growth, excellent innovation funding capacity")
+        elif positive_fcf_count >= len(fcf_values) * 0.75:
+            score += 2
+            details.append("Consistent positive FCF, good innovation funding capacity")
+        elif positive_fcf_count > len(fcf_values) * 0.5:
+            score += 1
+            details.append("Moderately consistent FCF, adequate innovation funding capacity")
     else:
-        details.append("Gross profit data not available in financial statements")
-    
-    # 3. Operating Margin Trend - Check if scaling is improving profitability
-    operating_income_df = safe_get_row(financials, "Operating Income", ["Operating Profit"])
-    revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
-    
-    if operating_income_df is not None and revenue_df is not None:
-        op_incomes = filter_valid_values(operating_income_df)
-        revenues = filter_valid_values(revenue_df)
-        
-        if len(op_incomes) >= 2 and len(revenues) >= 2 and len(op_incomes) == len(revenues):
-            try:
-                # Calculate operating margins for earliest and latest periods
-                latest_margin = op_incomes[0] / revenues[0] if revenues[0] > 0 else None
+        details.append("Insufficient FCF data for analysis")
 
-                # Find the earliest year with non-zero revenue
-                earliest_margin = None
-                for i in range(len(revenues) - 1, -1, -1):  # Iterate backwards
-                    if revenues[i] > 0:
-                        earliest_margin = op_incomes[i] / revenues[i]
-                        break  # Exit loop once a valid margin is calculated
+    max_score += 3
 
-                if latest_margin is not None and earliest_margin is not None:
-                    margin_change = latest_margin - earliest_margin
-                    
-                    if margin_change > 0.05:  # 5+ percentage point improvement
-                        score += 2
-                        details.append(f"Improving operating margin: +{margin_change:.1%} points")
-                    elif margin_change > 0:  # 0-5 percentage point improvement
-                        score += 1
-                        details.append(f"Slightly improving operating margin: +{margin_change:.1%} points")
-                    elif margin_change > -0.05:  # 0 to -5 percentage point decrease
-                        score -= 1
-                        details.append(f"Slightly declining operating margin: {margin_change:.1%} points")
-                    else: # more than -5 percentage point decrease
-                        score -= 2
-                        details.append(f"Declining operating margin: {margin_change:.1%} points")
-                    
-                    max_score += 2 # Increment max_score
+    # 3. Operating Efficiency Analysis
 
-                elif latest_margin is None or earliest_margin is None: # More descriptive error message
-                    details.append("Cannot calculate operating margin trend (division by zero or invalid data)")
-                else:
-                    details.append("Cannot calculate operating margin trend (division by zero)")
-            except (IndexError, ZeroDivisionError, Exception) as e:
-                details.append(f"Error calculating operating margin trend: {str(e)}")
+    operating_income = safe_get_row(financials, "Operating Income")
+    # print(f"operating_income: {operating_income}")
+    total_revenue = safe_get_row(financials, "Total Revenue")
+    # print(f"total_revenue: {total_revenue}")
+
+    if not operating_income.empty and not total_revenue.empty:
+        operating_margins = [operating_income.iloc[i] / total_revenue.iloc[i] for i in range(len(operating_income)) if total_revenue.iloc[i] != 0]
+        # print(f"operating_margins: {operating_margins}")
+
+        op_margins = filter_valid_values(operating_margins)
+        # print(f"op_margins: {op_margins}")
+
+        if op_margins and len(op_margins) >= 2:
+            # Check margin improvement
+            margin_trend = op_margins[0] - op_margins[-1]
+            # print(f"margin_trend: {margin_trend}")
+
+            if op_margins[0] > 0.15 and margin_trend > 0:
+                score += 3
+                details.append(f"Strong and improving operating margin: {(op_margins[0]*100):.1f}%")
+            elif op_margins[0] > 0.10:
+                score += 2
+                details.append(f"Healthy operating margin: {(op_margins[0]*100):.1f}%")
+            elif margin_trend > 0:
+                score += 1
+                details.append("Improving operating efficiency")
+            else:
+                details.append("Operating margin not improving")
         else:
-            details.append("Insufficient data for operating margin trend analysis")
+            details.append("Insufficient operating margin data")
     else:
-        details.append("Operating income or revenue data not available for margin analysis")
-    
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+        details.append("Insufficient operating income or revenue data")
+
+    max_score += 2
+
+    # 4. Capital Allocation Analysis
+
+    capital_expenditure = safe_get_row(cash_flow, "Capital Expenditure")
+    capex = filter_valid_values(capital_expenditure)
+    # print(f"capex: {capex}")
+
+    if capex and len(capex) >= 2 and revenue_values and len(revenue_values) > 0 :
+        capex_intensity = abs(capex[0]) / revenue_values[0] if revenue_values[0] != 0 else 0
+        # print(f"capex_intensity: {capex_intensity}")
+        capex_growth = (abs(capex[0]) - abs(capex[-1])) / abs(capex[-1]) if capex[-1] != 0 else 0
+        # print(f"capex_growth: {capex_growth}")
+
+        if capex_intensity > 0.10 and capex_growth > 0.2:
+            score += 2
+            details.append("Strong investment in growth infrastructure")
+        elif capex_intensity > 0.05:
+            score += 1
+            details.append("Moderate investment in growth infrastructure")
+    else:
+        details.append("Insufficient CAPEX data")
+
+    max_score += 2
+
+    # 5. Growth Reinvestment Analysis
+
+    cash_dividends = safe_get_row(cash_flow, "Cash Dividends Paid")
+    # print(f"cash_dividends: {cash_dividends}")
+    dividends = filter_valid_values(cash_dividends)
+    # print(f"dividends: {dividends}")
+
+    if dividends and fcf_values and len(fcf_values) > 0:
+        # Check if company prioritizes reinvestment over dividends
+        latest_payout_ratio = dividends[0] / fcf_values[0] if fcf_values[0] != 0 else 1
+        # print(f"latest_payout_ratio: {latest_payout_ratio}")
+        if latest_payout_ratio < 0.2:  # Low dividend payout ratio suggests reinvestment focus
+            score += 2
+            details.append("Strong focus on reinvestment over dividends")
+        elif latest_payout_ratio < 0.4:
+            score += 1
+            details.append("Moderate focus on reinvestment over dividends")
+    else:
+        details.append("Insufficient dividend data")
+
+    max_score += 2
+
+    # Normalize score to be out of 5
+    normalized_score = round((score / max_score) * 5, 2)
+
+    return {
+        "score": normalized_score,
+        "details": "; ".join(details),
+        "raw_score": score,
+        "normalized_max_score": 5
+    }
 
 
-def analyse_cathie_wood_valuation(metrics: dict, ticker: str, growth_rate: float = 0.20, 
+def analyse_cathie_wood_valuation(ticker: str, growth_rate: float = 0.20, 
                                  discount_rate: float = 0.15, terminal_multiple: float = 25, 
-                                 projection_years: int = 5, company_ticker=None):
+                                 projection_years: int = 5):
     """
-    Analyze the company's valuation using Cathie Wood's growth-focused approach.
+    Cathie Wood often focuses on long-term exponential growth potential. We can do
+    a simplified approach looking for a large total addressable market (TAM) and the
+    company's ability to capture a sizable portion.
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
         growth_rate (float): Annual growth rate for projections (default 20%)
         discount_rate (float): Discount rate for present value calculations (default 15%)
         terminal_multiple (float): Multiple for terminal value calculation (default 25x)
         projection_years (int): Number of years to project cash flows (default 5)
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
     
     score = 0
-    max_score = 0 # Initialize max_score
     details = []
     
     # Get key metrics for valuation
-    revenue = metrics.get("revenue")
-    market_cap = metrics.get("market_cap")
-    
-    if revenue is None or np.isnan(revenue) or revenue <= 0:
-        return {"score": 0, "max_score": 0, "details": "Revenue data not available or invalid"}
+    market_cap = company_ticker.info.get("marketCap", None)
     
     if market_cap is None or np.isnan(market_cap) or market_cap <= 0:
         return {"score": 0, "max_score": 0, "details": "Market cap data not available or invalid"}
     
-    # 1. Price-to-Sales Ratio - Cathie Wood often looks at this for growth companies
-    ps_ratio = market_cap / revenue
+    free_cash_flow = safe_get_row(company_ticker.cashflow, "Free Cash Flow")
+    fcf = filter_valid_values(free_cash_flow)[0]
+
+    if fcf <= 0 or np.isnan(fcf):
+        return {
+            "score": 0,
+            "details": f"No positive FCF for valuation; FCF = {fcf}",
+            "intrinsic_value": None
+        }
     
-    if ps_ratio < 5:
-        score += 2
-        details.append(f"Attractive P/S ratio of {ps_ratio:.2f}x")
-    elif ps_ratio < 10:
+    # Instead of a standard DCF, let's assume a higher growth rate for an innovative company.
+    present_value = 0
+    for year in range(1, projection_years + 1):
+        future_fcf = fcf * (1 + growth_rate) ** year
+        pv = future_fcf / ((1 + discount_rate) ** year)
+        present_value += pv
+
+    # Terminal Value
+    terminal_value = (fcf * (1 + growth_rate) ** projection_years * terminal_multiple) \
+                     / ((1 + discount_rate) ** projection_years)
+    intrinsic_value = present_value + terminal_value
+
+    margin_of_safety = (intrinsic_value - market_cap) / market_cap
+
+    score = 0
+    if margin_of_safety > 0.5:
+        score += 3
+    elif margin_of_safety > 0.2:
         score += 1
-        details.append(f"Moderate P/S ratio of {ps_ratio:.2f}x")
-    elif ps_ratio < 20:
-        details.append(f"High but potentially justified P/S ratio of {ps_ratio:.2f}x")
-    else:
-        details.append(f"Very high P/S ratio of {ps_ratio:.2f}x")
 
-    max_score += 2 # Increment max_score
+    details = [
+        f"Calculated intrinsic value: ~${intrinsic_value:,.2f}",
+        f"Market cap: ~${market_cap:,.2f}",
+        f"Margin of safety: {margin_of_safety:.2%}"
+    ]
+
+    return {
+        "score": score,
+        "normalized_max_score": 3,
+        "details": "; ".join(details),
+        # "intrinsic_value": intrinsic_value,
+        # "margin_of_safety": margin_of_safety
+    }
     
-    # 2. Revenue Growth-Adjusted Valuation
-    # Cathie Wood often considers growth rates in context of valuation
-    revenue_growth = metrics.get("revenue_growth")
     
-    if revenue_growth is not None and not np.isnan(revenue_growth) and revenue_growth > 0:
-        growth_adjusted_ps = ps_ratio / revenue_growth
-        
-        if growth_adjusted_ps < 1:
-            score += 2
-            details.append(f"Excellent growth-adjusted P/S of {growth_adjusted_ps:.2f}")
-        elif growth_adjusted_ps < 2:
-            score += 1
-            details.append(f"Good growth-adjusted P/S of {growth_adjusted_ps:.2f}")
-        else:
-            details.append(f"Higher growth-adjusted P/S of {growth_adjusted_ps:.2f}")
-
-        max_score += 2 # Increment max_score
-
-    else:
-        details.append("Cannot calculate growth-adjusted valuation (growth data unavailable)")
-    
-    # 3. Future Value Projection - Cathie Wood's approach to valuation
-    try:
-        # Project future revenue
-        future_revenue = revenue * (1 + growth_rate) ** projection_years
-        
-        # Apply a future multiple to the projected revenue
-        future_market_cap = future_revenue * terminal_multiple
-        
-        # Discount back to present value
-        present_value = future_market_cap / ((1 + discount_rate) ** projection_years)
-        
-        # Calculate implied upside/downside
-        potential_return = (present_value - market_cap) / market_cap
-        
-        details.append(f"Current revenue: ${revenue:,.0f}")
-        details.append(f"Projected {projection_years}-year revenue: ${future_revenue:,.0f}")
-        details.append(f"Implied future market cap: ${future_market_cap:,.0f}")
-        details.append(f"Present value: ${present_value:,.0f}")
-        
-        if potential_return > 1.0:  # 100%+ upside
-            score += 3
-            details.append(f"Significant upside potential: {potential_return:.1%}")
-        elif potential_return > 0.5:  # 50-100% upside
-            score += 2
-            details.append(f"Strong upside potential: {potential_return:.1%}")
-        elif potential_return > 0.2:  # 20-50% upside
-            score += 1
-            details.append(f"Moderate upside potential: {potential_return:.1%}")
-        elif potential_return > 0:  # 0-20% upside
-            details.append(f"Limited upside potential: {potential_return:.1%}")
-        else:
-            details.append(f"Potential downside: {potential_return:.1%}")
-
-        max_score += 3 # Increment max_score
-        
-    except Exception as e:
-        details.append(f"Error in future value projection: {str(e)}")
-    
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
-
 
 if __name__ == "__main__":
-    analysis = calculate_cathie_wood_analysis_data("DJT")
-    print(analysis)    
+    analysis = calculate_cathie_wood_analysis_data("NVDA")
+    pprint(analysis)    

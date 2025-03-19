@@ -1,6 +1,6 @@
 import os
 import yfinance as yf
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pydantic import BaseModel
 from trafilatura import fetch_url, extract
 from openai import OpenAI
@@ -115,10 +115,10 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
     You are an expert sentiment analyst tasked with evaluating the emotional tone of news articles. Your analysis will contribute to determining the overall public perception of a specific company.
 
     Task:
-    You will be provided with a list of news articles. For each article, you must assign a sentiment score on a scale of -100 to 100, where:
-    -100 represents extremely negative sentiment.
+    You will be provided with a list of news articles. For each article, you must assign a sentiment score on a scale of -10 to 10, where:
+    -10 represents extremely negative sentiment.
     0 represents neutral sentiment.
-    100 represents extremely positive sentiment.
+    10 represents extremely positive sentiment.
 
     Evaluation Criteria:
     Your scoring should be based on a comprehensive assessment of the article, considering:
@@ -137,11 +137,11 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
     [
         NewsItem({{
             "title": "Article Title 1",
-            "sentiment": 75
+            "sentiment": 7.5
         }}),
         NewsItem({{
             "title": "Article Title 2",
-            "sentiment": -50
+            "sentiment": -5.0
         }}),
         NewsItem({{
             "title": "Article Title 3",
@@ -173,7 +173,7 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
         )
 
         response = completion.choices[0].message.parsed
-        print(f"Response: {response}")
+        # print(f"Response: {response}")
         print(f"Total tokens: {completion.usage.total_tokens}")
 
         return [item.sentiment for item in response.news_items]
@@ -191,7 +191,7 @@ def get_news_sentiment_scores(ticker: str, number_of_articles: int = NUMBER_OF_N
         number_of_articles (int, optional): Number of articles to analyze
         
     Returns:
-        float: Average sentiment score (-100 to 100) or 0.0 if no data
+        float: Average sentiment score (-10 to 10) or 0.0 if no data
     """
     news = get_news(ticker, number_of_articles=number_of_articles)
     if not news:
@@ -204,7 +204,7 @@ def get_news_sentiment_scores(ticker: str, number_of_articles: int = NUMBER_OF_N
         return 0.0
 
     total_score = sum(llm_analysis)
-    sentiment_score = round(total_score / len(llm_analysis), 3)
+    sentiment_score = round(total_score / len(llm_analysis), 2)
 
     print(f"Overall sentiment score for {ticker}: {sentiment_score} from {len(news)} articles")
     return sentiment_score

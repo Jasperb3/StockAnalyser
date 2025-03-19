@@ -5,7 +5,7 @@ description = "stock_analyser using crewAI"
 authors = [{ name = "Benjamin Jasper", email = "ben.j.jasper@gmail.com" }]
 requires-python = ">=3.12.9,<3.13"
 dependencies = [
-    "crewai[tools]>=0.105.0,<1.0.0",
+    "crewai[tools]>=0.108.0,<1.0.0",
     "python-dotenv>=1.0.1",
     "html2text>=2024.2.26",
     "sec-api>=1.0.29",
@@ -26,9 +26,17 @@ dependencies = [
     "exa-py>=1.8.9",
     "palettable==3.3.3",
     "mplfinance>=0.12.10b0",
-    "markdown-pdf>=1.4",
     "qdrant-client>=1.13.3",
     "google-genai>=1.2.0",
+    "weasyprint>=64.1",
+    "md2pdf>=1.0.1",
+    "ta-lib>=0.6.3",
+    "plotly>=6.0.0",
+    "ipython>=9.0.0",
+    "ipykernel>=6.29.5",
+    "nbformat>=5.10.4",
+    "scipy>=1.15.2",
+    "pytest>=8.3.5",
 ]
 
 [project.scripts]

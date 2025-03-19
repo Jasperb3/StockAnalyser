@@ -9,7 +9,7 @@ import pandas as pd
 class YFinanceIncomeToolInput(BaseModel):
     """Input schema for YFinanceIncomeTool."""
     ticker: str = Field(..., description="Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)")
-    years: int = Field(..., description="Number of years to fetch income statement for")
+    years: int = Field(1, description="Number of years to fetch income statement for. Default is 1.")
     
 # Define the tool class
 class YFinanceIncomeTool(BaseTool):
@@ -17,11 +17,11 @@ class YFinanceIncomeTool(BaseTool):
     description: str = "Fetches detailed income statement for a given ticker using yfinance."
     args_schema: Type[BaseModel] = YFinanceIncomeToolInput
 
-    def _run(self, ticker: str, years: int) -> str:
+    def _run(self, ticker: str, years: int = 1) -> str:
         """
         Fetches income statement data for a given ticker for the last n years using yfinance.
         :param ticker: Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)
-        :param years: Number of years to fetch income statement for
+        :param years: Number of years to fetch income statement for. Default is 1.
         :return: A string containing the stock's income statement.
         """
         # Fetch the stock data

@@ -1,6 +1,7 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 import yfinance as yf
+import numpy as np
 from datetime import datetime
 from typing import Type
 
@@ -36,11 +37,33 @@ class YFinanceStockKPITool(BaseTool):
         
         # Calculate 5-year revenue growth rate
         financials = stock.financials
-        revenue_growth = None
+        five_yr_revenue_growth = None
         if financials is not None and not financials.empty and 'Total Revenue' in financials.index:
             revenue_5y = financials.loc['Total Revenue'].iloc[:5]
             if len(revenue_5y) >= 5 and revenue_5y.iloc[-1] != 0 and not revenue_5y.isnull().any():
-                revenue_growth = (revenue_5y.iloc[0] / revenue_5y.iloc[-1]) ** (1/5) - 1
+                five_yr_revenue_growth = (revenue_5y.iloc[0] / revenue_5y.iloc[-1]) ** (1/5) - 1
+        
+        # Calculate 2-year revenue growth rate
+        financials = stock.financials
+        two_yr_revenue_growth = None
+        if financials is not None and not financials.empty and 'Total Revenue' in financials.index:
+            revenue_2y = financials.loc['Total Revenue'].iloc[:2]
+            if len(revenue_2y) >= 2 and revenue_5y.iloc[-1] != 0 and not revenue_2y.isnull().any():
+                two_yr_revenue_growth = (revenue_2y.iloc[0] / revenue_2y.iloc[-1]) ** (1/2) - 1
+
+        # Calculate FCF growth
+
+        fcf = stock.cashflow.loc['Free Cash Flow']
+        fcf_changes = fcf.pct_change(fill_method=None)
+        for i in range(len(fcf_changes)):
+            if not np.isnan(fcf_changes.iloc[i]):
+                fcf_growth = fcf_changes.iloc[i]
+                break
+        fcf_growth_rate = f"{-fcf_growth:.2%}" if fcf_growth is not None else 'N/A'
+        
+
+
+
 
         # Calculate Return on Invested Capital
         return_on_invested_capital = None
@@ -125,10 +148,12 @@ class YFinanceStockKPITool(BaseTool):
             'Ex-Dividend Date': datetime.fromtimestamp(info.get('exDividendDate')).strftime('%Y-%m-%d') if info.get('exDividendDate') else 'N/A',
 
             '📈': 'Growth ->',
-            '5-Year Revenue Growth Rate': revenue_growth,
+            '5-Year Revenue Growth Rate': five_yr_revenue_growth,
+            '2-Year Revenue Growth Rate': two_yr_revenue_growth,
             'Revenue Growth': info.get('revenueGrowth', 'N/A'),
             'Earnings Growth': info.get('earningsGrowth', 'N/A'),
             'Earnings Quarterly Growth': info.get('earningsQuarterlyGrowth', 'N/A'),
+            'Free Cash Flow Growth': fcf_growth_rate,
 
             '👥': 'Ownership ->',
             'Shares Outstanding': f"{info.get('sharesOutstanding', 'N/A'):,}" if info.get('sharesOutstanding') else 'N/A',
@@ -139,13 +164,14 @@ class YFinanceStockKPITool(BaseTool):
             '💲': 'Analyst Ratings and Targets ->',
             'Analyst Target Price': f"${info.get('targetMedianPrice', 'N/A')}" if info.get('targetMedianPrice') else 'N/A',
             'Average Analyst Rating': info.get('averageAnalystRating', 'N/A'),
-            'Recommendation': info.get('recommendationKey', 'N/A'),
+            'Recommendation': info.get('recommendationKey', 'N/A').replace("_", " "),
             'Number of Analyst Opinions': info.get('numberOfAnalystOpinions', 'N/A'),
 
             '💰': 'Returns ->',
             'Return on Assets': info.get('returnOnAssets', 'N/A'),
             'Return on Equity': info.get('returnOnEquity', 'N/A'),
             'Return on Invested Capital': return_on_invested_capital,
+            
             '🔍': 'Other ->',
             'Last Earnings Call': datetime.fromtimestamp(info.get('earningsTimestamp')).strftime('%Y-%m-%d') if info.get('earningsTimestamp') else 'N/A',
             'Next Earnings Call': f"between {datetime.fromtimestamp(info.get('earningsTimestampStart')).strftime('%Y-%m-%d')} and {datetime.fromtimestamp(info.get('earningsTimestampEnd')).strftime('%Y-%m-%d')}" if info.get('earningsTimestampStart') and info.get('earningsTimestampEnd') else 'N/A',
@@ -159,7 +185,7 @@ class YFinanceStockKPITool(BaseTool):
         for key, value in analysis.items():
             if isinstance(value, float):
                 if key in ['200 Day Average Change', '50 Day Average Change', 'Dividend Yield', '5-Year Revenue Growth Rate',
-                           'Profit Margin', 'Operating Margin', 'Earnings Growth', 'Revenue Growth', 'Return on Equity',
+                           'Profit Margin', 'Operating Margin', 'Earnings Growth', 'Revenue Growth', 'Return on Equity', 'Return on Invested Capital',
                            'EBITDA Margin', 'Trailing Annual Dividend Yield', 'Payout Ratio', 'Held Percent Insiders',
                            'Held Percent Institutions', 'Earnings Quarterly Growth','Return on Assets', 'Gross Margins']:
                     analysis[key] = str(round(value * 100, 2)) + '%'

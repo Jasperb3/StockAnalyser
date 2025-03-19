@@ -39,74 +39,70 @@ research_task:
 
     Industry: {industry}.
 
-    Conduct in-depth research on the future outlook of {company_name}, using your knowledge source and the tools available to you.
+    Conduct in-depth research on the future outlook of {company_name} using the tools available to you to gather information.
     Focus on gathering information and populating the following fields:
-    - `expected_industry_disruptions`: Analyze emerging technologies, shifting consumer preferences, and other potential disruptions.
-    - `long_term_strategic_initiatives`: Analyze R&D investments, partnerships, and other long-term strategic initiatives.
-    - `macro_trends_impact`: Analyze the potential impact of interest rate changes, global economic policies, and other macro trends.
-    - `catalysts_and_triggers`: Analyze new product launches, M&A activity, and regulatory changes as potential catalysts and triggers for the company.
-    - `other_outlook_possibilities`: Analyze other potential future developments relevant to the company.
+    - `expected_industry_disruptions`: Emerging technologies, shifting consumer preferences, and other potential disruptions.
+    - `long_term_strategic_initiatives`: R&D investments, partnerships, and other long-term strategic initiatives.
+    - `macro_trends_impact`: The potential impact of interest rate changes, global economic policies, and other macro trends.
+    - `catalysts_and_triggers`: Specific events, new product launches, M&A activity, and regulatory changes as potential catalysts and triggers for the company.
+    - `strengths`: The company's strengths and competitive advantages going forward.
+    - `weaknesses`: The company's weaknesses and competitive disadvantages going forward.
+    - `opportunities`: The company's opportunities for growth and expansion going forward.
+    - `threats`: Threats and challenges that could impact the company's future outlook going forward.
+    - `other_outlook_possibilities`: Other potential future developments relevant to the company going forward.
     Current date (ISO format): {date_iso}.
   expected_output: >
-    A `FutureOutlookModel` Pydantic model with the `expected_industry_disruptions`, `long_term_strategic_initiatives`, `macro_trends_impact`, and `other_outlook_possibilities` fields populated.
+    A `FutureOutlookModel` Pydantic model with the `expected_industry_disruptions`, `long_term_strategic_initiatives`, `macro_trends_impact`, `catalysts_and_triggers`, `strengths`, `weaknesses`, `opportunities`, `threats`, and `other_outlook_possibilities` fields populated.
   agent: researcher
 
 writing_task:
   description: >
-    Draft a cohesive "Forward-Looking Outlook" report section for {company_name}, synthesizing the research findings from the `FutureOutlookModel` and your knowledge source.
-    The report should clearly articulate potential future trajectories, incorporating insights on industry disruptions,
-    company strategies, and macro trends. Structure the section with clear headings for each subsection, presenting the data and analysis in a concise and informative manner.
-    Format as markdown without code blocks, using bullet points, tables, and concise paragraphs to present the information effectively.
-    Maintain a professional and objective tone, suitable for investor communication. Avoid uncertainty and ambiguity, and make the content compelling and easy to understand.
+    Craft a cohesive, compelling and easily understandable narrative for the "Forward-Looking Outlook" report section for {company_name}, synthesizing the research findings from the `FutureOutlookModel` provided to you.
+    The section should be structured as follows:
+    - A brief introduction to the section.
+    - A sub-section on **Expected Industry Disruptions**, presenting identified disruptions and their potential impact.
+    - A sub-section on **Long-Term Strategic Initiatives**, detailing the company's key initiatives and their strategic implications.
+    - A sub-section on **Macro Trends Impact**, analyzing the influence of broader economic and geopolitical factors.
+    - A sub-section on **Catalysts and Triggers**, highlighting specific events that could significantly affect the company's trajectory.
+    - A sub-section on **SWOT Analysis**, summarizing the company's strengths, weaknesses, opportunities, and threats.
+    - A sub-section on **Other Outlook Possibilities**, exploring additional noteworthy future developments.
+    Each subsection should clearly present the data gathered, along with insightful analysis and context.
+    Guidelines:
+    {writer_guidelines}
     Current date: {date_us}.
   expected_output: >
     A complete draft of the "Forward-Looking Outlook" section including:
-    - An introduction to the section.
-    - A subsection for **Expected Industry Disruptions**, presenting the `expected_industry_disruptions`.
-    - A subsection for **Long-Term Strategic Initiatives**, presenting the `long_term_strategic_initiatives`.
-    - A subsection for **Macro Trends Impact**, presenting the `macro_trends_impact`.
-    - A subsection for **Catalysts and Triggers**, presenting the `catalysts_and_triggers`.
-    - A subsection for **Other Outlook Possibilities**, presenting the `other_outlook_possibilities`.
-    Each subsection should clearly present the data gathered, along with insightful analysis and context.
+    - A brief introduction to the section.
+    - A sub-section for **Expected Industry Disruptions**, using the `expected_industry_disruptions` research.
+    - A sub-section for **Long-Term Strategic Initiatives**, using the `long_term_strategic_initiatives` research.
+    - A sub-section for **Macro Trends Impact**, using the `macro_trends_impact` research.
+    - A sub-section for **Catalysts and Triggers**, using the `catalysts_and_triggers` research.
+    - A sub-section for **SWOT Analysis**, using the `strengths`, `weaknesses`, `opportunities`, and `threats` research.
+    - A sub-section for **Other Outlook Possibilities**, using the `other_outlook_possibilities` research.
     The output must be formatted as markdown without code blocks.
-    Begin the section with the title: ## Forward-Looking Outlook
+    You must begin the section with the heading: ## Forward-Looking Outlook
   agent: writer
 
 critic_task:
   description: >
-    Critically evaluate the "Forward-Looking Outlook" draft for clarity, accuracy, coherence, and completeness. Assess
-    whether the report effectively addresses industry disruptions, company initiatives, and macro trends.
-    Provide specific, actionable feedback to improve the report's quality and impact, ensuring it is
-    investor-ready.
+    Perform a rigorous critical review of the draft "Forward-Looking Outlook" section, focusing on accuracy, clarity, coherence, completeness, and overall impact.
+    {critic_guidelines}
     Current date (ISO format): {date_iso}.
   expected_output: >
     A detailed critique of the "Forward-Looking Outlook" draft, including specific suggestions for improvement.
-    The critique should identify any gaps in logic, areas lacking sufficient evidence, and opportunities to
-    enhance clarity and flow.
+    The critique should identify any gaps in logic, areas lacking sufficient evidence, and opportunities to enhance clarity and flow.
     You must also output the full, verbatim draft section content that you have critiqued as well.
   agent: critic
 
 editing_task:
   description: >
-    Revise and finalize the "Forward-Looking Outlook" section of the report based on the critique. Ensure the section
-    is well-organized, factually accurate, and presents a compelling narrative about the future of {company_name}.
-    - Avoid cutting content and instead focus on enhancing the content in line with the feedback.
-    - Ensure all feedback is addressed, and the final version is accurate, clear, well-presented, and consistent with the overall report.
-    - Avoid uncertainty and ambiguity, and use your knowledge source and all available information to make the content as concise and compelling as possible.
-    - Ensure the writing is clear, factual, engaging, and easy to understand.
-    - For longer sections, use brief transition statements or lists to summarize subtopics, aiding readability.
-    - Consistently quantify impacts (e.g., effect of percentage changes in interest rates or supply chain disruptions on revenue or costs).
-    - Use bullet points for large datasets or multiple data points to maintain conciseness.
-    - Break paragraphs with numerous data references into bulleted lists for clarity.
-    - Clearly and consistently label timeframes for each dataset (e.g., quarterly vs. yearly).
-    - Consider summarizing each outlook factor (expected disruptions, macro trends, corporate strategic moves) in bullet points or a short table, making it more digestible.
-    - Clearly label any projections or forecasts with their sources or assumptions to boost credibility and clarity.
-    - Avoid unnecessary disclaimers.
-    - Don't include a publication date as a separate heading.
-    - Do not explicitly reference the critic's feedback.
+    Revise and finalize the "Forward-Looking Outlook" section, incorporating the critic's feedback to achieve the highest possible quality.
+    Guidelines:
+    {editor_guidelines}
+    - Make sure the section begins with the heading: ## Forward-Looking Outlook
     Current date: {date_us}.
   expected_output: >
-    A polished, final version of the "Forward-Looking Outlook" section, ready for inclusion in the overall
-    stock analysis report. The report should be free of errors, well-formatted, and present a clear,
-    insightful perspective on the future of {company_name}. The output must be formatted as markdown without code blocks.
+    A polished, final version of the "Forward-Looking Outlook" section, ready for inclusion in the overall stock analysis report.
+    The report should be free of errors, well-formatted, and present a clear, insightful perspective on the future of {company_name}.
+    The output must be formatted as markdown without code blocks.
   agent: editor

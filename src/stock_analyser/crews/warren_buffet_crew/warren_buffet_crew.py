@@ -1,46 +1,13 @@
-import os
-from crewai import Agent, Crew, Process, Task, LLM
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ExpertAnalystSignal
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL
 from stock_analyser.tools.yfinance_buffett_analysis_tool import YFinanceBuffettAnalysisTool
 
 from dotenv import load_dotenv
 
 load_dotenv()
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 
 @CrewBase
@@ -55,7 +22,7 @@ class WarrenBuffetCrew():
 	def warren_buffet_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['warren_buffet_agent'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			tools=[
 				YFinanceBuffettAnalysisTool()
 			],
@@ -67,7 +34,8 @@ class WarrenBuffetCrew():
 	def warren_buffet_writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['warren_buffet_writer'],
-			llm=gemini_pro
+			llm=WRITING_MODEL,
+			verbose=True
 		)
 
 	# ----Tasks----#

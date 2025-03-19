@@ -1,43 +1,9 @@
-import os
-from crewai import Agent, Crew, Process, Task, LLM
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL
+from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from dotenv import load_dotenv
 
 load_dotenv()
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
-
 
 
 @CrewBase
@@ -54,7 +20,7 @@ class ConclusionCrew():
 	def planner(self) -> Agent:
 		return Agent(
 			config=self.agents_config['planner'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			verbose=True
 		)
 
@@ -62,7 +28,7 @@ class ConclusionCrew():
 	def writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['writer'],
-			llm=gemini_pro,
+			llm=WRITING_MODEL,
 			verbose=True
 		)
 

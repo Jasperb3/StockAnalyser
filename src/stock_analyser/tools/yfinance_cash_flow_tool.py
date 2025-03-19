@@ -98,7 +98,7 @@ class YFinanceStockCashFlowTool(BaseTool):
                            'Operating Gains Losses',
                            'Gain Loss On Investment Securities',
                            'Net Income From Continuing Operations']:
-                    data[key] = f"${value:,.2f}"
+                    data[key] = f"${abs(value):,.2f}"
 
         # Format the analysis results for output
         output = f"Date of cash flow data: {date}\n" + "\n".join([f"{key}: {value}" for key, value in data.items()])

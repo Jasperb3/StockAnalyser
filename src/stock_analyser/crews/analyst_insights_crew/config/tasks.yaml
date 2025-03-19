@@ -13,64 +13,109 @@ research_task:
     Current date (ISO format): {date_iso}.
 
     Collect detailed data and information to fill out the `AnalystsInsightsModel`. This includes:
-    - Analyst Recommendations: gather the specific numbers of recommendations for the `recommendations` field, and provide a consensus price target if available for the `analyst_price_targets` field.
-    - Recent Rating Changes: Find specific upgrades/downgrades, including dates, firms, old rating, new rating for the `upgrades_downgrades` field.
-    - Institutional and Mutual Fund Holders: Gather details on notable institutional holders and mutual fund holders activity for the `institutional_and_mutual_fund_holders` field.
-    - Insider Transactions: Gather details on notable insider transactions for the `insider_trading` field.
-    - Other Insights: Gather any other relevant insights for the `other_insights` field.
+    - Analyst Recommendations: gather the specific numbers of recommendations for the `analyst_recommendations` field (e.g., "Period: 2023-09-30, Strong Buy: 15, Buy: 20, Hold: 3, Sell: 1, Strong Sell: 0").
+    - Analyst Price Targets: Provide a consensus price target if available for the `analyst_price_targets` field  (e.g., "Current: 175.0, Target High: 250.0, Target Low: 120.0, Target Mean: 195.5, Target Median: 198.0").
+    - Average Analyst Rating: Collect the average analyst rating for the `average_analyst_rating` field (e.g., "Average Analyst Rating: Buy").
+    - Recent Rating Changes: Find specific upgrades/downgrades, including dates, firms, old rating, new rating for the `upgrades_downgrades` field (e.g., "Date: 2024-03-15, Firm: Morgan Stanley, From Grade: Hold, To Grade: Buy").
+    - Estimated Intrinsic Value: Collect the estimated intrinsic value for the `estimated_intrinsic_value` field (e.g., "Estimated Intrinsic Value: $210.50"), plus a brief summary of the assumptions used to calculate it.
+    - Growth Estimates: Collect data for the `growth_estimates` field (e.g., "Current Year: 10.0%, Next Quarter: 15.0%, Next 5 Years (per annum): 12.5%").
+    - Revenue Estimates: Collect data for the `revenue_estimates` field (e.g., "Current Year: $400B, Next Quarter: $110B").
+    - Earnings Estimates: Collect data for the `earnings_estimates` field (e.g., "Current Year: $10.00, Next Quarter: $2.75").
+    - Ownership Structure: Collect data for the `shares_outstanding` field (e.g., "Shares Outstanding: 15.7B"), and the `held_percent_insiders` (e.g., "Percentage held by insiders: 0.08%") and `held_percent_institutions` fields (e.g., "Percentage held by institutions: 60.12%").
+    - Institutional and Mutual Fund Holders: Gather details on notable institutional holders and mutual fund holders activity for the `institutional_insider_and_mutual_fund_holders` field (e.g., "Date: 2024-03-01, Institution: Vanguard, Percent Held: 8.5%, Shares: 1,200,000, Value: $210,000,000, Percent Change: 2.5%").
+    - Insider Holders: Gather a list of notable holders inside the company for the `insider_holders` field (e.g., "Insider: ADAMS KATHERINE L, Position: General Counsel, Shares owned directly: 179,043").
+    - Insider Purchases/Sales: Gather details on insider activity over the last 6 months.
+    - Insider Purchases: `insider_purchases_last_6m` (e.g. "Shares: 1916902.0, Transactions: 3")
+    - Insider Sales: `insider_sales_last_6m` (e.g. "Shares: 3301125.0, Transactions: 24")
+    - Net Insider Shares (Purchased/Sold): `net_insider_shares_purchased_sold_last_6m` (e.g., "Shares: -1384223.0, Transactions: 27")
+    - Total Insider Shares Held: `total_insider_shares_held` (e.g. "Shares: 7508458.0")
+    - Other Insights: Gather any other relevant insights for the `other_insights` field (e.g., "The company is expected to benefit from the growing demand in wearables and services segments.").
   expected_output: >
     A fully populated `AnalystsInsightsModel` containing all the necessary data.
     The output should be formatted as markdown without code blocks, and structured according to the model's fields:
-    `analyst_recommendations`, `analyst_price_targets`, `upgrades_downgrades`, `institutional_and_mutual_fund_holders`, `insider_trading`, and `other_insights`.
+    `analyst_recommendations`, `analyst_price_targets`, `average_analyst_rating`, `estimated_intrinsic_value`, `growth_estimates`,
+    `revenue_estimates`, `earnings_estimates`, `shares_outstanding`, `held_percent_insiders`, `held_percent_institutions`, `upgrades_downgrades`, `institutional_and_mutual_fund_holders`, `insider_holders`,
+    `insider_purchases_last_6m`, `insider_sales_last_6m`, `net_insider_shares_purchased_sold_last_6m`, `total_insider_shares_held`,
+    `percent_net_shares_purchased_sold_last_6m`, `percent_buy_shares`, `percent_sell_shares`, and `other_insights`.
     Each field should provide specific data and context, ready for writing and visualization.
   agent: researcher
 
 writing_task:
   description: >
-    Transform the researched data from the `AnalystsInsightsModel` into a well-written "Analyst & Professional Insights" section.
-    Clearly present the analyst recommendations, rating changes, institutional sentiment, and other insights.
-    The writing should be clear, factual, and compelling. Avoid uncertainty and ambiguity.
-    Supplement the data with your knowledge source where appropriate, explaining the data in a way that is compelling and easy to understand.
-    Format as markdown without code blocks, using bullet points, tables, and concise paragraphs to present the information effectively and highlight key findings and trends.
+    Transform the researched data from the `AnalystsInsightsModel` into a compelling and easily understandable narrative for the "Analyst & Professional Insights" section.
+    The section should be structured as follows:
+    - An introduction to the section.
+    - A sub-section on **Analyst Recommendations**, with a summary of the analyst recommendations, including the specific numbers of Strong Buy, Buy, Hold, Sell, and Strong Sell recommendations.
+    - A sub-section on **Analyst Price Targets**, with a summary of the analyst price targets, including the high, low, mean, and median targets.
+    - A sub-section on **Average Analyst Rating**, with a summary of the average analyst rating (e.g., Buy, Hold, Sell).
+    - A sub-section on **Recent Rating Changes**, with a summary of recent upgrades and downgrades, including dates, firms, and the old and new ratings.
+    - A sub-section on **Estimated Intrinsic Value**, with a summary of the estimated intrinsic value per share.
+    For this "Estimated Intrinsic Value" sub-section, briefly summarize the methodology and underlying assumptions.
+    Explain that the intrinsic value is estimated by projecting key financial metrics, including revenue, EBIT, taxes, depreciation and amortization, capital expenditures (Capex), and changes in working capital—all as percentages of revenue.
+    The calculation then derives Free Cash Flow (FCF) over a defined forecast period. These projected FCFs, along with a calculated terminal value, are discounted back to their present value using a dynamic Weighted Average Cost of Capital (WACC).
+    The WACC incorporates market-derived costs of equity and debt and is adjusted for the company's cash and debt levels to arrive at an equity value per share.
+    Offer guidance on interpreting the valuation. Emphasize these points as applicable:
+    * The valuation hinges on the company's projected future cash flows.
+    * It's sensitive to variations in the underlying assumptions.
+    * As a forward-looking estimate, it might not align with the current market price.
+    * It does not guarantee future performance nor predict future stock prices.
+    * The valuation is *not* a recommendation to buy or sell the stock.
+    * In some cases, the valuation might be negative or seem unrealistic, reflecting model limitations or extreme assumptions.
+    * The valuation should be viewed alongside other factors, such as market conditions, qualitative insights, and unexpected events.
+    Conclude the intrinsic value sub-section by mentioning the sensitivity of intrinsic value calculations to WACC and Terminal Growth Rate (TGR) assumptions.
+    - A sub-section on **Growth Estimates**, with a summary of growth estimates, including current year, next quarter, and next 5 years (per annum) estimates.
+    - A sub-section on **Revenue Estimates**, with a summary of revenue estimates, including current year and next quarter estimates.
+    - A sub-section on **Earnings Estimates**, with a summary of earnings estimates, including current year and next quarter estimates.
+    - A sub-section on **Ownership Structure**, with a summary of shares outstanding, percentage held by insiders and institutions.
+    - A sub-section on **Institutional and Mutual Fund Holders**, with a summary of notable institutional and mutual fund holders, including their holdings, percentage change in holdings, and the value of their holdings.
+    - A sub-section on **Insider Holders**, with a summary of notable insider holders, their positions, and shares owned directly.
+    - A sub-section on **Insider Purchases/Sales**, with a summary of insider purchases and sales over the last 6 months, including shares, transactions, net insider shares (purchased/sold), total insider shares held, percentage of net shares purchased/sold, percentage of shares bought, and percentage of shares sold.
+    - A sub-section on **Other Insights**, with a summary of any other relevant insights.
+    Guidelines:
+    {writer_guidelines}
+    
     Current date: {date_us}.
   expected_output: >
     A complete draft of the "Analyst & Professional Insights" section including:
-    - A summary of analyst recommendations (Strong Buy, Buy, Hold, Sell, Strong Sell).
-    - Analyst price targets.
-    - Details on recent rating changes.
-    - An overview of institutional and mutual fund holders.
-    - An overview of insider transactions.
-    - Any other relevant insights.
+    - A sub-section on **Analyst Recommendations**, using the `analyst_recommendations` research.
+    - A sub-section on **Analyst Price Targets**, using the `analyst_price_targets` research.
+    - A sub-section on **Average Analyst Rating**, using the `average_analyst_rating` research.
+    - A sub-section on **Recent Rating Changes**, using the `upgrades_downgrades` research.
+    - A sub-section on **Estimated Intrinsic Value**, using the `estimated_intrinsic_value` research.
+    - A sub-section on **Growth Estimates**, using the `growth_estimates` research.
+    - A sub-section on **Revenue Estimates**, using the `revenue_estimates` research.
+    - A sub-section on **Earnings Estimates**, using the `earnings_estimates` research.
+    - A sub-section on **Ownership Structure**, using the `shares_outstanding`, `held_percent_insiders`, and `held_percent_institutions` research.
+    - A sub-section on **Institutional and Mutual Fund Holders**, using the `institutional_and_mutual_fund_holders` research.
+    - A sub-section on **Insider Holders**, using the `insider_holders` research.
+    - A sub-section on **Insider Purchases/Sales**, using the `insider_purchases_last_6m` and `insider_sales_last_6m` research.
+    - A sub-section on **Other Insights**, using the `other_insights` research.
     The output must be formatted as markdown without code blocks.
-    Begin the section with the title: ## Analyst & Professional Insights
+    You must begin the section with the heading: ## Analyst & Professional Insights
   agent: writer
 
 critic_task:
   description: >
-    Critically review the draft "Analyst & Professional Insights" section for accuracy, clarity, coherence, and completeness.
-    Identify any gaps in information, areas of weakness, or potential improvements.
-    Provide specific, actionable feedback. Check for consistency with the overall report.
-    You must also output the full, verbatim draft section content that you have critiqued as well.
+    Perform a rigorous critical review of the draft "Analyst & Professional Insights" section, focusing on accuracy, clarity, coherence, completeness, and overall impact.
+    {critic_guidelines}
+    Accept the methodologies for calculating intrinsic value aren't perfect but are reasonable for the context.
     Current date (ISO format): {date_iso}.
   expected_output: >
     A detailed critique of the section, including specific suggestions for improvement, identification of any factual errors, omissions,
     or areas needing clarification. The critique should ensure the data is presented objectively and without bias.
+    You must also output the full, verbatim draft section content that you have critiqued as well.
   agent: critic
 
 editing_task:
   description: >
-    Improve the "Analyst & Professional Insights" section using the critic's feedback.
-    The final version must be polished, error-free, and present a clear, concise, and compelling overview of analyst and institutional sentiment.
-    - Focus on clarity, accuracy, and conciseness, using only the available information and your knowledge source. Do not suggest further research.
-    - For longer sections, use brief transition statements or lists to summarize subtopics, aiding readability.
-    - Consistently quantify impacts (e.g., effect of percentage changes in interest rates or supply chain disruptions on revenue or costs).
-    - Use bullet points for large datasets or multiple data points to maintain conciseness.
-    - Break paragraphs with numerous data references into bulleted lists for clarity.
-    - Clearly and consistently label timeframes for each dataset (e.g., quarterly vs. yearly).
-    - Avoid unnecessary disclaimers
-    - Do not explicitly reference the critic's feedback.
-    - Don't include a publication date as a separate heading.
-
+    Refine and finalize the "Analyst & Professional Insights" section, incorporating the critic's feedback to achieve the highest possible quality.
+    Guidelines:
+    {editor_guidelines}
+    - Ensure the section starts with: ## Analyst & Professional Insights.
+    - At the end of the intrinsic value sub-section, precisely insert the placeholder: `[sensitivityAnalysis]`.
+    - Do not add any other text or formatting to this placeholder.
+    - This placeholder will be replaced later with a sensitivity analysis chart showing how intrinsic value varies with different Weighted Average Cost of Capital (WACC) and Terminal Growth Rate (TGR) assumptions.
+    - Continue with the rest of the section after the placeholder.
     Current date: {date_us}.
   expected_output: >
     A final, publication-ready "Analyst & Professional Insights" section. The section should be accurate, unbiased, and effectively communicate the key findings.

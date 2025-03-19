@@ -3,44 +3,12 @@ from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ExpertAnalystSignal
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
 from stock_analyser.tools.yfinance_ackman_analysis_tool import YFinanceAckmanAnalysisTool
 
 from dotenv import load_dotenv
 
 load_dotenv()
-
-gemini_pro = LLM(
-	model="gemini/gemini-2.0-pro-exp-02-05",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_flash_lite = LLM(
-	model="gemini/gemini-2.0-flash-lite",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7,
-	timeout=600
-)
-
-gemini_thinking = LLM(
-	model="gemini/gemini-2.0-flash-thinking-exp-01-21",
-	api_key = os.getenv("GEMINI_API_KEY"),
-	temperature=0.7
-)
-
-gpt4_mini = LLM(
-	model="gpt-4o-mini",
-	api_key = os.getenv("OPENAI_API_KEY"),
-	temperature=0.7
-)
 
 
 @CrewBase
@@ -56,7 +24,7 @@ class BillAckmanCrew():
 	def bill_ackman_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['bill_ackman_agent'],
-			llm=gpt4_mini,
+			llm=RESEARCH_MODEL,
 			tools=[
 				YFinanceAckmanAnalysisTool()
 			],
@@ -68,7 +36,8 @@ class BillAckmanCrew():
 	def bill_ackman_writer(self) -> Agent:
 		return Agent(
 			config=self.agents_config['bill_ackman_writer'],
-			llm=gemini_pro
+			llm=WRITING_MODEL,
+			verbose=True
 		)
 
 	# ----Tasks----#

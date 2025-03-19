@@ -6,7 +6,7 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-from palettable.cartocolors.sequential import agGrnYl_5, agGrnYl_4, agGrnYl_3, agGrnYl_6, agGrnYl_7
+from palettable.cartocolors.sequential import BluGrn_5, BluGrn_4, BluGrn_3, BluGrn_6, BluGrn_7
 
 
 def plot_historical_stock_data(ticker: str, output_dir: str, timestamp: str):
@@ -103,11 +103,11 @@ def plot_anaylsts_recommendations(ticker: str, output_dir: str, timestamp: str):
         print(f"Number of valid recommendations: {n}")
 
         palettes = {
-            3: agGrnYl_3,
-            4: agGrnYl_4,
-            5: agGrnYl_5,
-            6: agGrnYl_6,
-            7: agGrnYl_7,
+            3: BluGrn_3,
+            4: BluGrn_4,
+            5: BluGrn_5,
+            6: BluGrn_6,
+            7: BluGrn_7,
         }
         if n not in palettes:
             print(f"Warning: No palette available for n={n}, using n=7")
@@ -151,20 +151,22 @@ def plot_anaylsts_recommendations(ticker: str, output_dir: str, timestamp: str):
         return None
     
 
-def plot_OHLC(ticker: str, output_dir: str, timestamp: str):
+def plot_candlestick_chart(ticker: str, output_dir: str, timestamp: str):
     """
-    Plots the OHLC (Open, High, Low, Close) chart for a given ticker symbol for a given range of dates.
+    Plots the candlestick chart for a given ticker symbol.
     Saves the plot to the output directory.
     """
+
+    length = 30
 
     company = yf.Ticker(ticker)
 
     end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=length)).strftime("%Y-%m-%d")
 
     historical_data = company.history(start=start_date, end=end_date)
 
-    output_path = os.path.join(output_dir, f"OHLC_{ticker}_{start_date}_{end_date}_{timestamp}.png")
+    output_path = os.path.join(output_dir, f"candlestick_{ticker}_{start_date}_{end_date}_{timestamp}.png")
 
 
     mystyle=mpf.make_mpf_style(base_mpf_style='default', rc={'figure.titlesize':32})
@@ -176,11 +178,11 @@ def plot_OHLC(ticker: str, output_dir: str, timestamp: str):
         mav=(5, 30),
         figratio=(16, 9),
         figscale=2.0,
-        title=f'{ticker} OHLC chart for the last 30 days',
+        title=f'{ticker} share price over the last {length} days',
         ylabel='Price ($)',
         volume=True,
         savefig=output_path,
-        show_nontrading=True,
+        # show_nontrading=True,
         tight_layout=True,
         scale_padding=dict(left=0.0, right=0.0, top=5.0, bottom=0.0),
         returnfig=True
@@ -200,4 +202,4 @@ if __name__ == "__main__":
 #     plot_historical_stock_data("AAPL", PLOTS_DIR, TIMESTAMP)
 #     plot_competitor_prices(["AAPL", "TSLA", "MSFT", "GOOG", "NVDA", "AMZN", "META", "NFLX", "ORCL", "IBM"], PLOTS_DIR, TIMESTAMP)
     # plot_anaylsts_recommendations("AAPL", PLOTS_DIR, TIMESTAMP)
-    plot_OHLC("AAPL", PLOTS_DIR, TIMESTAMP)
+    plot_candlestick_chart("AAPL", PLOTS_DIR, TIMESTAMP)

@@ -16,21 +16,37 @@ planning_task:
 
 writing_task:
   description: >
-    Expand the outline provided by the planner into a full draft of the "Executive Summary" section.
-    Develop each sub-section (Company Overview, Recent Stock Performance, Major Takeaways, Investment Thesis) with detailed,
-    yet concise, information. Ensure the writing is clear, factual, and engaging. Avoid uncertainty and ambiguity.
+    Develop the planner's outline into a compelling, easily digestible narrative for the "Executive Summary" section.
+    This summary must effectively communicate the core investment analysis and recommendations to investors.
+    Expand each sub-section (Company Overview, Recent Stock Performance, Major Takeaways, Investment Thesis) with concise yet informative detail.
+    Guidelines:
+    - Begin with a compelling fact, statistic, or statement to emphasize the report's significance.
+    - Clearly identify the report's core objective, ensuring the summary remains focused on this central point. Avoid extraneous details.
+    - Maintain brevity and conciseness: Aim for a single, well-structured paragraph per sub-section. The executive summary serves as a brief overview, so concision is key.
+    - Prioritize the most critical information: Highlight key findings and recommendations pertinent to investors, omitting non-essential details.
+    - Employ clear, concise language, avoiding jargon or technical terms unfamiliar to a broad audience. Use straightforward language for maximum comprehension.
+    - Conclude with a definitive call to action: End with a clear investment recommendation ("Buy," "Hold," or "Sell") to provide investors with immediate clarity.
+    The executive summary is the first part that investors will read; therefore, a strong first impression is crucial.
     Current date: {date_us}.
   expected_output: >
     A complete draft of the Executive Summary.
     Each section should be a well-written paragraph or series of paragraphs, providing a comprehensive overview without unnecessary detail.
     The output must be formatted as markdown without code blocks.
-    Begin the section with the title: ## Executive Summary
+    You must begin the section with the heading: ## Executive Summary
   agent: writer
 
 critic_task:
   description: >
-    Critically review the draft "Executive Summary" for accuracy, clarity, coherence, and completeness.
-    Identify any gaps in information, areas of weakness, or potential improvements. Provide specific, actionable feedback.
+    Perform a rigorous critical review of the draft "Executive Summary" section, focusing on accuracy, clarity, coherence, completeness, and overall impact.
+    The executive summary should effectively communicate the investment analysis and recommendations to investors.
+     - Identify any factual errors, inconsistencies, or logical gaps.
+     - Assess the clarity and effectiveness of the writing. Are concepts explained clearly and succinctly?
+     - Evaluate the coherence of the narrative. Does the section flow logically and tell a compelling story?
+     - Provide specific, actionable feedback for improvement, referencing line numbers or specific phrases where possible.
+     - Ensure the section maintains an objective, data-driven tone and avoids speculation.
+     - Do not suggest adding charts, graphs or imagery.
+     - You must also output the full, verbatim draft section content that you have critiqued.
+    Remember that the executive summary is often the first thing investors will read, so it's important to make a strong first impression.
     Current date (ISO format): {date_iso}.
   expected_output: >
     A detailed critique of the "Executive Summary" draft, including specific suggestions for improvement and
@@ -40,12 +56,19 @@ critic_task:
 
 editing_task:
   description: >
-    Refine the "Executive Summary" based on the critic's feedback. Ensure the final version is polished,
-    error-free, and presents a clear, concise, and compelling overview of the company and its stock performance.
-    Focus on clarity, accuracy, and conciseness, using only the available information and your knowledge source.
-    Do not suggest further research or explicitly reference the critic's feedback.
-    Avoid unnecessary disclaimers.
-    Don't include a publication date as a separate heading.
+    Refine and finalize the "Executive Summary" section, incorporating the critic's feedback to achieve the highest possible quality.
+    Ensure the final version is polished, error-free, and presents a clear, concise, and compelling overview of the company and its stock performance.
+    Remember that the executive summary is often the first thing investors will read, so it's important to make a strong first impression.
+    Guidelines:
+    - Focus on enhancing the content in line with the feedback and avoid cutting content unless it's necessary.
+    - Focus on achieving exceptional clarity and accuracy while maintaining conciseness.
+    - Use only the available information provided to you; do not introduce new data or suggest further research.
+    - Express percentages with two decimal places for precision.
+    - Make sure that special characters such as '$', '%', and '&' are not escaped.
+    - Avoid unnecessary disclaimers or caveats.
+    - Do not explicitly mention the critic's feedback in the revised text.
+    - Do not include the publication date in the section heading or as a separate subheading.
+    Make sure the section begins with the heading: ## Executive Summary
     Current date: {date_us}.
   expected_output: >
     A final, publication-ready "Executive Summary". The summary should be concise,

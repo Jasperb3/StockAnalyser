@@ -2,7 +2,11 @@ research_task:
   description: >
     Research and compile a list of 10 recent, interesting, and relevant news or research articles about {company_name}.
     Prioritize articles that offer significant insights into the company's current performance, future outlook, and market position.
-    Compile the `NewsAndResearchModel` Pydantic model.
+    You can include articles that are positive, negative, or neutral in tone.
+    Aim for a diverse range of sources, including reputable news outlets, financial websites, and industry-specific publications.
+    Do not include articles that are behind a paywall or require a subscription to access.
+    Use the "TrafilaturaWebscrapeTool" to scrape the articles if possible.
+    Compile the `NewsAndResearchModel` Pydantic model with your findings.
     Current date (ISO format): {date_iso}.
   expected_output: >
     A `NewsAndResearchModel` Pydantic model containing a list of 10 news articles, each with a title, URL, and the article's text (or a summary if the full text is not available).
@@ -10,16 +14,18 @@ research_task:
 
 writing_task:
   description: >
+    You are writing the content for the "Recent News Articles" section of a stock analysis report about {company_name}.
     Analyze the compiled `NewsAndResearchModel` from the research task and select the top 5 most impactful articles.
-    Write a concise summary for each of the selected articles, highlighting the key takeaways and their potential implications for the company.
-
-    Avoid uncertainty and ambiguity. The writing should be clear, factual, compelling, and easy to understand.
+    Write a concise summary for each of the selected articles, highlighting the key take-aways and their potential implications for the company.
+    You must include the source URL and a hyperlink to the original article.
+    Use correct markdown formatting for the hyperlinks, e.g. [publicationName](https://website-name.com)
     Current date: {date_us}.
   expected_output: >
-    A markdown section titled "## Recent News Articles" containing summaries of the top 5 news articles.
+    A markdown section containing summaries of the top 5 news articles.
     Each summary should include:
     - The article title and publication date in bold.
     - A brief, informative summary of the article's content and its relevance to the company.
-    - The source and a hyperlink to the original article.
+    - The source URL and a hyperlink to the original article.
+    You must begin the section with the heading: ## Recent News Articles about {company_name}
     Format the output as markdown without code blocks.
   agent: writer

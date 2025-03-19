@@ -1,27 +1,7 @@
-from stock_analyser.tools.tool_utils.metrics import compute_financial_metrics
 import yfinance as yf
 import math
 import numpy as np
 import pandas as pd
-
-
-def get_ticker(ticker: str):
-    """
-    Get a yfinance Ticker object for the given ticker symbol.
-    
-    Args:
-        ticker (str): The stock ticker symbol
-        
-    Returns:
-        yf.Ticker: A yfinance Ticker object
-        
-    Raises:
-        Exception: If ticker data cannot be retrieved
-    """
-    try:
-        return yf.Ticker(ticker.upper())
-    except Exception as e:
-        raise Exception(f"Failed to get ticker data for {ticker}: {str(e)}")
 
 
 def safe_get_row(df: pd.DataFrame, row_name: str, alternative_names=None):
@@ -68,9 +48,9 @@ def filter_valid_values(series):
         return [val for val in series if val is not None and not np.isnan(val)]
     else:
         return [val for val in series if val is not None and not np.isnan(val)]
+    
 
-
-def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, financials=None):
+def analyse_earnings_stability(ticker: str):
     """
     Graham wants at least several years of consistently positive earnings (ideally 5+).
     We'll check:
@@ -80,8 +60,6 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
     Args:
         metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        financials (pd.DataFrame, optional): Financial data to reuse
         
     Returns:
         dict: Analysis results with score and details
@@ -90,33 +68,25 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
     max_score = 0
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        company_ticker = yf.Ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-            if financials is None or financials.empty:
-                return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
-    
-    if not metrics:
-        return {"score": score, "max_score": max_score, "details": "Insufficient data for earnings stability analysis"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
     # Get EPS data, trying alternative row names if needed
-    eps_vals_df = safe_get_row(financials, "Diluted EPS", ["Basic EPS", "EPS - Earnings Per Share"])
+    eps_vals_df = safe_get_row(financials, "Diluted EPS", ["Basic EPS"])
     
     if eps_vals_df is None:
         return {"score": score, "max_score": max_score, "details": "EPS data not available in financial statements"}
     
     eps_vals = filter_valid_values(eps_vals_df)
-    
     if len(eps_vals) < 2:
         details.append("Not enough multi-year EPS data (need at least 2 periods).")
         return {"score": score, "max_score": max_score, "details": "; ".join(details)}
@@ -131,7 +101,7 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
         details.append(f"EPS was positive in all {total_eps_years} available periods.")
     elif positive_eps_years >= (total_eps_years * 0.8):
         score += 2
-        details.append(f"EPS was positive in {positive_eps_years} of {total_eps_years} periods ({positive_eps_years/total_eps_years:.0%}).")
+        details.append(f"EPS was positive in {positive_eps_years} of {total_eps_years} periods ({positive_eps_years/total_eps_years:.0%})")
     else:
         details.append(f"EPS was negative in {total_eps_years - positive_eps_years} of {total_eps_years} periods.")
     
@@ -157,14 +127,10 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
                 score += 1
                 details.append(f"EPS grew from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} growth).")
             else:
-                details.append(f"EPS declined from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} change).")
-
-            
+                details.append(f"EPS declined from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} change).")           
 
         elif len(eps_vals) > 1: # We did NOT find a valid earliest_eps, but there are at least two values
             details.append("Cannot calculate EPS growth due to zero or invalid values.")
-
-            max_score += 1 # Increment max_score
 
         else: # We did not find a valid earliest_eps AND there is only one value
             details.append("Cannot calculate EPS growth due to zero or invalid values.")
@@ -172,10 +138,12 @@ def analyse_earnings_stability(metrics: dict, ticker: str, company_ticker=None, 
     except (IndexError, ZeroDivisionError, Exception) as e:
         details.append(f"Error calculating EPS growth: {str(e)}")
 
+    max_score += 1
+
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, cash_flow=None):
+def analyse_financial_strength(ticker: str):
     """
     Graham checks liquidity (current ratio >= 2), manageable debt,
     and dividend record (preferably some history of dividends).
@@ -183,8 +151,6 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
     Args:
         metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        cash_flow (pd.DataFrame, optional): Cash flow data to reuse
         
     Returns:
         dict: Analysis results with score and details
@@ -193,30 +159,34 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
     max_score = 0
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        company_ticker = yf.Ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data for financial strength analysis: {str(e)}"}
+
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data for financial strength analysis: {str(e)}"}
     
-    # Reuse cash_flow if provided, otherwise get from ticker
-    if cash_flow is None:
-        try:
-            cash_flow = company_ticker.cashflow
-            if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
-    
-    if not metrics:
-        return {"score": score, "max_score": max_score, "details": "Insufficient data for financial strength analysis"}
+
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data for financial strength analysis: {str(e)}"}
     
     # Extract metrics with safe handling of None/NaN values
-    total_assets = metrics.get("total_assets", 0)
-    total_liabilities = metrics.get("total_liabilities", 0)
-    current_assets = metrics.get("current_assets", 0)
-    current_liabilities = metrics.get("current_liabilities", 0)
+    try:
+        total_assets = balance_sheet.loc["Total Assets"].dropna().iloc[0]
+        total_liabilities = balance_sheet.loc["Total Liabilities Net Minority Interest"].dropna().iloc[0]
+        current_assets = balance_sheet.loc["Current Assets"].dropna().iloc[0]
+        current_liabilities = balance_sheet.loc["Current Liabilities"].dropna().iloc[0]
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
     
     # 1. Current ratio
     if (current_assets is not None and current_liabilities is not None and 
@@ -271,7 +241,6 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
         return {"score": score, "max_score": max_score, "details": "; ".join(details)}
     
     div_periods = filter_valid_values(cash_dividends_paid_df)
-    
     if div_periods:
         # In many data feeds, dividend outflow is shown as a negative number
         # (money going out to shareholders). We'll consider any negative as 'paid a dividend'.
@@ -296,7 +265,7 @@ def analyse_financial_strength(metrics: dict, ticker: str, company_ticker=None, 
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
+def analyse_valuation_graham(ticker: str):
     """
     Core Graham approach to valuation:
     1. Net-Net Check: (Current Assets - Total Liabilities) vs. Market Cap
@@ -304,43 +273,59 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
     3. Compare per-share price to Graham Number => margin of safety
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+
+    try:
+        company_ticker = yf.Ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    market_cap = metrics.get("market_cap")
+    try:
+        info = company_ticker.info
+        if info is None:
+            return {"score": 0, "max_score": 0, "details": "No info data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving info data: {str(e)}"}
     
-    if not metrics or market_cap is None or market_cap <= 0 or np.isnan(market_cap):
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    
+
+    market_cap = info.get("marketCap")
+    
+    if not info or market_cap is None or market_cap <= 0 or np.isnan(market_cap):
         return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
     
     # Extract metrics with safe handling of None/NaN values
-    current_assets = metrics.get("current_assets", 0)
-    total_liabilities = metrics.get("total_liabilities", 0)
-    book_value_ps = metrics.get("tangible_book_value_per_share", 0)
-    eps = metrics.get("earnings_per_share", 0)
-    shares_outstanding = metrics.get("shares_outstanding", 0)
-    
-    # Check for None or NaN values
-    if current_assets is None or np.isnan(current_assets):
-        current_assets = 0
-    if total_liabilities is None or np.isnan(total_liabilities):
-        total_liabilities = 0
-    if book_value_ps is None or np.isnan(book_value_ps):
-        book_value_ps = 0
-    if eps is None or np.isnan(eps):
-        eps = 0
-    if shares_outstanding is None or np.isnan(shares_outstanding):
-        shares_outstanding = 0
+    try:
+        current_assets = balance_sheet.loc["Current Assets"].dropna().iloc[0]
+        total_liabilities = balance_sheet.loc["Total Liabilities Net Minority Interest"].dropna().iloc[0]
+        stockholders_equity = balance_sheet.loc['Stockholders Equity'].dropna().iloc[0]
+        goodwill = balance_sheet.loc['Goodwill'].dropna().iloc[0]
+        other_intangible_assets = balance_sheet.loc['Other Intangible Assets'].dropna().iloc[0]
+        shares_outstanding = info.get('sharesOutstanding')
+        total_intangible_assets = goodwill + other_intangible_assets
+        tangible_book_value = stockholders_equity - total_intangible_assets
+        tangible_book_value_per_share = tangible_book_value / shares_outstanding
+        eps = financials.loc["Diluted EPS"].dropna().iloc[0]
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data for Graham valuation: {str(e)}"}
+
     
     details = []
     score = 0
@@ -361,21 +346,21 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
             
             if net_current_asset_value > market_cap:
                 score += 4  # Very strong Graham signal
-                details.append("Net-Net: NCAV > Market Cap (classic Graham deep value).")
+                details.append("Net-Net: NCAV > Market Cap (classic Graham deep value)")
             else:
                 # For partial net-net discount
                 if net_current_asset_value_per_share >= (price_per_share * 0.67):
                     score += 2
-                    details.append("NCAV Per Share >= 2/3 of Price Per Share (moderate net-net discount).")
+                    details.append("NCAV Per Share >= 2/3 of Price Per Share (moderate net-net discount)")
         else:
             if net_current_asset_value <= 0:
-                details.append("NCAV is negative or zero (current assets don't exceed total liabilities).")
+                details.append("NCAV is negative or zero (current assets don't exceed total liabilities)")
             elif shares_outstanding <= 0:
-                details.append("Cannot calculate per-share values (shares outstanding data invalid).")
+                details.append("Cannot calculate per-share values (shares outstanding data invalid)")
             else:
-                details.append("NCAV not exceeding market cap or insufficient data for net-net approach.")
+                details.append("NCAV not exceeding market cap or insufficient data for net-net approach")
 
-        max_score += 4 # Increment max_score
+        max_score += 4
 
     except (ZeroDivisionError, Exception) as e:
         details.append(f"Error calculating Net-Net values: {str(e)}")
@@ -385,19 +370,19 @@ def analyse_valuation_graham(metrics: dict, ticker: str, company_ticker=None):
     #   Compare the result to the current price_per_share
     #   If GrahamNumber >> price, indicates undervaluation
     graham_number = None
-    if eps > 0 and book_value_ps > 0:
+    if eps > 0 and tangible_book_value_per_share > 0:
         try:
-            graham_number = math.sqrt(22.5 * eps * book_value_ps)
+            graham_number = math.sqrt(22.5 * eps * tangible_book_value_per_share)
             details.append(f"Graham Number = {graham_number:.2f}")
         except (ValueError, Exception) as e:
             details.append(f"Error calculating Graham Number: {str(e)}")
     else:
         if eps <= 0:
-            details.append("Unable to compute Graham Number (EPS is negative or zero).")
-        elif book_value_ps <= 0:
-            details.append("Unable to compute Graham Number (Book Value per Share is negative or zero).")
+            details.append("Unable to compute Graham Number (EPS is negative or zero)")
+        elif tangible_book_value_per_share <= 0:
+            details.append("Unable to compute Graham Number (Book Value per Share is negative or zero)")
         else:
-            details.append("Unable to compute Graham Number (EPS or Book Value missing).")
+            details.append("Unable to compute Graham Number (EPS or Book Value missing)")
     
     # 3. Margin of Safety relative to Graham Number
     if graham_number and shares_outstanding > 0:
@@ -438,24 +423,9 @@ def calculate_graham_analysis_data(ticker: str):
     Returns:
         dict: Complete Graham analysis with signal, score, and detailed components
     """
-    try:
-        # Get ticker data once and reuse
-        company_ticker = get_ticker(ticker)
-        financials = company_ticker.financials
-        cash_flow = company_ticker.cashflow
-        
-        # Get metrics once
-        metrics = compute_financial_metrics(ticker)
-    except Exception as e:
-        return {
-            "signal": "neutral",
-            "score": 0,
-            "max_score": 0,
-            "error": f"Failed to compute financial metrics: {str(e)}"
-        }
     
     try:
-        earnings_analysis = analyse_earnings_stability(metrics, ticker, company_ticker, financials)
+        earnings_analysis = analyse_earnings_stability(ticker)
     except Exception as e:
         earnings_analysis = {
             "score": 0, 
@@ -464,7 +434,7 @@ def calculate_graham_analysis_data(ticker: str):
         }
     
     try:
-        strength_analysis = analyse_financial_strength(metrics, ticker, company_ticker, cash_flow)
+        strength_analysis = analyse_financial_strength(ticker)
     except Exception as e:
         strength_analysis = {
             "score": 0, 
@@ -473,7 +443,7 @@ def calculate_graham_analysis_data(ticker: str):
         }
     
     try:
-        valuation_analysis = analyse_valuation_graham(metrics, ticker, company_ticker)
+        valuation_analysis = analyse_valuation_graham(ticker)
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
@@ -505,7 +475,7 @@ def calculate_graham_analysis_data(ticker: str):
 
 
 if __name__ == "__main__":
-    TICKER = "MSFT"
+    TICKER = "PEP"
     graham_analysis_data = calculate_graham_analysis_data(TICKER)
     print(graham_analysis_data)
 

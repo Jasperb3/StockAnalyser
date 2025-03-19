@@ -1,0 +1,48 @@
+trend_analysis_task:
+  description: >
+    You will be given 5 key financial data points for a company.
+    The financial data is provided as a dictionary with timestamps as keys and the financial metric as the values.
+    Your job is to analyze the data and provide a short commentary on the trends.
+    You must also add a placeholder for an image link that will be added later for each of the five financial metric.
+    
+    The company is {company_name}.
+    The current date is {date_iso}.
+
+    Financial data:
+    1. Revenue: {revenue_data}
+    2. Net Income: {net_income_data}
+    3. Gross Margin: {gross_margin_data}
+    4. EPS: {eps_data}
+    5. Free Cash Flow: {free_cash_flow_data}
+
+    The placeholder MUST be the metric name in camel case enclosed in square brackets. Choose from:
+    [revenue]
+    [netIncome]
+    [grossMargin]
+    [eps]
+    [freeCashFlow]
+
+    Example (DO NOT repeat this verbatim, analyze the actual data):
+    <EXAMPLE>
+    Revenue shows strong growth, accelerating particularly in the last two years.
+    [revenue]
+
+    Net income, while positive, has shown some volatility, with a slight dip in the middle year before a strong recovery.
+    [netincome]
+
+    Gross margin has remained relatively stable, indicating consistent cost management.
+    [grossmargin]
+
+    EPS has consistently increased year over year, reflecting improved profitability.
+    [eps]
+
+    Free Cash Flow saw a significant jump in the most recent year, suggesting improved operational efficiency.
+    [freecashflow]
+    </EXAMPLE>
+
+    Provide this formatted output for EACH of the 5 financial metrics.
+
+  expected_output: >
+    Concise, informative trend commentaries for each financial metric, each followed by its corresponding image placeholder in square brackets.
+    Formatted as plain text without markdown formatting.
+  agent: trend_analysist

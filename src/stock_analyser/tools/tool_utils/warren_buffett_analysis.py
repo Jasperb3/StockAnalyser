@@ -1,8 +1,9 @@
 import yfinance as yf
-from stock_analyser.tools.tool_utils.metrics import compute_financial_metrics
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
+this_year = datetime.now().year
 
 def get_ticker(ticker: str):
     """
@@ -69,25 +70,33 @@ def filter_valid_values(series):
         return [val for val in series if val is not None and not np.isnan(val)]
 
 
-def analyse_fundamentals(metrics: dict):
+def analyse_fundamentals(ticker: str):
     """
-    Analyse the fundamentals of a company using the metrics dictionary.
+    Analyse the fundamentals of a company.
     
     Args:
-        metrics (dict): Financial metrics dictionary
+        ticker (str): Stock ticker symbol
         
     Returns:
-        dict: Analysis results with score, details and metrics
+        dict: Analysis results with score and details
     """
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient fundamental data", "metrics": {}}
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving ticker: {str(e)}"}
+
+    try:
+        info = company_ticker.info
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving company info: {str(e)}"}
+
     
     score = 0
-    max_score = 0 # Initialize max_score
+    max_score = 0
     reasoning = []
 
     # Check ROE (Return on Equity)
-    roe = metrics.get('return_on_equity')
+    roe = info.get('returnOnEquity')
     if roe is not None and not np.isnan(roe):
         if roe > 0.15:  # 15% ROE threshold
             score += 2
@@ -100,8 +109,9 @@ def analyse_fundamentals(metrics: dict):
     max_score += 2 # Increment by the *highest* possible score for this section
 
     # Check Debt to Equity
-    debt_to_equity = metrics.get('debt_to_equity')
+    debt_to_equity = info.get('debtToEquity')
     if debt_to_equity is not None and not np.isnan(debt_to_equity):
+        debt_to_equity /= 100
         if debt_to_equity < 0.5:
             score += 2
             reasoning.append(f"Conservative debt levels (D/E ratio: {debt_to_equity:.2f})")
@@ -113,7 +123,7 @@ def analyse_fundamentals(metrics: dict):
     max_score += 2 # Increment by the *highest* possible score for this section
 
     # Check Operating Margin
-    operating_margin = metrics.get('operating_margin')
+    operating_margin = info.get('operatingMargins')
     if operating_margin is not None and not np.isnan(operating_margin):
         if operating_margin > 0.15:
             score += 2
@@ -126,7 +136,7 @@ def analyse_fundamentals(metrics: dict):
     max_score += 2 # Increment by the *highest* possible score for this section
 
     # Check Current Ratio
-    current_ratio = metrics.get('current_ratio')
+    current_ratio = info.get('currentRatio')
     if current_ratio is not None and not np.isnan(current_ratio):
         if current_ratio > 1.5:
             score += 1
@@ -138,41 +148,28 @@ def analyse_fundamentals(metrics: dict):
 
     max_score += 1 # Increment by the *highest* possible score for this section
 
-    # round all values in metrics to 2 decimal places
-    for key, value in metrics.items():
-        if isinstance(value, float):
-            metrics[key] = round(value, 2)
 
-    return {"score": score, "max_score": max_score, "details": "; ".join(reasoning), "metrics": metrics}
+    return {"score": score, "max_score": max_score, "details": "; ".join(reasoning)}
 
 
-def analyse_consistency(ticker: str, company_ticker=None, financials=None):
+def analyse_consistency(ticker: str):
     """
     Analyse the consistency of a company's earnings over time.
     
     Args:
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        financials (pd.DataFrame, optional): Financial data to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    company_ticker = get_ticker(ticker)
     
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-            if financials is None or financials.empty:
-                return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
 
     # Get Net Income data, trying alternative row names if needed
     net_income_df = safe_get_row(financials, "Net Income", 
@@ -185,70 +182,208 @@ def analyse_consistency(ticker: str, company_ticker=None, financials=None):
     
     n = len(earnings_values)
     
-    if n < 4:  # Need at least 4 periods for trend analysis
-        return {"score": 0, "max_score": 0, "details": f"Insufficient historical data (have {n} periods, need at least 4)"}
     
     score = 0
-    max_score = 0 # Initialize max_score
+    max_score = n - 1
     reasoning = []
     
+    
     # Check if earnings are consistently growing
-    # Note: yfinance data is typically in reverse chronological order (newest first)
-    try:
-        # Check if each period's earnings are higher than the next (older) period
-        earnings_growth = True
-        for i in range(n - 1):
-            if earnings_values[i] <= earnings_values[i+1]:
-                earnings_growth = False
-                break
-    except Exception as e:
-        return {"score": 0, "max_score": 0, "details": f"Error analyzing earnings growth pattern: {str(e)}"}
+    if n >= 4:
+        try:
+            consistent_earnings_growth = all(earnings_values[i] > earnings_values[i + 1] for i in range(n - 1))
 
-    if earnings_growth:
-        score += 3
+        except Exception as e:
+            return {"score": 0, "max_score": 0, "details": f"Error analyzing earnings growth pattern: {str(e)}"}
+        
+    else:
+        return {"score": 0, "max_score": 0, "details": f"Insufficient historical data (have {n} periods, need at least 4)"}
+    
+    if consistent_earnings_growth:
+        score += n
         reasoning.append(f"Consistent earnings growth over {n} periods")
     else:
-        reasoning.append(f"Inconsistent earnings growth pattern over {n} periods")
+        reasoning.append(f"Inconsistent earnings growth pattern over {n} periods:")
 
-    max_score += 3 # Increment by the *highest* possible score for this section
+    try:
+        for i in range(n - 1):
+            if earnings_values[i] > earnings_values[i + 1]:
+                score += 1
+                reasoning.append(f"earnings grew from period {this_year - i - 2} to {this_year - i - 1}")
+            else:
+                reasoning.append(f"earnings did not grow from period {this_year - i - 2} to {this_year - i - 1}")
+
+    except Exception as e:
+        return {"score": 0, "max_score": 4, "details": f"Error analyzing earnings growth pattern: {str(e)}"}
+
 
     # Calculate growth rate from earliest to latest
-    if n >= 2:
-        try:
-            latest = earnings_values[0]
-            earliest = None
+    try:
+        latest_earnings = earnings_values[0]
+        earliest_earnings = None
 
-            # Find a valid (positive) earliest earnings value
-            for i in range(len(earnings_values) - 1, -1, -1):
-                if earnings_values[i] > 0:
-                    earliest = earnings_values[i]
-                    break
-            
-            if earliest is not None:
-                growth_rate = (latest - earliest) / earliest
-                reasoning.append(f"Total earnings growth of {growth_rate:.1%} over past {n} periods")
-            elif len(earnings_values) > 1:
-                reasoning.append("Cannot calculate growth rate (earliest earnings negative or zero)")
-            else:
-                reasoning.append("Cannot calculate growth rate (earliest earnings negative or zero)")
-        except (ZeroDivisionError, IndexError, Exception) as e:
-            reasoning.append(f"Error calculating growth rate: {str(e)}")
-    else:
-        reasoning.append("Insufficient earnings data for trend analysis")
+        # Find a valid (positive) earliest earnings value
+        for i in range(n - 1, -1, -1):
+            if earnings_values[i] is not None and not np.isnan(earnings_values[i]):
+                earliest_earnings = earnings_values[i]
+                break
+        
+        if earliest_earnings is not None and earliest_earnings != 0:
+            growth_rate = (latest_earnings - earliest_earnings) / abs(earliest_earnings)
+            reasoning.append(f"Total earnings growth of {growth_rate:.1%} over past {n} periods")
+        else:
+            reasoning.append("Cannot calculate growth rate (earliest earnings negative or zero)")
+    except (ZeroDivisionError, IndexError, Exception) as e:
+        reasoning.append(f"Error calculating growth rate: {str(e)}")
 
     return {
         "score": score,
         "max_score": max_score,
         "details": "; ".join(reasoning),
     }
+
+
+def analyse_moat(ticker: str) -> dict[str, any]:
+    """
+    Evaluate whether the company likely has a durable competitive advantage (moat).
+    For simplicity, we look at stability of ROE/operating margins over multiple periods
+    or high margin over the last few years. Higher stability => higher moat score.
+    """
+    company_ticker = get_ticker(ticker)
+    try:
+       financials = company_ticker.financials
+       if financials is None or financials.empty:
+           return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+       return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+           return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+       return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+    if financials is None or balance_sheet is None or financials.empty or balance_sheet.empty or len(financials) < 3 or len(balance_sheet) < 3:
+        return {"score": 0, "max_score": 0, "details": "Insufficient data for moat analysis"}
+
+    reasoning = []
+    moat_score = 0
+    historical_roes = []
+    historical_margins = []
+
+
+    net_income = safe_get_row(financials, "Net Income")
+    shareholders_equity = safe_get_row(balance_sheet, "Stockholders Equity")
+
+    if len(net_income) >= 3 and len(shareholders_equity) >= 3:
+        for i in range(len(net_income)):
+            if net_income.iloc[i] is not None and not np.isnan(net_income.iloc[i]) and shareholders_equity.iloc[i] is not None and not np.isnan(shareholders_equity.iloc[i]):
+                historical_roes.append(net_income.iloc[i] / shareholders_equity.iloc[i])
+
+    
+    revenue = safe_get_row(financials, "Total Revenue")
+    operating_expenses = safe_get_row(financials, "Operating Expense")
+
+    if len(revenue) >= 3 and len(operating_expenses) >= 3:
+        for i in range(len(revenue)):
+            if revenue.iloc[i] is not None and not np.isnan(revenue.iloc[i]) and operating_expenses.iloc[i] is not None and not np.isnan(operating_expenses.iloc[i]):
+                historical_margins.append((revenue.iloc[i] - operating_expenses.iloc[i]) / revenue.iloc[i])
+
+    # Check for stable or improving ROE
+    if len(historical_roes) >= 3:
+        stable_roe = all(r > 0.15 for r in historical_roes)
+        if stable_roe:
+            moat_score += 1
+            reasoning.append("Stable ROE above 15% across periods (suggests moat)")
+        else:
+            reasoning.append("ROE not consistently above 15%")
+
+    # Check for stable or improving operating margin
+    if len(historical_margins) >= 3:
+        stable_margin = all(m > 0.15 for m in historical_margins)
+        if stable_margin:
+            moat_score += 1
+            reasoning.append("Stable operating margins above 15% (moat indicator)")
+        else:
+            reasoning.append("Operating margin not consistently above 15%")
+
+    # If both are stable/improving, add an extra point
+    if moat_score == 2:
+        moat_score += 1
+        reasoning.append("Both ROE and margin stability indicate a solid moat")
+
+    return {
+        "score": moat_score,
+        "max_score": 3,
+        "details": "; ".join(reasoning),
+    }
+ 
+ 
+
+def analyse_management_quality(ticker: str) -> dict[str, any]:
+    """
+    Checks for share dilution or consistent buybacks, and some dividend track record.
+    A simplified approach:
+      - if there's net share repurchase or stable share count, it suggests management
+        might be shareholder-friendly.
+      - if there's a big new issuance, it might be a negative sign (dilution).
+    """
+    company_ticker = get_ticker(ticker)
+
+    try:
+        cash_flow = company_ticker.cash_flow
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+
+    if cash_flow is None or cash_flow.empty:
+        return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    
+    reasoning = []
+    mgmt_score = 0
+
+    # Check for issuance or purchase of equity shares
+    net_common_stock_issuance = safe_get_row(cash_flow, "Net Common Stock Issuance")
+
+    if net_common_stock_issuance.empty or net_common_stock_issuance is None:
+        return {"score": 0, "max_score": 0, "details": "Net common stock issuance data not available"}
+    
+    if net_common_stock_issuance.iloc[0] < 0:
+        mgmt_score += 1
+        reasoning.append("Company has been repurchasing shares (shareholder-friendly)")
+    elif net_common_stock_issuance.iloc[0] > 0:
+        mgmt_score -= 1
+        reasoning.append("Recent common stock issuance (potential dilution)")
+    else:
+        reasoning.append("No significant new stock issuance detected")
+
     
 
-def calculate_intrinsic_value(metrics, growth_rate, discount_rate, terminal_multiple, projection_years):
+    # Check for any dividends
+    cash_dividends_paid = safe_get_row(cash_flow, "Cash Dividends Paid")
+
+    if not cash_dividends_paid.empty and cash_dividends_paid is not None and abs(cash_dividends_paid.iloc[0]) > 0:
+        mgmt_score += 1
+        reasoning.append("Company has a track record of paying dividends")
+    else:
+        reasoning.append("No or minimal dividends paid")
+    
+    
+    
+    
+    return {
+        "score": mgmt_score,
+        "max_score": 2,
+        "details": "; ".join(reasoning),
+    }
+
+    
+
+def calculate_intrinsic_value(ticker, growth_rate, discount_rate, terminal_multiple, projection_years):
     """
     Calculate intrinsic value using DCF model with owner earnings.
     
     Args:
-        metrics (dict): Financial metrics dictionary
+        ticker (str): Stock ticker symbol
         growth_rate (float): Annual growth rate for projections
         discount_rate (float): Discount rate for present value calculations
         terminal_multiple (float): Multiple for terminal value calculation
@@ -257,26 +392,52 @@ def calculate_intrinsic_value(metrics, growth_rate, discount_rate, terminal_mult
     Returns:
         dict: Intrinsic value analysis with value and details
     """
-    if not metrics:
-        return {"value": None, "details": ["Insufficient data for valuation"]}
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"value": None, "details": [f"Error retrieving ticker: {str(e)}"]}
+    
+    try:
+        info = company_ticker.info
+    except Exception as e:
+        return {"value": None, "details": [f"Error retrieving company info: {str(e)}"]}
+    
+    try:
+        financials = company_ticker.financials
+    except Exception as e:
+        return {"value": None, "details": [f"Error retrieving financial data: {str(e)}"]}
+    
+    try:
+        cash_flow = company_ticker.cash_flow
+    except Exception as e:
+        return {"value": None, "details": [f"Error retrieving cash flow data: {str(e)}"]}
+    
+    try:
+        balance_sheet = company_ticker.balance_sheet
+    except Exception as e:
+        return {"value": None, "details": [f"Error retrieving balance sheet data: {str(e)}"]}
     
     # Calculate owner earnings
-    net_income = metrics.get("net_income")
-    depreciation = metrics.get("depreciation_and_amortization")
-    capex = metrics.get("capex")
+    net_income = safe_get_row(financials, "Net Income")
+    depreciation = safe_get_row(cash_flow, "Depreciation And Amortization")
+    capex = safe_get_row(cash_flow, "Capital Expenditure")
 
-    if net_income is None or np.isnan(net_income):
+    latest_net_income = net_income.iloc[0]
+    latest_depreciation = depreciation.iloc[0]
+    latest_capex = capex.iloc[0]
+
+    if latest_net_income is None or np.isnan(latest_net_income):
         return {"value": None, "details": ["Net income data not available"]}
-    if depreciation is None or np.isnan(depreciation):
+    if latest_depreciation is None or np.isnan(latest_depreciation):
         return {"value": None, "details": ["Depreciation data not available"]}
-    if capex is None or np.isnan(capex):
+    if latest_capex is None or np.isnan(latest_capex):
         return {"value": None, "details": ["Capital expenditure data not available"]}
 
     try:
         # Buffett's owner earnings formula: Net Income + Depreciation - Maintenance CapEx
         # We estimate maintenance CapEx as a percentage of total CapEx
-        maintenance_capex = capex * 0.75  # Assuming 75% of CapEx is for maintenance
-        owner_earnings = net_income + depreciation - maintenance_capex
+        maintenance_capex = latest_capex * 0.75  # Assuming 75% of CapEx is for maintenance
+        owner_earnings = latest_net_income + latest_depreciation - maintenance_capex
         
         if owner_earnings <= 0:
             return {"value": None, "details": [f"Calculated owner earnings are negative or zero: ${owner_earnings:,.2f}"]}
@@ -284,12 +445,12 @@ def calculate_intrinsic_value(metrics, growth_rate, discount_rate, terminal_mult
         return {"value": None, "details": [f"Error calculating owner earnings: {str(e)}"]}
 
     # Get shares Outstanding
-    shares_outstanding = metrics.get("shares_outstanding", None)
+    shares_outstanding = info.get("sharesOutstanding", None)
     if shares_outstanding is None or np.isnan(shares_outstanding) or shares_outstanding <= 0:
         return {"value": None, "details": ["Shares outstanding data not available or invalid"]}
 
     try:
-        # Calculate future value using DCF
+        # Calculate future value using current earnings
         future_value = 0
         for year in range(1, projection_years + 1):
             future_earnings = owner_earnings * (1 + growth_rate) ** year
@@ -297,22 +458,30 @@ def calculate_intrinsic_value(metrics, growth_rate, discount_rate, terminal_mult
             future_value += present_value
 
         # Calculate terminal value
-        terminal_value = (owner_earnings * (1 + growth_rate) ** projection_years * terminal_multiple) / (1 + discount_rate) ** projection_years
+        terminal_value = (owner_earnings * (1 + growth_rate) ** projection_years * terminal_multiple) \
+                        / (1 + discount_rate) ** projection_years
 
         intrinsic_value = future_value + terminal_value
         intrinsic_value_per_share = intrinsic_value / shares_outstanding
+
+        market_cap = info.get("marketCap")
+
+
+
+
     except Exception as e:
         return {"value": None, "details": [f"Error in DCF calculation: {str(e)}"]}
 
     return {
+        "market_cap": f"{market_cap:,}",
         "intrinsic_value": f"${intrinsic_value:,.2f}",
         "intrinsic_value_per_share": f"${intrinsic_value_per_share:,.2f}",
         "owner_earnings": f"${owner_earnings:,.2f}",
         "owner_earnings_per_share": f"${owner_earnings/shares_outstanding:,.2f}",
         "assumptions": {
-            "growth_rate": growth_rate,
-            "discount_rate": discount_rate,
-            "terminal_multiple": terminal_multiple,
+            "growth_rate": f"{growth_rate:.1%}",
+            "discount_rate": f"{discount_rate:.1%}",
+            "terminal_multiple": f"{terminal_multiple}x",
             "projection_years": projection_years,
         },
         "details": [
@@ -343,42 +512,45 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
     Returns:
         dict: Complete Buffett analysis with signal, score, and detailed components
     """
-    try:
-        # Get ticker data once and reuse
-        company_ticker = get_ticker(ticker)
-        financials = company_ticker.financials
-        
-        # Get metrics once
-        metrics = compute_financial_metrics(ticker)
-    except Exception as e:
-        return {
-            "ticker": ticker,
-            "signal": "neutral",
-            "score": 0,
-            "max_score": 0, # Initialize max_score
-            "error": f"Failed to compute financial metrics: {str(e)}"
-        }
 
     try:
-        fundamental_analysis = analyse_fundamentals(metrics)
+        fundamental_analysis = analyse_fundamentals(ticker)
     except Exception as e:
         fundamental_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize max_score
+            "max_score": 0,
             "details": f"Error in fundamental analysis: {str(e)}"
         }
 
     try:
-        consistency_analysis = analyse_consistency(ticker, company_ticker, financials)
+        consistency_analysis = analyse_consistency(ticker)
     except Exception as e:
         consistency_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize max_score
+            "max_score": 0,
             "details": f"Error in consistency analysis: {str(e)}"
         }
 
     try:
-        intrinsic_value_analysis = calculate_intrinsic_value(metrics, growth_rate, discount_rate, 
+        moat_analysis = analyse_moat(ticker)
+    except Exception as e:
+        moat_analysis = {
+            "score": 0, 
+            "max_score": 0,
+            "details": f"Error in moat analysis: {str(e)}"
+        }
+
+    try:
+        management_quality = analyse_management_quality(ticker)
+    except Exception as e:
+        management_quality = {
+            "score": 0, 
+            "max_score": 0,
+            "details": f"Error in management quality analysis: {str(e)}"
+        }
+
+    try:
+        intrinsic_value_analysis = calculate_intrinsic_value(growth_rate, discount_rate, 
                                                            terminal_multiple, projection_years)
     except Exception as e:
         intrinsic_value_analysis = {
@@ -388,21 +560,30 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
 
     fundamental_analysis_score = fundamental_analysis.get("score", 0)
     fundamental_analysis_max_score = fundamental_analysis.get("max_score", 0)
+
     consistency_analysis_score = consistency_analysis.get("score", 0)
     consistency_analysis_max_score = consistency_analysis.get("max_score", 0)
 
-    total_score = fundamental_analysis_score + consistency_analysis_score
-    max_possible_score = fundamental_analysis_max_score + consistency_analysis_max_score
+    moat_analysis_score = moat_analysis.get("score", 0)
+    moat_analysis_max_score = moat_analysis.get("max_score", 0)
+
+    management_quality_score = management_quality.get("score", 0)
+    management_quality_max_score = management_quality.get("max_score", 0)   
+
+    total_score = fundamental_analysis_score + consistency_analysis_score + moat_analysis_score + management_quality_score
+    max_possible_score = fundamental_analysis_max_score + consistency_analysis_max_score + moat_analysis_max_score + management_quality_max_score
 
     margin_of_safety = None
+
     intrinsic_value = intrinsic_value_analysis.get("intrinsic_value")
-    market_cap = metrics.get("market_cap")
+
+    market_cap = intrinsic_value_analysis.get("market_Cap")
 
     if intrinsic_value and market_cap and not np.isnan(market_cap) and market_cap > 0:
         try:
             # Extract numeric value from formatted string
             intrinsic_value_numeric = float(intrinsic_value.replace("$", "").replace(",", ""))
-            margin_of_safety = (intrinsic_value_numeric - market_cap) / market_cap
+            margin_of_safety = (intrinsic_value_numeric - market_cap) / intrinsic_value_numeric
 
             # Add to score if there's a good margin of safety (>30%)
             if margin_of_safety > 0.3:
@@ -431,16 +612,18 @@ def calculate_buffett_analysis_data(ticker: str, growth_rate: float = 0.05,
         "max_score": max_possible_score,
         "fundamental_analysis": fundamental_analysis,
         "consistency_analysis": consistency_analysis,
+        "moat_analysis": moat_analysis,
+        "management_quality": management_quality,
         "intrinsic_value_analysis": intrinsic_value_analysis,
         "market_cap": market_cap,
-        "margin_of_safety": f"{margin_of_safety:.2%}" if margin_of_safety is not None else None,
+        "margin_of_safety": f"{margin_of_safety:.2%}" if margin_of_safety else None,
     }
 
     return buffett_analysis_data
 
 
 if __name__ == "__main__":
-    buffett_analysis_data = calculate_buffett_analysis_data("MSFT", 0.05, 0.09, 12, 10)
+    buffett_analysis_data = calculate_buffett_analysis_data("NVDA", 0.05, 0.09, 12, 10)
     print(buffett_analysis_data)
 
 

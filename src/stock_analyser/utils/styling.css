@@ -1,0 +1,596 @@
+/* ====== GOOGLE FONTS IMPORT ====== */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lora:wght@400;700&family=STIX+Two+Text:wght@400;700&family=Lato:wght@400;700&display=swap');
+
+/* 
+ * FINANCIAL REPORT STYLESHEET
+ * Optimized for retail investor stock analysis reports
+ * Focus on readability, professionalism, and clear data presentation
+ * Compatible with WeasyPrint PDF renderer
+ */
+
+/* ====== PAGE LAYOUT ====== */
+@page {
+    size: A4;
+    margin: 25mm 20mm; /* Balanced margins for better whitespace */
+    @top-center {
+        content: string(doctitle);
+        font-family: 'Lato', 'Arial', sans-serif; /* Sans-serif for headers */
+        font-size: 9pt;
+        color: #505050; /* Muted dark gray instead of black */
+    }
+    @bottom-right {
+        content: "Page " counter(page); /* Added "Page" text for clarity */
+        font-family: 'Lato', 'Arial', sans-serif;
+        font-size: 9pt;
+        color: #505050;
+    }
+    @bottom-left {
+        content: "Confidential – For the intended recipient only"; /* Added footer note */
+        font-family: 'Lato', 'Arial', sans-serif;
+        font-size: 8pt;
+        color: #808080;
+    }
+}
+
+/* First page styling (cover page) */
+@page :first {
+    margin: 35mm 20mm 25mm 20mm; /* Larger top margin */
+    @top-center { 
+        content: none; 
+    }
+    @bottom-left {
+        content: "Confidential - For the intended recipient only";
+        font-family: 'Lato', 'Arial', sans-serif;
+        font-size: 8pt;
+        color: #808080;
+    }
+    @bottom-right {
+        content: "Page " counter(page);
+        font-family: 'Lato', 'Arial', sans-serif;
+        font-size: 9pt;
+        color: #505050;
+    }
+}
+
+/* ====== TYPOGRAPHY & MAIN CONTENT ====== */
+/* 
+ * Using font pairing: Atkinson Hyperlegible (sans-serif) for headings and 
+ * STIX Two Text/Lora (serif) for body text - scientifically proven to improve readability
+ */
+body {
+    font-family: 'STIX Two Text', 'Lora', serif; /* Serif font for better readability in long text */
+    font-size: 10.5pt; /* Slightly smaller for better text density */
+    line-height: 1.5; /* Adjusted line height for better readability */
+    text-align: left; /* Left-aligned text is easier to read than justified */
+    color: #333333; /* Dark gray instead of black for reduced eye strain */
+    max-width: 100%;
+    hyphens: auto; /* Enable hyphenation for better text flow */
+}
+
+/* Store document title for headers */
+h1 {
+    string-set: doctitle content();
+}
+
+/* ====== HEADINGS ====== */
+/* Clear visual hierarchy with consistent color scheme */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Atkinson Hyperlegible', 'Arial', sans-serif;
+    margin-top: 1.2em;
+    margin-bottom: 0.6em;
+    line-height: 1.2;
+    break-after: avoid; /* Prevent page breaks after headings */
+    break-inside: avoid; /* Prevent breaks within headings */
+    color: #103a63; /* Navy blue for professional financial look */
+}
+
+h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    margin-top: 0; /* No margin at top of page */
+    padding-bottom: 8pt;
+    border-bottom: 2px solid #103a63; /* Match heading color */
+    color: #103a63;
+}
+
+h2 {
+    font-size: 18pt;
+    font-weight: 600;
+    break-before: auto; /* Default: no page break before h2 */
+    border-bottom: 1px solid #dddddd; /* Subtle underline */
+    padding-bottom: 5pt;
+    margin-top: 1.8em; /* Increased space before new sections */
+}
+
+/* Force page breaks before major section headings */
+h2[id="market--industry-context"],
+h2[id="competitor-analysis"],
+h2[id="financial-deep-dive"],
+h2[id="analyst--professional-insights"],
+h2[id="risk-disclosure--mitigation"],
+h2[id="recent-news-articles"],
+h2[id="forward-looking-outlook"],
+h2[id="investment-recommendation"],
+h2[id="conclusion"] {
+    break-before: page;
+}
+
+h3 {
+    font-size: 15pt;
+    font-weight: 600;
+    margin-top: 1.5em;
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 3pt;
+}
+
+h4 {
+    font-size: 13pt;
+    font-weight: 600;
+    margin-top: 1.25em; /* Added margin-top for consistency */
+}
+
+h5 {
+    font-size: 12pt;
+    font-weight: 600;
+}
+
+h6 {
+    font-size: 11pt;
+    font-weight: 600;
+    font-style: italic;
+}
+
+/* ====== PARAGRAPHS & TEXT ELEMENTS ====== */
+p {
+    margin: 0 0 0.8em 0;
+    orphans: 3; /* Minimum lines at bottom of page */
+    widows: 3; /* Minimum lines at top of page */
+}
+
+strong {
+    font-weight: 700; /* Bolder for better contrast */
+}
+
+em {
+    font-style: italic;
+}
+
+code {
+    font-family: 'Consolas', 'Monaco', monospace; /* Better monospace fonts */
+    background-color: #f5f5f5;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 9.5pt; /* Slightly smaller for code */
+}
+
+/* ====== LISTS ====== */
+ul {
+    margin-left: 20px; /* Increased indent for better hierarchy */
+    margin-bottom: 1em;
+    list-style-type: disc; /* Explicit disc style */
+}
+
+ol {
+    margin-left: 20px;
+    margin-bottom: 1em;
+    list-style-type: decimal; /* Decimal for better readability */
+}
+
+li {
+    margin-bottom: 0.5em; /* Spacing between list items */
+    padding-left: 5px; /* Add some padding after the bullet */
+}
+
+/* Nested lists styling */
+li ul, li ol {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+}
+
+/* ====== TABLES ====== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    break-inside: avoid; /* Prevent breaking tables across pages */
+    margin: 1.5em 0;
+    table-layout: auto; /* Changed from 'fixed' to 'auto' */
+    word-wrap: break-word;
+    font-size: 8.5pt; /* Slightly smaller for tables */
+    font-family: 'Lato', 'Arial', sans-serif; /* Sans-serif for data */
+}
+
+caption {
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-align: left;
+    font-size: 10pt;
+    color: #103a63;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px 12px; /* Increased vertical padding */
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #e0e8f0; /* Slightly darker header */
+    font-weight: 700;       /* Bolder header */
+    color: #103a63;
+    border-bottom: 2px solid #103a63;
+}
+
+/* Row styling */
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+/* Financial data columns alignment */
+.right-align, [align="right"], td[style*="text-align: right"] {
+    text-align: right;
+}
+
+.center-align, [align="center"], td[style*="text-align: center"] {
+    text-align: center;
+}
+
+/* Table for financial metrics with colored indicators */
+.metrics-table .positive, td[data-trend="positive"], .positive {
+    color: #1a8754; /* Green for positive values */
+}
+
+.metrics-table .negative, td[data-trend="negative"], .negative {
+    color: #dc3545; /* Red for negative values */
+}
+
+.metrics-table .neutral, td[data-trend="neutral"], .neutral {
+    color: #6c757d; /* Gray for neutral values */
+}
+
+/* ====== IMAGES & FIGURES ====== */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+    border: 1px solid #e0e0e0; /* Lighter border */
+    padding: 5px;
+}
+
+figure {
+    display: block;
+    margin: 1.5em auto;
+    text-align: center;
+    break-inside: avoid; /* Keep figure and caption together */
+    width: 100%; /* Full width */
+}
+
+/* Fixed figcaption to spread across page width */
+figcaption {
+    display: block;
+    width: 100%; /* Ensure it spans full width */
+    font-size: 9pt;
+    color: #505050;
+    margin-top: 8px;
+    line-height: 1.3;
+    font-style: italic;
+    text-align: justify; /* Justify the caption */
+}
+
+/* ====== CHARTS & GRAPHS ====== */
+.chart-container, div[class*="chart"], div[id*="chart"] {
+    break-inside: avoid;
+    margin: 1.5em 0;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+    background-color: #ffffff;
+}
+
+.chart-title, [class*="chart"] h4, [id*="chart"] h4 {
+    font-weight: 600;
+    font-size: 11pt;
+    color: #103a63;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.chart-legend, div[class*="legend"], div[id*="legend"] {
+    font-size: 9pt;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* ====== HYPERLINKS ====== */
+a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ====== BLOCKQUOTES ====== */
+blockquote {
+    margin: 1.2em 0;
+    padding: 10px 20px;
+    border-left: 4px solid #103a63; /* Match header color */
+    background-color: #f8f9fa; /* Light gray background */
+    font-style: italic;
+    color: #505050;
+    break-inside: avoid; /* Prevent breaking blockquotes across pages */
+}
+
+/* ====== HORIZONTAL RULE ====== */
+hr {
+    border: none;
+    height: 1px;
+    background-color: #dddddd; /* Lighter color */
+    margin: 2em 0;
+}
+
+/* ====== SPECIAL SECTIONS ====== */
+/* 
+ * Special section selectors improved to match markdown content 
+ * Removed unsupported :contains() selectors
+ */
+
+/* Executive summary styling */
+.executive-summary,
+div[class*="summary"], 
+section[class*="summary"],
+div[id*="summary"],
+section[id*="summary"] {
+    background-color: #f8f9fa;
+    border: 1px solid #dddddd;
+    border-left: 5px solid #103a63;
+    padding: 15px;
+    margin: 1.5em 0;
+}
+
+/* Executive Summary section styling - use ID selector instead of :contains */
+#executive-summary + p {
+    background-color: #f8f9fa;
+    border: 1px solid #dddddd;
+    border-left: 5px solid #103a63;
+    padding: 15px;
+    margin-top: 1em;
+    margin-bottom: 1.5em;
+}
+
+/* Key metrics display - match by various potential class/id patterns */
+.key-metrics,
+div[class*="metrics"],
+section[class*="metrics"],
+div[id*="metrics"],
+section[id*="metrics"],
+div[class*="kpi"],
+div[id*="kpi"],
+div[class*="key-figure"],
+div[id*="key-figure"] {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin: 1.5em 0;
+}
+
+.metric-box,
+div[class*="metric"],
+div[class*="kpi-item"],
+div[class*="key-figure-item"] {
+    width: 30%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dddddd;
+    text-align: center;
+}
+
+.metric-value,
+span[class*="value"],
+span[class*="figure"],
+strong[class*="value"] {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #103a63;
+}
+
+.metric-label,
+span[class*="label"],
+span[class*="description"] {
+    font-size: 10pt;
+    color: #505050;
+}
+
+/* Risk assessment section - use ID selector instead of :contains */
+.risk-section,
+section[class*="risk"],
+div[class*="risk"],
+section[id*="risk"],
+div[id*="risk"] {
+    margin: 1.5em 0;
+}
+
+/* Risk levels */
+.risk-level,
+span[class*="risk-level"],
+span[data-risk],
+span[class*="risk-rating"] {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Risk levels - avoiding unsupported :contains */
+.risk-high,
+[data-risk="high"],
+[class*="high-risk"] {
+    color: #dc3545; /* Red */
+}
+
+.risk-medium,
+[data-risk="medium"],
+[class*="medium-risk"] {
+    color: #fd7e14; /* Orange */
+}
+
+.risk-low,
+[data-risk="low"],
+[class*="low-risk"] {
+    color: #1a8754; /* Green */
+}
+
+/* Investment recommendation styling */
+.recommendation,
+div[class*="recommendation"],
+section[class*="recommendation"],
+div[id*="recommendation"],
+section[id*="recommendation"] {
+    background-color: #e6eef7; /* Light blue background */
+    border: 1px solid #bbcde5;
+    padding: 15px;
+    margin: 1.5em 0;
+    break-inside: avoid;
+}
+
+/* Investment recommendation levels - avoiding unsupported :contains */
+.buy,
+[data-recommendation="buy"] {
+    color: #1a8754; /* Green */
+    font-weight: 700;
+}
+
+.hold,
+[data-recommendation="hold"] {
+    color: #fd7e14; /* Orange */
+    font-weight: 700;
+}
+
+.sell,
+[data-recommendation="sell"] {
+    color: #dc3545; /* Red */
+    font-weight: 700;
+}
+
+/* Specific styling for recommendation keywords in report */
+strong:first-child:last-child {
+    font-weight: 700;
+}
+
+/* Style Buy, Hold, Sell text directly */
+p strong:only-child {
+    font-weight: 700;
+    font-size: 110%;
+}
+
+/* Financial highlight section */
+.highlight,
+div[class*="highlight"],
+div[class*="callout"],
+[data-highlight="true"] {
+    background-color: #f8f9fa;
+    border-left: 4px solid #103a63;
+    padding: 15px;
+    margin: 1em 0;
+}
+
+/* Disclaimer and legal text styling */
+.disclaimer,
+div[class*="disclaimer"],
+div[class*="legal"],
+section[class*="disclaimer"] {
+    font-size: 8.5pt;
+    color: #666;
+    line-height: 1.3;
+    border: 1px solid #ddd;
+    padding: 10px;
+    background-color: #f9f9f9;
+    margin-top: 2em;
+}
+
+/* Specific styling for the disclaimer paragraph */
+p:last-child {
+    margin-top: 2em;
+}
+
+/* ====== SPECIFIC SECTION STYLING ====== */
+
+/* Styling for the recommendation section */
+#investment-recommendation + p {
+    font-weight: 600;
+    font-size: 110%;
+}
+
+/* Style for the Competitor Analysis table */
+h2[id="competitor-analysis"] + p + table {
+    break-inside: avoid;
+    break-before: avoid;
+    border: 1px solid #c0c8d0;
+}
+
+/* Style for Financial Deep Dive section tables */
+#financial-deep-dive + p + h3 + p + table,
+#financial-deep-dive h3 + p + table {
+    break-inside: avoid;
+    break-before: avoid;
+}
+
+/* ====== PRINT OPTIMIZATION ====== */
+@media print {
+    /* Ensure page breaks don't occur in awkward places */
+    p, h2, h3, h4, h5, h6 {
+        orphans: 3;
+        widows: 3;
+    }
+    
+    /* Force page breaks before major sections */
+    .new-section,
+    h2[class*="section-start"],
+    h2[id*="section-start"] {
+        break-before: page;
+    }
+    
+    /* Black and white friendly elements */
+    th {
+        background-color: #f0f0f0 !important; /* Lighter gray for B&W printing */
+        border-bottom: 2px solid #000000 !important;
+        color: #000000 !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        color: #000000 !important;
+    }
+    
+    .risk-high, .sell, [data-risk="high"], [data-recommendation="sell"] {
+        color: #000000 !important;
+        font-weight: 900 !important; /* Bolder for emphasis in B&W */
+    }
+    
+    .risk-medium, .hold, [data-risk="medium"], [data-recommendation="hold"] {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+    
+    .risk-low, .buy, .positive, [data-risk="low"], [data-recommendation="buy"] {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+    
+    .negative, td[data-trend="negative"] {
+        color: #000000 !important;
+        font-weight: 900 !important;
+    }
+}
+
+/* ====== DISCLAIMER STYLING (END OF REPORT) ====== */
+.final-disclaimer {
+    break-before: avoid; /* Prevents page break before */
+    page-break-before: avoid; /* For older browsers */
+    font-size: 7.5pt;        /* Smaller font size */
+    color: #77777780;       /* Lighter gray */
+    text-align: justify;    /* Centered text */
+    border-top: 1px solid #dddddd; /* Separator line */
+    padding-top: 10px;     /* Space between line and text */
+    margin-top: 2em;      /* Space after last content */
+}

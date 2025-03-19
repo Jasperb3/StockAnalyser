@@ -1,4 +1,3 @@
-from stock_analyser.tools.tool_utils.metrics import compute_financial_metrics
 from stock_analyser.tools.tool_utils.news_sentiment_util import get_news_sentiment_scores
 import yfinance as yf
 import numpy as np
@@ -70,15 +69,16 @@ def filter_valid_values(series):
         return [val for val in series if val is not None and not np.isnan(val)]
 
 
-def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, financials=None):
+def analyse_moat_strength(ticker: str):
     """
-    Analyze the company's economic moat strength based on Munger's principles.
+    Analyze the business's competitive advantage using Munger's approach:
+    - Consistent high returns on capital (ROIC)
+    - Pricing power (stable/improving gross margins)
+    - Low capital requirements
+    - Network effects and intangible assets (R&D investments, goodwill)
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        financials (pd.DataFrame, optional): Financial data to reuse
         
     Returns:
         dict: Analysis results with score and details
@@ -87,460 +87,573 @@ def analyse_moat_strength(metrics: dict, ticker: str, company_ticker=None, finan
     max_score = 0 # Initialize max_score
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-            if financials is None or financials.empty:
-                return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for moat strength analysis"}
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
     
-    # 1. Return on Equity (ROE) - Munger looks for consistently high ROE
-    roe = metrics.get("return_on_equity")
-    if roe is not None and not np.isnan(roe):
-        if roe > 0.20:  # 20%+ ROE
-            score += 3
-            details.append(f"Exceptional ROE of {roe:.1%}")
-        elif roe > 0.15:  # 15-20% ROE
-            score += 2
-            details.append(f"Strong ROE of {roe:.1%}")
-        elif roe > 0.10:  # 10-15% ROE
-            score += 1
-            details.append(f"Good ROE of {roe:.1%}")
-        else:
-            details.append(f"Moderate ROE of {roe:.1%}")
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+    
+    try:
+        income_statement = company_ticker.income_stmt
+        if income_statement.empty:
+            return {"score": 0, "max_score": 0, "details": "No income statement data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving income statement data: {str(e)}"}
+    
+    # 1. Return on Invested Capital (ROIC) - Munger's favorite metric
+    # ROIC = Net Operating Profit After Tax (NOPAT) / Invested Capital, where NOPAT = Operating Income * (1 – Tax Rate)
+    # Written another way, ROIC = (net income – dividends) / (debt + equity)
+
+    try:
+        net_income = safe_get_row(income_statement, "Net Income")
+    except Exception as e:
+        net_income = None
+
+    try:
+        dividends = safe_get_row(cash_flow, "Cash Dividends Paid")
+    except Exception as e:
+        dividends = None
+
+    try:
+        debt = safe_get_row(balance_sheet, "Total Debt")
+    except Exception as e:
+        debt = None
+
+    try:
+        equity = safe_get_row(balance_sheet, "Stockholders Equity")
+    except Exception as e:
+        equity = None
+
+    if not net_income.empty and not dividends.empty and not debt.empty and not equity.empty:
+        return_on_invested_capital = (net_income - dividends) / (debt + equity)
+        roic_values = filter_valid_values(return_on_invested_capital)
+   
+        n = len(roic_values)
+        if roic_values and n > 0:
+            # Check if ROIC consistently above 15% (Munger's threshold)
+            high_roic_count = sum(1 for r in roic_values if r > 0.15)
+            if high_roic_count >= len(roic_values) * 0.8:  # 80% of periods show high ROIC
+                score += 3
+                details.append(f"Excellent ROIC: >15% in {high_roic_count}/{len(roic_values)} periods")
+            elif high_roic_count >= len(roic_values) * 0.5:  # 50% of periods
+                score += 2
+                details.append(f"Good ROIC: >15% in {high_roic_count}/{len(roic_values)} periods")
+            elif high_roic_count > 0:
+                score += 1
+                details.append(f"Mixed ROIC: >15% in only {high_roic_count}/{len(roic_values)} periods")
+            else:
+                details.append("Poor ROIC: Never exceeds 15% threshold")
     else:
-        details.append("ROE data not available")
+        details.append(f"No ROIC data available (net_income: {net_income}, dividends: {dividends}, debt: {debt}, equity: {equity})")
 
     max_score += 3 # Increment by the *highest* possible score for this section
     
-    # 2. Gross Margin - High margins often indicate pricing power
-    gross_margin = metrics.get("gross_margin")
-    if gross_margin is not None and not np.isnan(gross_margin):
-        if gross_margin > 0.50:  # 50%+ gross margin
-            score += 2
-            details.append(f"High gross margin of {gross_margin:.1%} indicates pricing power")
-        elif gross_margin > 0.30:  # 30-50% gross margin
-            score += 1
-            details.append(f"Solid gross margin of {gross_margin:.1%}")
-        else:
-            details.append(f"Lower gross margin of {gross_margin:.1%}")
-    else:
-        details.append("Gross margin data not available")
+    # 2. Pricing power - check gross margin stability and trends
 
-    max_score += 2 # Increment by the *highest* possible score for this section
-    
-    # 3. Operating Margin Consistency - Munger values stable, high operating margins
-    operating_income_df = safe_get_row(financials, "Operating Income", ["Operating Profit"])
-    revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
-    
-    if operating_income_df is not None and revenue_df is not None:
-        op_incomes = filter_valid_values(operating_income_df)
-        revenues = filter_valid_values(revenue_df)
+    try:
+        gross_profit = safe_get_row(financials, "Gross Profit")
+    except Exception as e:
+        gross_profit = None
+
+    try:
+        total_revenue = safe_get_row(financials, "Total Revenue")
+    except Exception as e:
+        total_revenue = None
+
+    if not gross_profit.empty and not total_revenue.empty:
+        gross_margins = gross_profit / total_revenue
+        gross_margin_values = [gm for gm in gross_margins if gm is not None and not np.isnan(gm)]
         
-        if len(op_incomes) >= 2 and len(revenues) >= 2 and len(op_incomes) == len(revenues):
-            # Calculate operating margins for all periods
-            op_margins = []
-            for i in range(len(op_incomes)):
-                if revenues[i] > 0:  # Avoid division by zero
-                    op_margins.append(op_incomes[i] / revenues[i])
-            
-            if op_margins:
-                # Check if margins are consistently high
-                high_margin_count = sum(1 for m in op_margins if m > 0.15)
-                if high_margin_count == len(op_margins) and len(op_margins) >= 3:
-                    score += 3
-                    details.append(f"Consistently high operating margins across {len(op_margins)} periods")
-                elif high_margin_count >= len(op_margins) * 0.75:
-                    score += 2
-                    details.append(f"Strong operating margins in most periods ({high_margin_count}/{len(op_margins)})")
-                elif high_margin_count > 0:
-                    score += 1
-                    details.append(f"Some periods with strong operating margins ({high_margin_count}/{len(op_margins)})")
-                else:
-                    details.append("No periods with high operating margins")
-                
-                # Check margin stability (low variance is good)
-                if len(op_margins) >= 3:
-                    margin_variance = np.var(op_margins)
-                    if margin_variance < 0.0025:  # Low variance threshold
-                        score += 1
-                        details.append("Very stable operating margins (low variance)")
-                    elif margin_variance < 0.01:
-                        details.append("Moderately stable operating margins")
-                    else:
-                        details.append("Volatile operating margins")
-            else:
-                details.append("Could not calculate operating margins (division by zero)")
-        else:
-            details.append("Insufficient data for operating margin analysis")
-    else:
-        details.append("Operating income or revenue data not available")
 
-    max_score += 4 # Increment by the *highest* possible score for this section (3 + 1)
-    
-    # 4. Capital Efficiency - Munger likes businesses that don't require much capital
-    asset_turnover = metrics.get("asset_turnover")
-    if asset_turnover is not None and not np.isnan(asset_turnover):
-        if asset_turnover > 1.5:
-            score += 2
-            details.append(f"Excellent capital efficiency (asset turnover: {asset_turnover:.2f})")
-        elif asset_turnover > 0.8:
-            score += 1
-            details.append(f"Good capital efficiency (asset turnover: {asset_turnover:.2f})")
-        else:
-            details.append(f"Lower capital efficiency (asset turnover: {asset_turnover:.2f})")
+        if gross_margin_values and n > 3:
+            # Munger likes stable or improving gross margins
+            margin_trend = sum(1 for i in range(1, len(gross_margins)) if gross_margins.iloc[i-1] >= gross_margins.iloc[i])
+            if margin_trend >= len(gross_margins) * 0.7:  # Improving in 70% of periods
+                score += 2
+                details.append("Strong pricing power: Gross margins consistently improving")
+            elif sum(gross_margins) / len(gross_margins) > 0.3:  # Average margin > 30%
+                score += 1
+                details.append(f"Good pricing power: Average gross margin {sum(gross_margins)/len(gross_margins):.1%}")
+            else:
+                details.append("Limited pricing power: Low or declining gross margins")
     else:
-        details.append("Asset turnover data not available")
+        details.append(f"Insufficient gross margin data (gross_profit: {gross_profit}, total_revenue: {total_revenue})")
 
     max_score += 2 # Increment by the *highest* possible score for this section
+        
+
+    # 3. Capital intensity - Munger prefers low capex businesses
     
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+    capex_to_revenue = []
+
+    capex = safe_get_row(cash_flow, "Capital Expenditure")
+
+    capex_values = filter_valid_values(capex)
+
+    revenue_values = filter_valid_values(total_revenue)
+
+    if len(capex_values) >= 3 and len(revenue_values) >= 3:
+        for i in range(len(capex_values)):
+            if revenue_values[i] > 0 and not np.isnan(revenue_values[i]) and not np.isnan(capex_values[i]):
+                capex_to_revenue.append(abs(capex_values[i]) / revenue_values[i])
+
+        if capex_to_revenue:
+            avg_capex_ratio = sum(capex_to_revenue) / len(capex_to_revenue)
+            if avg_capex_ratio < 0.05:  # Less than 5% of revenue
+                score += 2
+                details.append(f"Low capital requirements: Avg capex {avg_capex_ratio:.1%} of revenue")
+            elif avg_capex_ratio < 0.10:  # Less than 10% of revenue
+                score += 1
+                details.append(f"Moderate capital requirements: Avg capex {avg_capex_ratio:.1%} of revenue")
+            else:
+                details.append(f"High capital requirements: Avg capex {avg_capex_ratio:.1%} of revenue")
+        else:
+            details.append("No capital expenditure data available")
+    else:
+        details.append("Insufficient data for capital intensity analysis")
+
+    
+    # 4. Intangible assets - Munger values R&D and intellectual propert
+
+    goodwill_and_intangible_assets = safe_get_row(balance_sheet, "Goodwill And Intangible Assets")
+
+    research_and_development = safe_get_row(financials, "Research And Development")
+
+    g_and_i_values = filter_valid_values(goodwill_and_intangible_assets)
+    r_and_d_values = filter_valid_values(research_and_development)
+
+    if g_and_i_values and len(g_and_i_values) >= 0:
+        if sum(g_and_i_values) > 0:
+            score += 1
+            details.append("Significant goodwill/intangible assets, suggesting brand value or IP")
+        else:
+            details.append("No goodwill/intangible assets")
+    
+    
+    if r_and_d_values and len(r_and_d_values) >= 0:
+        if sum(r_and_d_values) > 0:  # If company is investing in R&D
+            score += 1
+            details.append("Invests in R&D, building intellectual property")
+        else:
+            details.append("No R&D investment")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
+
+    final_score = round(min(10, score * 10 / max_score), 1)
+
+    return {
+        "score": final_score,
+        "normalized_max_score": 10,
+        "details": "; ".join(details)
+    }
 
 
-def analyse_management_quality(metrics: dict, ticker: str, company_ticker=None, balance_sheet=None, cash_flow=None) -> dict:
+def analyse_management_quality(ticker: str) -> dict:
     """
-    Analyze the quality of company management based on Munger's principles.
+    Evaluate management quality using Munger's criteria:
+    - Capital allocation wisdom
+    - Insider ownership and transactions
+    - Cash management efficiency
+    - Candor and transparency
+    - Long-term focus
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        balance_sheet (pd.DataFrame, optional): Balance sheet data to reuse
-        cash_flow (pd.DataFrame, optional): Cash flow data to reuse
-        
+
     Returns:
         dict: Analysis results with score and details
     """
     score = 0
     max_score = 0 # Initialize max_score
     details = []
+
+
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
     
-    # Reuse balance_sheet if provided, otherwise get from ticker
-    if balance_sheet is None:
-        try:
-            balance_sheet = company_ticker.balance_sheet
-            if balance_sheet is None or balance_sheet.empty:
-                return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
             
-    # Reuse cash_flow if provided, otherwise get from ticker
-    if cash_flow is None:
-        try:
-            cash_flow = company_ticker.cashflow
-            if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for management quality analysis"}
+    try:
+        income_statement = company_ticker.income_stmt
+        if income_statement is None or income_statement.empty:
+            return {"score": 0, "max_score": 0, "details": "No income statement data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving income statement data: {str(e)}"}
     
-    # 1. Capital Allocation - Check for share repurchases when appropriate
-    shares_df = safe_get_row(balance_sheet, "Share Issued", 
-                            ["Common Stock Shares Outstanding", "Ordinary Shares Number"])
     
-    if shares_df is not None:
-        shares = filter_valid_values(shares_df)
-        if len(shares) >= 2:
-            # Note: yfinance data is typically in reverse chronological order (newest first)
-            latest = shares[0]
-            earliest = None
+    # 1. Capital allocation - Check FCF to net income ratio
+    # Munger values companies that convert earnings to cash
 
-            # Find a valid (non-zero) earliest share count
-            for i in range(len(shares) - 1, -1, -1):
-                if shares[i] != 0:
-                    earliest = shares[i]
-                    break
+    fcf_df = safe_get_row(cash_flow, "Free Cash Flow")
+    net_income_df = safe_get_row(financials, "Net Income")
+    
+    fcf_values = filter_valid_values(fcf_df)
+    net_income_values = filter_valid_values(net_income_df)
 
-            if earliest is not None:
-                if latest < earliest:
-                    # Check if the company has a good ROE while buying back shares
-                    roe = metrics.get("return_on_equity")
-                    if roe is not None and not np.isnan(roe) and roe > 0.15:
-                        score += 3
-                        details.append(f"Intelligent capital allocation: share count reduced with high ROE ({roe:.1%})")
-                    else:
-                        score += 2
-                        details.append("Share count reduced over time (potential buybacks)")
-                else:
-                    details.append("Share count has increased over time")
-            elif len(shares) > 1:
-                details.append("Cannot calculate share change due to zero or invalid values.")
+    if fcf_values and net_income_values and len(fcf_values) == len(net_income_values):
+        # Calculate FCF to Net Income ratio for each period
+        fcf_to_ni_ratios = []
+        for i in range(len(fcf_values)):
+            if net_income_values[i] and net_income_values[i] > 0:
+                fcf_to_ni_ratios.append(fcf_values[i] / net_income_values[i])
+        
+        if fcf_to_ni_ratios:
+            avg_ratio = sum(fcf_to_ni_ratios) / len(fcf_to_ni_ratios)
+            if avg_ratio > 1.1:  # FCF > net income suggests good accounting
+                score += 3
+                details.append(f"Excellent cash conversion: FCF/NI ratio of {avg_ratio:.2f}")
+            elif avg_ratio > 0.9:  # FCF roughly equals net income
+                score += 2
+                details.append(f"Good cash conversion: FCF/NI ratio of {avg_ratio:.2f}")
+            elif avg_ratio > 0.7:  # FCF somewhat lower than net income
+                score += 1
+                details.append(f"Moderate cash conversion: FCF/NI ratio of {avg_ratio:.2f}")
             else:
-                details.append("Insufficient share count data for trend analysis")
+                details.append(f"Poor cash conversion: FCF/NI ratio of only {avg_ratio:.2f}")
         else:
-            details.append("Insufficient share count data for trend analysis")
+            details.append("Could not calculate FCF to Net Income ratios")
     else:
-        details.append("Share count data not available")
+        details.append("Missing FCF or Net Income data")
 
-    max_score += 3 # Increment by the *highest* possible score for this section
+    max_score += 2 # Increment by the *highest* possible score for this section
+
     
     # 2. Debt Management - Munger prefers conservative debt levels
-    debt_to_equity = metrics.get("debt_to_equity")
-    if debt_to_equity is not None and not np.isnan(debt_to_equity):
-        if debt_to_equity < 0.3:
+
+    total_debt = safe_get_row(balance_sheet, "Total Debt")
+    shareholders_equity = safe_get_row(balance_sheet, "Stockholders Equity")
+
+    total_debt_values = filter_valid_values(total_debt)
+    shareholders_equity_values = filter_valid_values(shareholders_equity)
+
+    if total_debt_values and shareholders_equity_values and len(total_debt_values) == len(shareholders_equity_values):
+        # Calculate D/E ratio for most recent period
+        recent_de_ratio = total_debt_values[0] / shareholders_equity_values[0] if shareholders_equity_values[0] > 0 else float('inf')
+        
+        if recent_de_ratio < 0.3:  # Very low debt
+            score += 3
+            details.append(f"Conservative debt management: D/E ratio of {recent_de_ratio:.2f}")
+        elif recent_de_ratio < 0.7:  # Moderate debt
             score += 2
-            details.append(f"Very conservative debt management (D/E ratio: {debt_to_equity:.2f})")
-        elif debt_to_equity < 0.7:
+            details.append(f"Prudent debt management: D/E ratio of {recent_de_ratio:.2f}")
+        elif recent_de_ratio < 1.5:  # Higher but still reasonable debt
             score += 1
-            details.append(f"Prudent debt management (D/E ratio: {debt_to_equity:.2f})")
-        elif debt_to_equity < 1.5:
-            details.append(f"Moderate debt levels (D/E ratio: {debt_to_equity:.2f})")
+            details.append(f"Moderate debt level: D/E ratio of {recent_de_ratio:.2f}")
         else:
-            details.append(f"Higher debt levels (D/E ratio: {debt_to_equity:.2f})")
+            details.append(f"High debt level: D/E ratio of {recent_de_ratio:.2f}")
     else:
-        details.append("Debt to equity data not available")
+        details.append("Missing debt or equity data")
+    
+
+    max_score += 3 # Increment by the *highest* possible score for this section
+    
+    # 3. Cash management efficiency - Munger values appropriate cash levels
+
+    cash_and_equivalents = safe_get_row(balance_sheet, "Cash And Cash Equivalents")
+    total_revenue = safe_get_row(financials, "Total Revenue")
+
+    cash_values = filter_valid_values(cash_and_equivalents)
+    revenue_values = filter_valid_values(total_revenue)
+
+    if cash_values and revenue_values and len(cash_values) > 0 and len(revenue_values) > 0:
+        # Calculate cash to revenue ratio (Munger likes 10-20% for most businesses)
+        cash_to_revenue = cash_values[0] / revenue_values[0] if revenue_values[0] > 0 else 0
+        
+        if 0.1 <= cash_to_revenue <= 0.25:
+            # Goldilocks zone - not too much, not too little
+            score += 2
+            details.append(f"Prudent cash management: Cash/Revenue ratio of {cash_to_revenue:.2f}")
+        elif 0.05 <= cash_to_revenue < 0.1 or 0.25 < cash_to_revenue <= 0.4:
+            # Reasonable but not ideal
+            score += 1
+            details.append(f"Acceptable cash position: Cash/Revenue ratio of {cash_to_revenue:.2f}")
+        elif cash_to_revenue > 0.4:
+            # Too much cash - potentially inefficient capital allocation
+            details.append(f"Excess cash reserves: Cash/Revenue ratio of {cash_to_revenue:.2f}")
+        else:
+            # Too little cash - potentially risky
+            details.append(f"Low cash reserves: Cash/Revenue ratio of {cash_to_revenue:.2f}")
+    else:
+        details.append("Insufficient cash or revenue data")
 
     max_score += 2 # Increment by the *highest* possible score for this section
+
     
-    # 3. Free Cash Flow Generation - Munger values consistent FCF
-    fcf_df = safe_get_row(cash_flow, "Free Cash Flow")
+    # 4. Insider activity - Munger values skin in the game
     
-    if fcf_df is not None:
-        fcf_values = filter_valid_values(fcf_df)
-        if len(fcf_values) >= 3:
-            positive_fcf_count = sum(1 for fcf in fcf_values if fcf > 0)
-            if positive_fcf_count == len(fcf_values):
+    insider_trades = company_ticker.insider_purchases
+
+    if insider_trades.empty:
+        details.append("No insider trades data available; defaulting to neutral.")
+        return {"score": score, "details": "; ".join(details)}
+    
+    buys, sells = insider_trades["Trans"].iloc[0], insider_trades["Trans"].iloc[1]
+    
+    total_trades = buys + sells
+
+    if total_trades > 0:
+            buy_ratio = buys / total_trades
+            if buy_ratio > 0.7:  # Strong insider buying
                 score += 2
-                details.append(f"Consistent positive free cash flow across all {len(fcf_values)} periods")
-            elif positive_fcf_count >= len(fcf_values) * 0.75:
+                details.append(f"Strong insider buying: {buys}/{total_trades} transactions are purchases")
+            elif buy_ratio > 0.4:  # Balanced insider activity
                 score += 1
-                details.append(f"Mostly positive free cash flow ({positive_fcf_count}/{len(fcf_values)} periods)")
+                details.append(f"Balanced insider trading: {buys}/{total_trades} transactions are purchases")
+            elif buy_ratio < 0.1 and sells > 5:  # Heavy selling
+                score -= 1  # Penalty for excessive selling
+                details.append(f"Concerning insider selling: {sells}/{total_trades} transactions are sales")
             else:
-                details.append(f"Inconsistent free cash flow (positive in {positive_fcf_count}/{len(fcf_values)} periods)")
-        else:
-            details.append("Insufficient free cash flow data for trend analysis")
+                details.append(f"Mixed insider activity: {buys}/{total_trades} transactions are purchases")
     else:
-        details.append("Free cash flow data not available")
+        details.append("No insider trading data available")
 
     max_score += 2 # Increment by the *highest* possible score for this section
+
+
+    # 5. Consistency in share count - Munger prefers stable/decreasing shares
+
+    outstanding_shares = safe_get_row(income_statement, "Basic Average Shares")
     
-    # 4. Capital Expenditure Efficiency
-    capex = metrics.get("capex")
-    depreciation = metrics.get("depreciation_and_amortization")
-    
-    if capex is not None and not np.isnan(capex) and depreciation is not None and not np.isnan(depreciation) and depreciation != 0:
-        capex_to_depreciation = capex / depreciation
-        if capex_to_depreciation < 1.2:
+    if not outstanding_shares.empty:
+        share_counts = filter_valid_values(outstanding_shares)
+
+    if share_counts and len(share_counts) >= 3:
+        if share_counts[0] < share_counts[-1] * 0.95:  # 5%+ reduction in shares
             score += 2
-            details.append(f"Efficient capital expenditure (CapEx/Depreciation: {capex_to_depreciation:.2f})")
-        elif capex_to_depreciation < 1.5:
+            details.append("Shareholder-friendly: Reducing share count over time")
+        elif share_counts[0] < share_counts[-1] * 1.05:  # Stable share count
             score += 1
-            details.append(f"Reasonable capital expenditure (CapEx/Depreciation: {capex_to_depreciation:.2f})")
+            details.append("Stable share count: Limited dilution")
+        elif share_counts[0] > share_counts[-1] * 1.2:  # >20% dilution
+            score -= 1  # Penalty for excessive dilution
+            details.append("Concerning dilution: Share count increased significantly")
         else:
-            details.append(f"Higher capital expenditure (CapEx/Depreciation: {capex_to_depreciation:.2f})")
+            details.append("Moderate share count increase over time")
     else:
-        details.append("Capital expenditure or depreciation data not available")
+        details.append("Insufficient share count data")
 
     max_score += 2 # Increment by the *highest* possible score for this section
+
+    # Scale score to 0-10 range
+    final_score = round(max(0, min(10, score * 10 / max_score)), 2)
     
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+    return {
+        "score": final_score,
+        "normalized_max_score": 10,
+        "details": "; ".join(details)
+    }
 
 
-def analyse_predictability(metrics: dict, ticker: str, company_ticker=None, financials=None) -> dict:
+def analyse_predictability(ticker: str) -> dict:
     """
-    Analyze the predictability and consistency of the business based on Munger's principles.
+    Assess the predictability of the business - Munger strongly prefers businesses
+    whose future operations and cashflows are relatively easy to predict.
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        financials (pd.DataFrame, optional): Financial data to reuse
         
     Returns:
         dict: Analysis results with score and details
     """
+    years_back = 4
     score = 0
-    max_score = 0 # Initialize max_score
+    max_score = 0
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-            if financials is None or financials.empty:
-                return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for predictability analysis"}
-    
+
     # 1. Revenue Consistency - Munger values predictable revenue streams
-    revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
+    total_revenue = safe_get_row(financials, "Total Revenue")
     
-    if revenue_df is not None:
-        revenues = filter_valid_values(revenue_df)
-        if len(revenues) >= 3:
-            # Check if revenue is consistently growing
-            # is_growing = True
-            # for i in range(len(revenues) - 1):
-            #     if revenues[i] <= revenues[i+1]:  # Remember yfinance data is newest first
-            #         is_growing = False
-            #         break
+    if not total_revenue.empty:
+        revenues = filter_valid_values(total_revenue)
+        if revenues and len(revenues) >= years_back:
+            # Calculate year-over-year growth rates
+            growth_rates = [(revenues[i] / revenues[i+1] - 1) for i in range(len(revenues)-1)]
+            avg_growth = sum(growth_rates) / len(growth_rates)
+            growth_volatility = sum(abs(r - avg_growth) for r in growth_rates) / len(growth_rates)
             
-            # if is_growing:
-            #     score += 2
-            #     details.append(f"Consistent revenue growth across {len(revenues)} periods")
-
-            # MODIFIED SECTION:
-            latest = revenues[0]
-            earliest = None
-
-            for i in range(len(revenues) - 1, -1, -1):
-                if revenues[i] != 0:
-                    earliest = revenues[i]
-                    break
-
-            if earliest is not None:
-                if latest > earliest:
-                    score += 2
-                    details.append(f"Revenue grew from {earliest} to {latest}")
-                else:
-                    details.append(f"Revenue did not grow from {earliest} to {latest}")
-            elif len(revenues) > 1:
-                details.append("Cannot calculate revenue growth due to zero or invalid values.")
-            else:
-                details.append("Insufficient data for revenue growth analysis")
-            # END MODIFIED SECTION
-            
-            # Check revenue volatility
-            if len(revenues) >= 4:
-                # Calculate year-over-year growth rates
-                growth_rates = []
-                for i in range(len(revenues) - 1):
-                    if revenues[i+1] > 0:  # Avoid division by zero
-                        growth_rates.append((revenues[i] - revenues[i+1]) / revenues[i+1])
-                
-                if growth_rates:
-                    growth_variance = np.var(growth_rates)
-                    if growth_variance < 0.01:
-                        score += 2
-                        details.append("Very stable revenue growth (low variance)")
-                    elif growth_variance < 0.04:
-                        score += 1
-                        details.append("Moderately stable revenue growth")
-                    else:
-                        details.append("Volatile revenue growth")
-                else:
-                    details.append("Could not calculate revenue growth rates")
-            else:
-                details.append("Insufficient data for revenue volatility analysis")
-        else:
-            details.append("Insufficient revenue data for trend analysis")
-    else:
-        details.append("Revenue data not available")
-
-    max_score += 4 # Increment by the *highest* possible score for this section (2 + 2)
-    
-    # 2. Earnings Consistency - Munger values predictable earnings
-    net_income_df = safe_get_row(financials, "Net Income", 
-                                ["Net Income Common Stockholders", "Net Profit"])
-    
-    if net_income_df is not None:
-        net_incomes = filter_valid_values(net_income_df)
-        if len(net_incomes) >= 3:
-            # Check for consistent profitability
-            profitable_periods = sum(1 for ni in net_incomes if ni > 0)
-            if profitable_periods == len(net_incomes):
+            if avg_growth > 0.05 and growth_volatility < 0.1:
+                # Steady, consistent growth (Munger loves this)
+                score += 3
+                details.append(f"Highly predictable revenue: {avg_growth:.1%} avg growth with low volatility")
+            elif avg_growth > 0 and growth_volatility < 0.2:
+                # Positive but somewhat volatile growth
                 score += 2
-                details.append(f"Consistently profitable across all {len(net_incomes)} periods")
-            elif profitable_periods >= len(net_incomes) * 0.75:
+                details.append(f"Moderately predictable revenue: {avg_growth:.1%} avg growth with some volatility")
+            elif avg_growth > 0:
+                # Growing but unpredictable
                 score += 1
-                details.append(f"Profitable in most periods ({profitable_periods}/{len(net_incomes)})")
+                details.append(f"Growing but less predictable revenue: {avg_growth:.1%} avg growth with high volatility")
             else:
-                details.append(f"Inconsistent profitability ({profitable_periods}/{len(net_incomes)} periods)")
-            
-            # Check earnings volatility
-            if len(net_incomes) >= 4 and all(ni > 0 for ni in net_incomes):
-                # Calculate year-over-year growth rates
-                growth_rates = []
-                for i in range(len(net_incomes) - 1):
-                    if net_incomes[i+1] > 0:  # Avoid division by zero
-                        growth_rates.append((net_incomes[i] - net_incomes[i+1]) / net_incomes[i+1])
-                
-                if growth_rates:
-                    growth_variance = np.var(growth_rates)
-                    if growth_variance < 0.04:
-                        score += 2
-                        details.append("Very stable earnings growth (low variance)")
-                    elif growth_variance < 0.09:
-                        score += 1
-                        details.append("Moderately stable earnings growth")
-                    else:
-                        details.append("Volatile earnings growth")
-                else:
-                    details.append("Could not calculate earnings growth rates")
-            else:
-                details.append("Insufficient data for earnings volatility analysis")
-        else:
-            details.append("Insufficient earnings data for trend analysis")
+                details.append(f"Declining or highly unpredictable revenue: {avg_growth:.1%} avg growth")
     else:
-        details.append("Net income data not available")
+        details.append("Insufficient revenue history for predictability analysis")
 
-    max_score += 4 # Increment by the *highest* possible score for this section (2 + 2)
+    max_score += 3 # Increment by the *highest* possible score for this section (2 + 2)
     
-    # 3. Business Model Simplicity - Munger prefers simple, understandable businesses
-    # This is more qualitative, but we can use sector/industry as a proxy
-    info = company_ticker.info
-    sector = info.get("sector", "Unknown")
-    industry = info.get("industry", "Unknown")
-    
-    simple_sectors = [
-        "Consumer Defensive", "Consumer Staples", "Consumer Discretionary",
-        "Utilities", "Real Estate", "Industrials"
-    ]
-    
-    complex_sectors = [
-        "Financial Services", "Healthcare", "Biotechnology", "Technology"
-    ]
-    
-    if any(s.lower() in sector.lower() for s in simple_sectors):
-        score += 1
-        details.append(f"Potentially simple business model in {sector} sector")
-    elif any(s.lower() in sector.lower() for s in complex_sectors):
-        details.append(f"Potentially complex business model in {sector} sector")
+    # 2. Operating income Consistency - Munger values predictable earnings
 
-    max_score += 1 # Increment by the *highest* possible score for this section
+    operating_income = safe_get_row(financials, "Operating Income")
+
+    if not operating_income.empty:
+        op_income = filter_valid_values(operating_income)
+        if op_income and len(op_income) >= years_back:
+            # Count positive operating income periods
+            positive_periods = sum(1 for income in op_income if income > 0)
+            
+            if positive_periods == len(op_income):
+                # Consistently profitable operations
+                score += 3
+                details.append("Highly predictable operations: Operating income positive in all periods")
+            elif positive_periods >= len(op_income) * 0.8:
+                # Mostly profitable operations
+                score += 2
+                details.append(f"Predictable operations: Operating income positive in {positive_periods}/{len(op_income)} periods")
+            elif positive_periods >= len(op_income) * 0.6:
+                # Somewhat profitable operations
+                score += 1
+                details.append(f"Somewhat predictable operations: Operating income positive in {positive_periods}/{len(op_income)} periods")
+            else:
+                details.append(f"Unpredictable operations: Operating income positive in only {positive_periods}/{len(op_income)} periods")
+    else:
+        details.append("Insufficient operating income history")
+
+    max_score += 3 # Increment by the *highest* possible score for this section
+
+    # 3. Margin consistency - Munger values stable margins
+
+    operating_income = safe_get_row(financials, "Operating Income")
+    total_revenue = safe_get_row(financials, "Total Revenue")
+
+    if not operating_income.empty and not total_revenue.empty:
+        operating_margins = [operating_income.iloc[i] / total_revenue.iloc[i] for i in range(len(operating_income)) if total_revenue.iloc[i] != 0]
+
+        op_margins = filter_valid_values(operating_margins)
+
+        if op_margins and len(op_margins) >= years_back:
+            # Calculate margin volatility
+            avg_margin = sum(op_margins) / len(op_margins)
+            margin_volatility = sum(abs(m - avg_margin) for m in op_margins) / len(op_margins)
+            
+            if margin_volatility < 0.03:  # Very stable margins
+                score += 2
+                details.append(f"Highly predictable margins: {avg_margin:.1%} avg with minimal volatility")
+            elif margin_volatility < 0.07:  # Moderately stable margins
+                score += 1
+                details.append(f"Moderately predictable margins: {avg_margin:.1%} avg with some volatility")
+            else:
+                details.append(f"Unpredictable margins: {avg_margin:.1%} avg with high volatility ({margin_volatility:.1%})")
+    else:
+        details.append("Insufficient margin history")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
+
+
+    # 4. Cash generation reliability
+
+    free_cash_flow = safe_get_row(cash_flow, "Free Cash Flow")
+
+    if not free_cash_flow.empty:
+        fcf_values = filter_valid_values(free_cash_flow)
+        if fcf_values and len(fcf_values) >= years_back:
+            # Count positive FCF periods
+            positive_fcf_periods = sum(1 for fcf in fcf_values if fcf > 0)
+            
+            if positive_fcf_periods == len(fcf_values):
+                # Consistently positive FCF
+                score += 2
+                details.append("Highly predictable cash generation: Positive FCF in all periods")
+            elif positive_fcf_periods >= len(fcf_values) * 0.8:
+                # Mostly positive FCF
+                score += 1
+                details.append(f"Predictable cash generation: Positive FCF in {positive_fcf_periods}/{len(fcf_values)} periods")
+            else:
+                details.append(f"Unpredictable cash generation: Positive FCF in only {positive_fcf_periods}/{len(fcf_values)} periods")
+    else:
+        details.append("Insufficient free cash flow history")
+
+    max_score += 2 # Increment by the *highest* possible score for this section
+
+    # Scale score to 0-10 range
+    # Maximum possible raw score would be 10 (3+3+2+2)
+    final_score = round(max(0, min(10, score * 10 / max_score)), 2)
     
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+    return {
+        "score": final_score,
+        "normalized_max_score": 10,
+        "details": "; ".join(details)
+    }
 
 
-def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) -> dict:
+def calculate_munger_valuation(ticker: str) -> dict:
     """
-    Calculate a valuation based on Munger's principles of paying a fair price for quality.
+    Calculate intrinsic value using Munger's approach:
+    - Focus on owner earnings (approximated by FCF)
+    - Simple multiple on normalized earnings
+    - Prefer paying a fair price for a wonderful business
     
     Args:
-        metrics (dict): Financial metrics dictionary
         ticker (str): Stock ticker symbol
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
         
     Returns:
         dict: Valuation analysis with score and details
@@ -549,102 +662,118 @@ def calculate_munger_valuation(metrics: dict, ticker: str, company_ticker=None) 
     max_score = 0 # Initialize max_score
     details = []
     
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
     
-    if not metrics:
-        return {"score": 0, "max_score": 0, "details": "Insufficient data for valuation analysis"}
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
     
-    # 1. P/E Ratio - Munger is willing to pay more for quality, but still values reasonable P/E
-    pe_ratio = metrics.get("price_to_earnings_ratio")
-    if pe_ratio is not None and not np.isnan(pe_ratio) and pe_ratio > 0:
-        # Adjust PE thresholds based on ROE (higher quality = higher acceptable PE)
-        roe = metrics.get("return_on_equity")
-        if roe is not None and not np.isnan(roe) and roe > 0:
-            # Quality-adjusted PE threshold
-            quality_pe_threshold = 15 + (roe * 100 - 15) * 0.5  # e.g., 20% ROE -> PE threshold of 17.5
+    market_cap = company_ticker.info.get("marketCap", None)
+    if market_cap is None:
+        return {"score": 0, "max_score": 0, "details": "Market cap data not available"}
+    
+    free_cash_flow = safe_get_row(cash_flow, "Free Cash Flow")
+
+    if not free_cash_flow.empty:
+        fcf_values = filter_valid_values(free_cash_flow)
+        if not fcf_values or len(fcf_values) < 3:
+            return {"score": 0, "max_score": 0, "details": "Insufficient free cash flow data for valuation"}
+        
+        # 1. Normalize earnings by taking average of last 3-5 years
+        # (Munger prefers to normalize earnings to avoid over/under-valuation based on cyclical factors)
+        normalized_fcf = sum(fcf_values[:min(5, len(fcf_values))]) / min(5, len(fcf_values))
+        
+        if normalized_fcf <= 0:
+            return {
+                "score": 0,
+                "details": f"Negative or zero normalized FCF ({normalized_fcf}), cannot value",
+                "intrinsic_value": None
+            }
+        
+        # 2. Calculate FCF yield (inverse of P/FCF multiple)
+        fcf_yield = normalized_fcf / market_cap
+        
+        # 3. Apply Munger's FCF multiple based on business quality
+        # Munger would pay higher multiples for wonderful businesses
+        # Let's use a sliding scale where higher FCF yields are more attractive
+        if fcf_yield > 0.08:  # >8% FCF yield (P/FCF < 12.5x)
+            score += 4
+            details.append(f"Excellent value: {fcf_yield:.1%} FCF yield")
+        elif fcf_yield > 0.05:  # >5% FCF yield (P/FCF < 20x)
+            score += 3
+            details.append(f"Good value: {fcf_yield:.1%} FCF yield")
+        elif fcf_yield > 0.03:  # >3% FCF yield (P/FCF < 33x)
+            score += 1
+            details.append(f"Fair value: {fcf_yield:.1%} FCF yield")
+        else:
+            details.append(f"Expensive: Only {fcf_yield:.1%} FCF yield")
+
+        max_score += 4
+        
+        # 4. Calculate simple intrinsic value range
+        # Munger tends to use straightforward valuations, avoiding complex DCF models
+        conservative_value = normalized_fcf * 10  # 10x FCF = 10% yield
+        reasonable_value = normalized_fcf * 15    # 15x FCF ≈ 6.7% yield
+        optimistic_value = normalized_fcf * 20    # 20x FCF = 5% yield
+        
+        # 5. Calculate margins of safety
+        current_to_reasonable = (reasonable_value - market_cap) / market_cap
+        
+        if current_to_reasonable > 0.3:  # >30% upside
+            score += 3
+            details.append(f"Large margin of safety: {current_to_reasonable:.1%} upside to reasonable value")
+        elif current_to_reasonable > 0.1:  # >10% upside
+            score += 2
+            details.append(f"Moderate margin of safety: {current_to_reasonable:.1%} upside to reasonable value")
+        elif current_to_reasonable > -0.1:  # Within 10% of reasonable value
+            score += 1
+            details.append(f"Fair price: Within 10% of reasonable value ({current_to_reasonable:.1%})")
+        else:
+            details.append(f"Expensive: {-current_to_reasonable:.1%} premium to reasonable value")
+
+
+        max_score += 3
+        
+        # 6. Check earnings trajectory for additional context
+        # Munger likes growing owner earnings
+        if len(fcf_values) >= 3:
+            recent_avg = sum(fcf_values[:3]) / 3
+            older_avg = sum(fcf_values[-3:]) / 3 if len(fcf_values) >= 6 else fcf_values[-1]
             
-            if pe_ratio < quality_pe_threshold * 0.8:
+            if recent_avg > older_avg * 1.2:  # >20% growth in FCF
                 score += 3
-                details.append(f"Very attractive P/E of {pe_ratio:.1f} relative to quality (ROE: {roe:.1%})")
-            elif pe_ratio < quality_pe_threshold:
+                details.append("Growing FCF trend adds to intrinsic value")
+            elif recent_avg > older_avg:
                 score += 2
-                details.append(f"Reasonable P/E of {pe_ratio:.1f} relative to quality (ROE: {roe:.1%})")
-            elif pe_ratio < quality_pe_threshold * 1.5:
-                score += 1
-                details.append(f"Acceptable P/E of {pe_ratio:.1f} relative to quality (ROE: {roe:.1%})")
+                details.append("Stable to growing FCF supports valuation")
             else:
-                details.append(f"Higher P/E of {pe_ratio:.1f} relative to quality (ROE: {roe:.1%})")
-        else:
-            # Standard PE thresholds if ROE is not available
-            if pe_ratio < 15:
-                score += 2
-                details.append(f"Attractive P/E ratio of {pe_ratio:.1f}")
-            elif pe_ratio < 20:
-                score += 1
-                details.append(f"Reasonable P/E ratio of {pe_ratio:.1f}")
-            else:
-                details.append(f"Higher P/E ratio of {pe_ratio:.1f}")
-    else:
-        details.append("P/E ratio data not available or negative")
+                details.append("Declining FCF trend is concerning")
 
-    max_score += 3 # Increment by the *highest* possible score for this section
-    
-    # 2. Price to Free Cash Flow - Munger values companies generating strong FCF
-    fcf = metrics.get("free_cash_flow_per_share")
-    if fcf is not None and not np.isnan(fcf) and fcf > 0:
-        # Calculate P/FCF
-        price = company_ticker.info.get("currentPrice")
-        if price is not None and not np.isnan(price):
-            p_fcf = price / fcf
-            if p_fcf < 15:
-                score += 2
-                details.append(f"Attractive price to FCF ratio of {p_fcf:.1f}")
-            elif p_fcf < 20:
-                score += 1
-                details.append(f"Reasonable price to FCF ratio of {p_fcf:.1f}")
-            else:
-                details.append(f"Higher price to FCF ratio of {p_fcf:.1f}")
-        else:
-            details.append("Current price data not available")
-    else:
-        details.append("Free cash flow per share data not available or negative")
 
-    max_score += 2 # Increment by the *highest* possible score for this section
+        max_score += 3
     
-    # 3. Price to Book Value - Munger considers this but with less emphasis than earnings power
-    pb_ratio = metrics.get("price_to_book_ratio")
-    if pb_ratio is not None and not np.isnan(pb_ratio) and pb_ratio > 0:
-        # Adjust PB thresholds based on ROE (higher ROE justifies higher PB)
-        roe = metrics.get("return_on_equity")
-        if roe is not None and not np.isnan(roe) and roe > 0:
-            justified_pb = roe * 2  # Simple approximation: justified P/B ≈ 2 × ROE
-            
-            if pb_ratio < justified_pb * 0.7:
-                score += 2
-                details.append(f"Very attractive P/B of {pb_ratio:.1f} relative to ROE of {roe:.1%}")
-            elif pb_ratio < justified_pb:
-                score += 1
-                details.append(f"Reasonable P/B of {pb_ratio:.1f} relative to ROE of {roe:.1%}")
-            else:
-                details.append(f"Higher P/B of {pb_ratio:.1f} relative to ROE of {roe:.1%}")
-        else:
-            # Standard PB thresholds if ROE is not available
-            if pb_ratio < 3:
-                score += 1
-                details.append(f"Attractive P/B ratio of {pb_ratio:.1f}")
-            else:
-                details.append(f"Higher P/B ratio of {pb_ratio:.1f}")
-    else:
-        details.append("Price to book ratio data not available or negative")
-
-    max_score += 2 # Increment by the *highest* possible score for this section
+    # Scale score to 0-10 range
+    # Maximum possible raw score would be 10 (4+3+3)
+    final_score = round(min(10, score * 10 / max_score), 2) 
     
-    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+    return {
+        "score": final_score,
+        "normalized_max_score": 10,
+        "details": "; ".join(details),
+        "intrinsic_value_range": {
+            "conservative": f"${conservative_value:,.2f}",
+            "reasonable": f"${reasonable_value:,.2f}",
+            "optimistic": f"${optimistic_value:,.2f}"
+        },
+        "fcf_yield": f"{fcf_yield:.2%}",
+        "normalized_fcf": f"${normalized_fcf:,.2f}"
+    }
 
 
 def analyse_news_sentiment(ticker: str, number_of_articles: int = 10) -> str:
@@ -658,16 +787,26 @@ def analyse_news_sentiment(ticker: str, number_of_articles: int = 10) -> str:
     Returns:
         str: Sentiment analysis result
     """
+
+    
     try:
         sentiment_score = get_news_sentiment_scores(ticker, number_of_articles)
-        return f"News sentiment score: {sentiment_score:.1f} (range: -100 to 100)"
+
+        result = {
+            "score": sentiment_score,
+            "normalized_max_score": 10,
+            "details": f"News sentiment score: {sentiment_score} (range: -10 to 10)"
+        }
+
+        return result
     except Exception as e:
         return f"Could not analyze news sentiment: {str(e)}"
 
 
 def analyse_charlie_munger_valuation(ticker: str) -> dict:
     """
-    Perform a comprehensive analysis based on Charlie Munger's investment principles.
+    Analyzes stocks using Charlie Munger's investing principles and mental models.
+    Focuses on moat strength, management quality, predictability, and valuation.
     
     Args:
         ticker (str): Stock ticker symbol
@@ -675,34 +814,18 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     Returns:
         dict: Complete Munger analysis with signal, score, and detailed components
     """
+       
     try:
-        # Get ticker data once and reuse
-        company_ticker = get_ticker(ticker)
-        financials = company_ticker.financials
-        balance_sheet = company_ticker.balance_sheet
-        cash_flow = company_ticker.cashflow
-        
-        # Get metrics once
-        metrics = compute_financial_metrics(ticker)
-    except Exception as e:
-        return {
-            "signal": "neutral",
-            "score": 0,
-            "max_score": 0, # Initialize max_score
-            "error": f"Failed to compute financial metrics: {str(e)}"
-        }
-    
-    try:
-        moat_analysis = analyse_moat_strength(metrics, ticker, company_ticker, financials)
+        moat_analysis = analyse_moat_strength(ticker)
     except Exception as e:
         moat_analysis = {
             "score": 0, 
-            "max_score": 0, # Initialize max_score
+            "max_score": 0,
             "details": f"Error in moat strength analysis: {str(e)}"
         }
     
     try:
-        management_analysis = analyse_management_quality(metrics, ticker, company_ticker, balance_sheet, cash_flow)
+        management_analysis = analyse_management_quality(ticker)
     except Exception as e:
         management_analysis = {
             "score": 0, 
@@ -711,7 +834,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         }
     
     try:
-        predictability_analysis = analyse_predictability(metrics, ticker, company_ticker, financials)
+        predictability_analysis = analyse_predictability(ticker)
     except Exception as e:
         predictability_analysis = {
             "score": 0, 
@@ -720,7 +843,7 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         }
     
     try:
-        valuation_analysis = calculate_munger_valuation(metrics, ticker, company_ticker)
+        valuation_analysis = calculate_munger_valuation(ticker)
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
@@ -738,13 +861,16 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
         moat_analysis.get("score", 0) + 
         management_analysis.get("score", 0) + 
         predictability_analysis.get("score", 0) + 
-        valuation_analysis.get("score", 0)
+        valuation_analysis.get("score", 0) + 
+        news_sentiment.get("score", 0)
     )
+
     max_possible_score = (
-        moat_analysis.get("max_score", 0) +
-        management_analysis.get("max_score", 0) +
-        predictability_analysis.get("max_score", 0) +
-        valuation_analysis.get("max_score", 0)
+        moat_analysis.get("normalized_max_score", 10) +
+        management_analysis.get("normalized_max_score", 10) +
+        predictability_analysis.get("normalized_max_score", 10) +
+        valuation_analysis.get("normalized_max_score", 10) +
+        news_sentiment.get("normalized_max_score", 10)
     )
     
     # Generate signal based on score
@@ -758,8 +884,8 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
     # Combine all analysis results
     munger_analysis = {
         "signal": signal,
-        "score": total_score,
-        "max_score": max_possible_score,
+        "score": round(total_score, 2),
+        "max_score": round(max_possible_score, 2),
         "moat_analysis": moat_analysis,
         "management_analysis": management_analysis,
         "predictability_analysis": predictability_analysis,
@@ -771,6 +897,5 @@ def analyse_charlie_munger_valuation(ticker: str) -> dict:
 
 
 if __name__ == "__main__":
-    ticker = "FGBI"
-    metrics = compute_financial_metrics(ticker)
+    ticker = "NVDA"
     print(analyse_charlie_munger_valuation(ticker))

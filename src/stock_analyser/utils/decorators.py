@@ -1,7 +1,7 @@
 import time
 from functools import wraps
 from datetime import datetime
-from .constants import TIMESTAMP
+from stock_analyser.utils.constants import TIMESTAMP
 
 
 def timeit(func):

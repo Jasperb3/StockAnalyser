@@ -1,6 +1,4 @@
-from stock_analyser.tools.tool_utils.metrics import compute_financial_metrics
 import yfinance as yf
-import math
 import numpy as np
 import pandas as pd
 
@@ -70,7 +68,7 @@ def filter_valid_values(series):
         return [val for val in series if val is not None and not np.isnan(val)]
 
 
-def analyse_business_quality(ticker: str, company_ticker=None, financials=None, cash_flow=None):
+def analyse_business_quality(ticker: str):
     """
     Analyze whether the company has a high-quality business with stable or growing cash flows,
     durable competitive advantages, and potential for long-term growth.
@@ -88,30 +86,25 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
     max_score = 0 # Initialize max_score
     details = []
 
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
 
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-            if financials is None or financials.empty:
-                return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
+    try:
+        financials = company_ticker.financials
+        if financials is None or financials.empty:
+            return {"score": 0, "max_score": 0, "details": "No financial data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving financial data: {str(e)}"}
             
-    # Reuse cash_flow if provided, otherwise get from ticker
-    if cash_flow is None:
-        try:
-            cash_flow = company_ticker.cashflow
-            if cash_flow is None or cash_flow.empty:
-                return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
+            return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving cash flow data: {str(e)}"}
 
     # 1. Multi-period revenue growth analysis
     revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
@@ -224,7 +217,7 @@ def analyse_business_quality(ticker: str, company_ticker=None, financials=None, 
     }
 
 
-def analyse_financial_discipline(ticker: str, company_ticker=None, financials=None, balance_sheet=None, cash_flow=None):
+def analyse_financial_discipline(ticker: str):
     """
     Evaluate the company's balance sheet over multiple periods:
     - Debt ratio trends
@@ -244,37 +237,33 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
     max_score = 0 # Initialize max_score
     details = []
 
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
+    
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Failed to get ticker data: {str(e)}"}
 
-    # Reuse financials if provided, otherwise get from ticker
-    if financials is None:
-        try:
-            financials = company_ticker.financials
-        except Exception as e:
-            financials = pd.DataFrame()
-            details.append(f"Error retrieving financial data: {str(e)}")
+
+    try:
+        financials = company_ticker.financials
+    except Exception as e:
+        financials = pd.DataFrame()
+        details.append(f"Error retrieving financial data: {str(e)}")
             
-    # Reuse balance_sheet if provided, otherwise get from ticker
-    if balance_sheet is None:
-        try:
-            balance_sheet = company_ticker.balance_sheet
-            if balance_sheet is None or balance_sheet.empty:
-                return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
-        except Exception as e:
-            return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
+
+    try:
+        balance_sheet = company_ticker.balance_sheet
+        if balance_sheet is None or balance_sheet.empty:
+            return {"score": 0, "max_score": 0, "details": "No balance sheet data available"}
+    except Exception as e:
+        return {"score": 0, "max_score": 0, "details": f"Error retrieving balance sheet data: {str(e)}"}
             
-    # Reuse cash_flow if provided, otherwise get from ticker
-    if cash_flow is None:
-        try:
-            cash_flow = company_ticker.cashflow
-        except Exception as e:
-            cash_flow = pd.DataFrame()
-            details.append(f"Error retrieving cash flow data: {str(e)}")
+
+    try:
+        cash_flow = company_ticker.cashflow
+    except Exception as e:
+        cash_flow = pd.DataFrame()
+        details.append(f"Error retrieving cash flow data: {str(e)}")
 
     # 1. Multi-period debt ratio or debt_to_equity
     # Check if the company's leverage is stable or improving
@@ -394,8 +383,7 @@ def analyse_financial_discipline(ticker: str, company_ticker=None, financials=No
 
     
 def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: float = 0.10, 
-                     terminal_multiple: float = 15, projection_years: int = 5, 
-                     company_ticker=None, cash_flow=None):
+                     terminal_multiple: float = 15, projection_years: int = 5):
     """
     Ackman invests in companies trading at a discount to intrinsic value.
     We can do a simplified DCF or an FCF-based approach.
@@ -406,42 +394,38 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
         discount_rate (float): Discount rate for present value calculations
         terminal_multiple (float): Multiple for terminal value calculation
         projection_years (int): Number of years to project cash flows
-        company_ticker (yf.Ticker, optional): Ticker object to reuse
-        cash_flow (pd.DataFrame, optional): Cash flow data to reuse
         
     Returns:
         dict: Analysis results with score, details and valuation metrics
     """
-    # Reuse ticker object if provided, otherwise get a new one
-    if company_ticker is None:
-        try:
-            company_ticker = get_ticker(ticker)
-        except Exception as e:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": f"Failed to get ticker data: {str(e)}",
-                "intrinsic_value": None
-            }
     
-    # Reuse cash_flow if provided, otherwise get from ticker
-    if cash_flow is None:
-        try:
-            cash_flow = company_ticker.cashflow
-            if cash_flow is None or cash_flow.empty:
-                return {
-                    "score": 0,
-                    "max_score": 0,
-                    "details": "No cash flow data available",
-                    "intrinsic_value": None
-                }
-        except Exception as e:
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Failed to get ticker data: {str(e)}",
+            "intrinsic_value": None
+        }
+    
+    
+    try:
+        cash_flow = company_ticker.cashflow
+        if cash_flow is None or cash_flow.empty:
             return {
                 "score": 0,
                 "max_score": 0,
-                "details": f"Error retrieving cash flow data: {str(e)}",
+                "details": "No cash flow data available",
                 "intrinsic_value": None
             }
+    except Exception as e:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Error retrieving cash flow data: {str(e)}",
+            "intrinsic_value": None
+        }
     
     market_cap = company_ticker.info.get('marketCap', None)
     if market_cap is None or np.isnan(market_cap) or market_cap <= 0:
@@ -486,7 +470,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
         present_value = 0
         for year in range(1, projection_years + 1):
             future_fcf = fcf * (1 + growth_rate) ** year
-            pv = future_fcf / ((1 + discount_rate) ** year)
+            pv = future_fcf / (1 + discount_rate) ** year
             present_value += pv
         
         # Terminal Value
@@ -495,7 +479,7 @@ def analyse_valuation(ticker: str, growth_rate: float = 0.06, discount_rate: flo
         intrinsic_value = present_value + terminal_value
         
         # Compare with market cap => margin of safety
-        margin_of_safety = (intrinsic_value - market_cap) / market_cap
+        margin_of_safety = (intrinsic_value - market_cap) / intrinsic_value
         
         score = 0
         if margin_of_safety > 0.3:
@@ -550,22 +534,9 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
     Returns:
         dict: Complete Ackman analysis with signal, score, and detailed components
     """
-    try:
-        # Get ticker data once and reuse
-        company_ticker = get_ticker(ticker)
-        financials = company_ticker.financials
-        balance_sheet = company_ticker.balance_sheet
-        cash_flow = company_ticker.cashflow
-    except Exception as e:
-        return {
-            "signal": "neutral",
-            "score": 0,
-            "max_score": 0,
-            "error": f"Failed to get ticker data: {str(e)}"
-        }
 
     try:
-        quality_analysis = analyse_business_quality(ticker, company_ticker, financials, cash_flow)
+        quality_analysis = analyse_business_quality(ticker)
     except Exception as e:
         quality_analysis = {
             "score": 0, 
@@ -574,7 +545,7 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
         }
     
     try:
-        balance_sheet_analysis = analyse_financial_discipline(ticker, company_ticker, financials, balance_sheet, cash_flow)
+        balance_sheet_analysis = analyse_financial_discipline(ticker)
     except Exception as e:
         balance_sheet_analysis = {
             "score": 0, 
@@ -584,7 +555,7 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
     
     try:
         valuation_analysis = analyse_valuation(ticker, growth_rate, discount_rate, terminal_multiple, 
-                                              projection_years, company_ticker, cash_flow)
+                                              projection_years)
     except Exception as e:
         valuation_analysis = {
             "score": 0, 
@@ -618,4 +589,4 @@ def calculate_bill_ackman_analysis_data(ticker: str, growth_rate: float = 0.06,
 
 
 if __name__ == "__main__":
-    print(calculate_bill_ackman_analysis_data("AAPL", 0.06, 0.10, 15, 5))
+    print(calculate_bill_ackman_analysis_data("MSFT", 0.06, 0.10, 15, 5))

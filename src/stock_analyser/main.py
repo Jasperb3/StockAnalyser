@@ -8,24 +8,32 @@ from datetime import datetime
 
 from .plotting.plot_risk_severity import plot_risk_severity
 from .plotting.plot_awesome_oscillator import plot_awesome_oscillator
-from .plotting.plotting_tools import plot_competitor_prices, plot_anaylsts_recommendations, plot_OHLC
+from .plotting.plot_dcf_sensitivity import plot_dcf_sensitivity
+from .plotting.plot_financial_metrics import plot_net_income_trends, plot_revenue_trends, plot_gross_margin_trends, plot_earnings_per_share_trends, plot_free_cash_flow_trends
+from .plotting.plot_investor_projections import plot_intrinsic_value_projection
+from .plotting.plot_macd_stochastic import plot_macd_stochastic
+from .plotting.plotting_tools import plot_competitor_prices, plot_anaylsts_recommendations, plot_candlestick_chart
 
-from .utils.tickers import tickers
+from .utils.get_sp500_tickers import get_sp500_tickers
 from .utils.setup import Setup
 from .utils.models import ReportState
 from .utils.decorators import timeit
-from .utils.constants import TIMESTAMP, OUTPUT_DIR, PLOTS_DIR, KNOWLEDGE_DIR
+from .utils.convert_to_pdf import convert_md_to_pdf
+from .utils.prompts import critic_guidelines, editor_guidelines, expert_analyst_writer_prompt, writer_guidelines
+from .utils.constants import TIMESTAMP, OUTPUT_DIR, PLOTS_DIR, BACKOFF_TIME
 
-from crewai.flow.flow import Flow, listen, start
+from crewai.flow.flow import Flow, listen, start, and_
 from .crews.news_and_research_crew.news_and_research_crew import NewsAndResearchCrew
 from .crews.market_and_industry_crew.market_and_industry_crew import MarketAndIndustryCrew
 from .crews.competitor_crew.competitor_crew import CompetitorCrew
 from .crews.financial_data_crew.financial_data_crew import FinancialDataCrew
+from .crews.trends_crew.trends_crew import TrendsCrew
 from .crews.analyst_insights_crew.analyst_insights_crew import AnalystInsightsCrew
 from .crews.benjamin_graham_crew.benjamin_graham_crew import BenjaminGrahamCrew 
 from .crews.warren_buffet_crew.warren_buffet_crew import WarrenBuffetCrew
 from .crews.charlie_munger_crew.charlie_munger_crew import CharlieMungerCrew
 from .crews.cathie_wood_crew.cathie_wood_crew import CathieWoodCrew
+from .crews.stanley_druckenmiller_crew.stanley_druckenmiller_crew import StanleyDruckenmillerCrew
 from .crews.bill_ackman_crew.bill_ackman_crew import BillAckmanCrew
 from .crews.risk_analysis_crew.risk_analysis_crew import RiskAnalysisCrew
 from .crews.risk_severity_crew.risk_severity_crew import RiskSeverityCrew
@@ -33,30 +41,31 @@ from .crews.investment_recommendation_crew.investment_recommendation_crew import
 from .crews.future_outlook_crew.future_outlook_crew import FutureOutlookCrew
 from .crews.executive_summary_crew.executive_summary_crew import ExecutiveSummaryCrew
 from .crews.conclusion_crew.conclusion_crew import ConclusionCrew
-from .crews.gmail_crew.gmail_crew import GmailCrew
+# from .crews.gmail_crew.gmail_crew import GmailCrew
+from .crews.gmail_attachment_crew.gmail_attachment_crew import GmailAttachmentCrew
 
 beginning_time = time.time()
 
 class ReportFlow(Flow[ReportState]):
     knowledge_source = None
-    qdrant_tool = None
-    setup_instance = None  # Class variable to store the Setup instance
+    setup_instance = None
 
 
     @timeit
     @start()
     def confirm_company_stock(self):
         while True:
-            self.state.company_ticker = input("\n\033[1;34mEnter the stock ticker symbol of the company you want to analyse or hit 'ENTER' for a random ticker:\033[0m ").strip().upper()
+            self.state.company_ticker = input("\n\033[1;34mEnter the stock ticker symbol of the company you want to analyze or hit 'ENTER' for a random S&P 500 company:\033[0m ").strip().upper()
             if self.state.company_ticker == "":
                 while True:
-                    self.state.company_ticker = random.choice(tickers)
+                    sp500_tickers = get_sp500_tickers()
+                    self.state.company_ticker = random.choice(sp500_tickers)
                     history = yf.Ticker(self.state.company_ticker).history(period='7d', interval='1d')
                     if not history.empty:
                         break
                     else:
                         print(f"❌ Invalid ticker: {self.state.company_ticker}. Removing it from the list.")
-                        tickers.remove(self.state.company_ticker)
+                        sp500_tickers.remove(self.state.company_ticker)
             history = yf.Ticker(self.state.company_ticker).history(period='7d', interval='1d')
             if not history.empty:
                 company = yf.Ticker(self.state.company_ticker)
@@ -78,23 +87,23 @@ class ReportFlow(Flow[ReportState]):
     @listen(confirm_company_stock)
     def set_up(self):
         # Create a Setup instance and store it as a class variable
-        ReportFlow.setup_instance = Setup(self.state)
-
-        ReportFlow.setup_instance.check_knowledge_dir()
-        ReportFlow.setup_instance.download_filings()
-        ReportFlow.setup_instance.download_financial_data()
+        setup = Setup(self.state)
         
-        # Set up Qdrant vector search
-        qdrant_setup_success = ReportFlow.setup_instance.setup_qdrant_vector_search()
+        # Store the setup instance in the class variable
+        ReportFlow.setup_instance = setup
         
-        if qdrant_setup_success and ReportFlow.setup_instance.qdrant_tool:
-            print("Using Qdrant vector search tool from setup ✅\n")
-            # Store the qdrant_tool from setup
-            ReportFlow.qdrant_tool = ReportFlow.setup_instance.qdrant_tool
+        # Initialize analysis - this is the ONLY function we need to call
+        setup_success = setup.initialize_analysis()
+        
+        if setup_success:
+            print("Analysis initialization completed successfully ✅")
         else:
-            print("⚠️ Failed to set up Qdrant vector search.")
+            print("⚠️ Failed to initialize analysis.")
             print("⚠️ Please check QDRANT_CLUSTER_URL, QDRANT_API_KEY, and GEMINI_API_KEY environment variables.")
             print("⚠️ Also verify that the Qdrant server is running and accessible.")
+        
+        # Note: No need to call process_new_markdown_files() here
+        # The initialize_analysis() function already handles this
 
 
     @timeit
@@ -107,7 +116,8 @@ class ReportFlow(Flow[ReportState]):
             "company_ticker": self.state.company_ticker,
             "date_iso": self.state.date_iso,
             "date_us": self.state.date_us,
-            "industry": self.state.industry
+            "industry": self.state.industry,
+            "writer_guidelines": writer_guidelines
         }
 
         news_and_research_section = (
@@ -121,9 +131,9 @@ class ReportFlow(Flow[ReportState]):
         print(f"🪙 Number of tokens used: {news_and_research_section.token_usage.total_tokens:,}")
         self.state.total_token_usage += news_and_research_section.token_usage.total_tokens
         
-        # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # # Process any new markdown files created by this crew
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -137,11 +147,14 @@ class ReportFlow(Flow[ReportState]):
             "company_website": self.state.company_website,
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }
 
         market_and_industry_section = (
-            MarketAndIndustryCrew(qdrant_tool=ReportFlow.qdrant_tool)
+            MarketAndIndustryCrew()
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -152,8 +165,8 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += market_and_industry_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -164,7 +177,7 @@ class ReportFlow(Flow[ReportState]):
         inputs = {
             "company_ticker": self.state.company_ticker,
             "company_name": self.state.company_name,
-            "market_and_industry_section": self.state.market_and_industry_section,
+            "industry": self.state.industry,
             "date_iso": self.state.date_iso,
             "date_us": self.state.date_us
         }
@@ -204,25 +217,26 @@ class ReportFlow(Flow[ReportState]):
             print("❌ Competitor prices plot not generated. Skipping...")
             
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
+    # @timeit
+    # @listen(generate_competitor_landscape_section)
+    # def plot_OHLC_30_days(self):
+    #     print("Plotting OHLC 30 days...")
+
+    #     try:
+    #         ohlc_30_days_plot = plot_OHLC(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+    #         print(f"📊 OHLC 30 days plot saved to {ohlc_30_days_plot}\n")
+    #         self.state.competitor_landscape_section += f"\n\n### {self.state.company_name} 30 day Open-High-Low-Close Chart\n![OHLC 30 days Plot]({ohlc_30_days_plot})"
+    #     except Exception as e:
+    #         print(f"❌ Error plotting OHLC 30 days: {str(e)}")
+
+    
+    
     @timeit
     @listen(generate_competitor_landscape_section)
-    def plot_OHLC_30_days(self):
-        print("Plotting OHLC 30 days...")
-
-        try:
-            ohlc_30_days_plot = plot_OHLC(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
-            print(f"📊 OHLC 30 days plot saved to {ohlc_30_days_plot}\n")
-            self.state.competitor_landscape_section += f"\n\n### {self.state.company_name} OHLC for the last 30 days\n![OHLC 30 days Plot]({ohlc_30_days_plot})"
-        except Exception as e:
-            print(f"❌ Error plotting OHLC 30 days: {str(e)}")
-
-
-    @timeit
-    @listen(plot_OHLC_30_days)
     def generate_financial_data_section(self):
         print("Generating financial data section...")
 
@@ -232,11 +246,14 @@ class ReportFlow(Flow[ReportState]):
             "company_website": self.state.company_website,
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }
 
         financial_data_section = (
-            FinancialDataCrew(qdrant_tool=ReportFlow.qdrant_tool)
+            FinancialDataCrew()
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -247,8 +264,74 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += financial_data_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
+
+
+
+    @timeit
+    @listen(generate_financial_data_section)
+    def plot_historical_stock_data(self):
+        print("Plotting historical stock data...")   
+
+        try:
+            historical_stock_data_plot = plot_macd_stochastic(self.state.company_ticker, "6mo", PLOTS_DIR, TIMESTAMP)
+            print(f"📊 MACD and Stochastic Oscillator chart saved to {historical_stock_data_plot}\n")
+        except Exception as e:
+            print(f"❌ Error plotting MACD and Stochastic Oscillator chart: {str(e)}")
+
+        if historical_stock_data_plot:
+
+            macd = "## Financial Deep Dive"
+            macd += f"\n\n![MACD and Stochastic Oscillator Plot]({historical_stock_data_plot})"
+            macd += f"<figcaption>This chart combines candlestick price action and volume with Moving Average Convergence Divergence (MACD) (center panel) and the Stochastic oscillator (bottom panel) to show market momentum and identify potential trend reversals. "
+            macd += f"MACD highlights momentum shifts through histogram bars and signal line crossovers, while the Stochastic oscillator indicates overbought or oversold conditions through threshold lines and line crossovers.</figcaption>"
+            macd += "\n\n"
+
+            self.state.financial_data_section = self.state.financial_data_section.replace("## Financial Deep Dive", macd)
+        else:
+            print("❌ Historical stock data plot not generated. Skipping...")
+
+
+    @timeit
+    @listen(generate_financial_data_section)
+    def generate_trends_section(self):
+        print("Generating trends section...")
+
+        inputs = {
+            "company_name": self.state.company_name,
+            "company_ticker": self.state.company_ticker,
+            "date_iso": self.state.date_iso,
+        }
+
+        raw_trends_section = (
+            TrendsCrew()
+            .crew()
+            .kickoff(inputs=inputs)
+        )
+
+        self.state.trends_section = "### Recent trends\n\n"
+        trends_section = raw_trends_section.raw
+
+        # Plot financial metrics trends
+        revenue_plot = plot_revenue_trends(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+        net_income_plot = plot_net_income_trends(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+        gross_margin_plot = plot_gross_margin_trends(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+        earnings_per_share_plot = plot_earnings_per_share_trends(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+        free_cash_flow_plot = plot_free_cash_flow_trends(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+
+        trends_section = trends_section.replace("[revenue]", f"\n![Revenue Trends Plot]({revenue_plot})\n\n\n")
+        trends_section = trends_section.replace("[netIncome]", f"\n![Net Income Trends Plot]({net_income_plot})\n\n\n")
+        trends_section = trends_section.replace("[grossMargin]", f"\n![Gross Margin Trends Plot]({gross_margin_plot})\n\n\n")
+        trends_section = trends_section.replace("[eps]", f"\n![Earnings Per Share Trends Plot]({earnings_per_share_plot})\n\n\n")
+        trends_section = trends_section.replace("[freeCashFlow]", f"\n![Free Cash Flow Trends Plot]({free_cash_flow_plot})\n\n\n")
+            
+        self.state.trends_section += trends_section
+
+        print("Trends section generated ✅")
+        print(f"🪙 Number of tokens used: {raw_trends_section.token_usage.total_tokens:,}")
+        self.state.total_token_usage += raw_trends_section.token_usage.total_tokens
+
 
 
     @timeit
@@ -262,11 +345,14 @@ class ReportFlow(Flow[ReportState]):
             "company_website": self.state.company_website,
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }
 
         analyst_insights_section = (
-            AnalystInsightsCrew(qdrant_tool=ReportFlow.qdrant_tool)
+            AnalystInsightsCrew()
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -277,36 +363,75 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += analyst_insights_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
     @listen(generate_analyst_insights_section)
-    def plot_analyst_recommendations(self):
-        print("Plotting analyst recommendations...")
+    def plot_dcf_sensitivity_3D_chart(self):
+        print("Plotting DCF sensitivity 3D surface chart...")
 
         try:
-            analyst_recommendations_plot = plot_anaylsts_recommendations(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
-            print(f"📊 Analyst recommendations plot saved to {analyst_recommendations_plot}\n")
+            dcf_sensitivity_chart = plot_dcf_sensitivity(
+                self.state.company_ticker, PLOTS_DIR, TIMESTAMP
+            )
+            print(f"📊 DCF Sensitivity plot saved to {dcf_sensitivity_chart}\n")
         except Exception as e:
             print(f"❌ Error plotting analyst recommendations: {str(e)}")
 
-        if analyst_recommendations_plot:
-            self.state.analyst_insights_section += f"\n![Analyst Recommendations Plot]({analyst_recommendations_plot})"
+        if dcf_sensitivity_chart:
+            chart = f"\n\n![DCF Sensitivity plot]({dcf_sensitivity_chart})"
+            chart += (
+                "\n<figcaption>The 3D surface plot illustrates sensitivity "
+                "analysis of implied share price against varying assumptions for "
+                "the Weighted Average Cost of Capital (WACC) and Terminal Growth "
+                "Rate (TGR). The horizontal axes represent different scenarios "
+                "of WACC and TGR, respectively, while the vertical axis shows "
+                "the resulting implied share price derived from discounted cash "
+                "flow (DCF) valuation. The surface demonstrates how sensitive "
+                "the company's valuation is to these two critical parameters; "
+                "areas of steeper slope indicate greater sensitivity, helping "
+                "identify scenarios where valuation is highly dependent on small "
+                "changes in underlying assumptions.</figcaption>\n\n\n\n"
+            )
+
+            self.state.analyst_insights_section = (
+                self.state.analyst_insights_section.replace(
+                    "[sensitivityAnalysis]", chart
+                )
+            )
         else:
-            print("❌ Analyst recommendations plot not generated. Skipping...")
+            print("❌ DCF Sensitivity plot not generated. Skipping...")
+
+
+    # @timeit
+    # @listen(plot_dcf_sensitivity_3D_chart)
+    # def plot_analyst_recommendations(self):
+    #     print("Plotting analyst recommendations...")
+
+    #     try:
+    #         analyst_recommendations_plot = plot_anaylsts_recommendations(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+    #         print(f"📊 Analyst recommendations plot saved to {analyst_recommendations_plot}\n")
+    #     except Exception as e:
+    #         print(f"❌ Error plotting analyst recommendations: {str(e)}")
+
+    #     if analyst_recommendations_plot:
+    #         self.state.analyst_insights_section += f"\n\n![Analyst Recommendations Plot]({analyst_recommendations_plot})"
+    #     else:
+    #         print("❌ Analyst recommendations plot not generated. Skipping...")
 
 
     @timeit
-    @listen(plot_analyst_recommendations)
+    @listen(plot_dcf_sensitivity_3D_chart)
     def generate_warren_buffet_section(self):
         print("Generating Warren Buffet section...")
 
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
         }
 
         warren_buffet_section = (
@@ -321,8 +446,8 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += warren_buffet_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -333,7 +458,8 @@ class ReportFlow(Flow[ReportState]):
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
         }
 
         cathie_wood_section = (
@@ -348,25 +474,54 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += cathie_wood_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
-        time.sleep(30)
-        for remaining in range(30, 0, -1):
+        time.sleep(BACKOFF_TIME)
+        for remaining in range(BACKOFF_TIME, 0, -1):
             print(f"⏳ Pausing for {remaining} seconds to avoid rate limit...", end="\r")
             time.sleep(1)
         print("Resuming...")
-    
+
 
     @timeit
     @listen(generate_cathie_wood_section)
+    def generate_stanley_druckenmiller_section(self):
+        print("Generating Stanley Druckenmiller section...")
+
+        inputs = {
+            "company_name": self.state.company_name,
+            "company_ticker": self.state.company_ticker,
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
+        }
+
+        stanley_druckenmiller_section = (
+            StanleyDruckenmillerCrew()
+            .crew()
+            .kickoff(inputs=inputs)
+        )
+
+        self.state.stanley_druckenmiller_section = stanley_druckenmiller_section.raw
+        print("Stanley Druckenmiller section generated ✅")
+        print(f"🪙 Number of tokens used: {stanley_druckenmiller_section.token_usage.total_tokens:,}")
+        self.state.total_token_usage += stanley_druckenmiller_section.token_usage.total_tokens
+        
+        # Process any new markdown files created by this crew
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
+
+
+    @timeit
+    @listen(generate_stanley_druckenmiller_section)
     def generate_benjamin_graham_section(self):
         print("Generating Benjamin Graham section...")
 
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
         }
 
         benjamin_graham_section = (
@@ -381,11 +536,11 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += benjamin_graham_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
-        time.sleep(30)
-        for remaining in range(30, 0, -1):
+        time.sleep(BACKOFF_TIME)
+        for remaining in range(BACKOFF_TIME, 0, -1):
             print(f"⏳ Pausing for {remaining} seconds to avoid rate limit...", end="\r")
             time.sleep(1)
         print("Resuming...")
@@ -399,7 +554,8 @@ class ReportFlow(Flow[ReportState]):
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
         }
 
         charlie_munger_section = (
@@ -414,11 +570,11 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += charlie_munger_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
-        time.sleep(30)
-        for remaining in range(30, 0, -1):
+        time.sleep(BACKOFF_TIME)
+        for remaining in range(BACKOFF_TIME, 0, -1):
             print(f"⏳ Pausing for {remaining} seconds to avoid rate limit...", end="\r")
             time.sleep(1)
         print("Resuming...")
@@ -432,7 +588,8 @@ class ReportFlow(Flow[ReportState]):
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "expert_analyst_writer_prompt": expert_analyst_writer_prompt
         }
 
         bill_ackman_section = (
@@ -447,8 +604,22 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += bill_ackman_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
+
+
+    # @timeit
+    # @listen(generate_bill_ackman_section)
+    # def generate_intrinsic_value_plot(self):
+    #     print("Generating intrinsic value plot...")
+
+    #     try:
+    #         intrinsic_value_plot = plot_intrinsic_value_projection(self.state.company_ticker, output_dir=PLOTS_DIR, timestamp=TIMESTAMP)
+    #         print(f"Intrinsic value plot saved to {intrinsic_value_plot}\n")
+    #         self.state.bill_ackman_section += f"\n![Intrinsic Value Plot]({intrinsic_value_plot})"
+    #         self.state.bill_ackman_section += f"<figcaption>This chart projects the intrinsic value of {self.state.company_ticker} over time, using two different valuation methodologies. It also displays the margin of safety, which represents the difference between the intrinsic value and the current market capitalization, expressed as a percentage. The intrinsic value is calculated based on projected future cash flows, discounted back to their present value. A higher margin of safety generally indicates a more attractive investment opportunity.</figcaption>"
+    #     except Exception as e:
+    #         print(f"❌ Error plotting intrinsic value: {str(e)}")
 
 
     @timeit
@@ -462,11 +633,14 @@ class ReportFlow(Flow[ReportState]):
             "company_website": self.state.company_website,
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }
 
         risk_analysis_section = (
-            RiskAnalysisCrew(qdrant_tool=ReportFlow.qdrant_tool)
+            RiskAnalysisCrew()
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -477,8 +651,8 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += risk_analysis_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -520,11 +694,14 @@ class ReportFlow(Flow[ReportState]):
             "company_website": self.state.company_website,
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
-            "date_us": self.state.date_us
+            "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }
 
         future_outlook_section = (
-            FutureOutlookCrew(qdrant_tool=ReportFlow.qdrant_tool)
+            FutureOutlookCrew()
             .crew()
             .kickoff(inputs=inputs)
         )
@@ -535,8 +712,24 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += future_outlook_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
+
+        
+    # @timeit
+    # @listen(generate_future_outlook_section)
+    # def generate_appendix(self):
+    #     print("Generating appendix charts...")
+
+    #     charts = []
+
+    #     breakouts = analyze_single_stock(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+    #     breakout_fractal = breakouts.get('method1').get('plot_path')
+    #     breakout_window = breakouts.get('method2').get('plot_path')
+    #     macd_stochastic = plot_macd_stochastic(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+    #     squeeze_momentum_indicator = analyze_single_stock(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+
+    #     self.state.appendix = charts
 
 
     @timeit
@@ -554,14 +747,19 @@ class ReportFlow(Flow[ReportState]):
             "market_and_industry_section": self.state.market_and_industry_section,
             "competitor_landscape_section": self.state.competitor_landscape_section,
             "financial_data_section": self.state.financial_data_section,
+            "trends_section": self.state.trends_section,
             "analyst_insights_section": self.state.analyst_insights_section,
             "warren_buffet_section": self.state.warren_buffet_section,
             "cathie_wood_section": self.state.cathie_wood_section,
+            "stanley_druckenmiller_section": self.state.stanley_druckenmiller_section,
             "benjamin_graham_section": self.state.benjamin_graham_section,
             "charlie_munger_section": self.state.charlie_munger_section,
             "bill_ackman_section": self.state.bill_ackman_section,
             "risk_analysis_section": self.state.risk_analysis_section,
-            "future_outlook_section": self.state.future_outlook_section
+            "future_outlook_section": self.state.future_outlook_section,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines
         }   
 
         investment_recommendations_section = (
@@ -576,8 +774,8 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += investment_recommendations_section.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
@@ -590,9 +788,11 @@ class ReportFlow(Flow[ReportState]):
         {self.state.market_and_industry_section}
         {self.state.competitor_landscape_section}
         {self.state.financial_data_section}
+        {self.state.trends_section}
         {self.state.analyst_insights_section}
         {self.state.warren_buffet_section}
         {self.state.cathie_wood_section}
+        {self.state.stanley_druckenmiller_section}
         {self.state.benjamin_graham_section}
         {self.state.charlie_munger_section}
         {self.state.bill_ackman_section}
@@ -609,6 +809,9 @@ class ReportFlow(Flow[ReportState]):
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
             "date_us": self.state.date_us,
+            "critic_guidelines": critic_guidelines,
+            "editor_guidelines": editor_guidelines,
+            "writer_guidelines": writer_guidelines,
             "report": report
         }   
 
@@ -624,29 +827,48 @@ class ReportFlow(Flow[ReportState]):
         self.state.total_token_usage += executive_summary.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
     @listen(generate_executive_summary)
-    def plot_historical_stock_data(self):
-        print("Plotting historical stock data...")   
+    def plot_candlestick_30_days(self):
+        print("Plotting candlestick 30 days...")
 
         try:
-            historical_stock_data_plot = plot_awesome_oscillator(self.state.company_ticker, "1y", PLOTS_DIR, TIMESTAMP)
-            print(f"📊 Historical stock data plot saved to {historical_stock_data_plot}\n")
+            candlestick_30_days_plot = plot_candlestick_chart(self.state.company_ticker, PLOTS_DIR, TIMESTAMP)
+            print(f"📊 OHLC 30 days plot saved to {candlestick_30_days_plot}\n")
         except Exception as e:
-            print(f"❌ Error plotting historical stock data: {str(e)}")
+            print(f"❌ Error plotting candlestick 30 days: {str(e)}")
 
-        if historical_stock_data_plot:
-            self.state.executive_summary += f"\n\n### Historical Stock Data\n![Historical Stock Data Plot]({historical_stock_data_plot})"
+        if candlestick_30_days_plot:
+            self.state.executive_summary += f"\n\n![30 day candlestick chart]({candlestick_30_days_plot})"
+            self.state.executive_summary += f"<figcaption>Candlestick chart showing {self.state.company_ticker} price action over a 30-day period.</figcaption>"
         else:
-            print("❌ Historical stock data plot not generated. Skipping...")
+            print("❌ Candlestick 30 days plot not generated. Skipping...")
+
+    # @timeit
+    # @listen(generate_executive_summary)
+    # def plot_historical_stock_data(self):
+    #     print("Plotting historical stock data...")   
+
+    #     try:
+    #         historical_stock_data_plot = plot_macd_stochastic(self.state.company_ticker, "6mo", PLOTS_DIR, TIMESTAMP)
+    #         print(f"📊 MACD and Stochastic Oscillator chart saved to {historical_stock_data_plot}\n")
+    #     except Exception as e:
+    #         print(f"❌ Error plotting MACD and Stochastic Oscillator chart: {str(e)}")
+
+    #     if historical_stock_data_plot:
+    #         self.state.executive_summary += f"\n\n![MACD and Stochastic Oscillator Plot]({historical_stock_data_plot})"
+    #         self.state.executive_summary += f"<figcaption>This chart combines candlestick price action and volume with Moving Average Convergence Divergence (MACD) (center panel) and the Stochastic oscillator (bottom panel) to show market momentum and identify potential trend reversals. "
+    #         self.state.executive_summary += f"MACD highlights momentum shifts through histogram bars and signal line crossovers, while the Stochastic oscillator indicates overbought or oversold conditions through threshold lines and line crossovers.</figcaption>"
+    #     else:
+    #         print("❌ Historical stock data plot not generated. Skipping...")
 
 
     @timeit
-    @listen(plot_historical_stock_data)
+    @listen(plot_candlestick_30_days)
     def generate_conclusion(self):
         print("Generating conclusion...")
 
@@ -655,9 +877,11 @@ class ReportFlow(Flow[ReportState]):
         {self.state.market_and_industry_section}
         {self.state.competitor_landscape_section}
         {self.state.financial_data_section}
+        {self.state.trends_section}
         {self.state.analyst_insights_section}
         {self.state.warren_buffet_section}
         {self.state.cathie_wood_section}
+        {self.state.stanley_druckenmiller_section}
         {self.state.benjamin_graham_section}
         {self.state.charlie_munger_section}
         {self.state.bill_ackman_section}
@@ -671,6 +895,7 @@ class ReportFlow(Flow[ReportState]):
             "company_name": self.state.company_name,
             "date_iso": self.state.date_iso,
             "date_us": self.state.date_us,
+            "writer_guidelines": writer_guidelines,
             "report": report
         }
 
@@ -681,18 +906,34 @@ class ReportFlow(Flow[ReportState]):
         )
 
         self.state.conclusion = conclusion.raw
+
+        self.state.conclusion += dedent("""\n\n\n\n\n
+        <div class="final-disclaimer">
+        <strong>Disclaimer:</strong>
+        This report is for informational purposes only and does not constitute investment advice.
+        It is not intended to be a recommendation or solicitation to buy or sell any security.
+        The information provided is based on publicly available data and should not be considered professional financial advice.
+        The author is not a licensed financial advisor and is not liable for any investment decisions made based on the information provided in this report.
+        <br><br>
+        The investment analysis in the style of Warren Buffet, Charlie Munger, Benjamin Graham, Cathie Wood, Stanley Druckenmiller, and Bill Ackman are caricatures of their investment styles and not their real words or opinions.
+        The opinions expressed do not necessarily reflect the opinions of the author's employer or any other person or organization.
+        </div>
+        """)
+
+
+        
         print("Conclusion generated ✅")
         print(f"🪙 Number of tokens used: {conclusion.token_usage.total_tokens:,}")
         self.state.total_token_usage += conclusion.token_usage.total_tokens
         
         # Process any new markdown files created by this crew
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
 
 
     @timeit
     @listen(generate_conclusion)
-    def save_report(self):
+    def save_markdown_report(self) -> Path:
         print("Saving report...")
 
         intro = dedent(f"""
@@ -703,17 +944,19 @@ class ReportFlow(Flow[ReportState]):
         Prepared on {datetime.now().strftime("%B %d, %Y")} for {os.getenv("CLIENT")}
         """)
 
-        report_path = OUTPUT_DIR / f"{self.state.company_ticker}_Stock_Analysis_Report_{TIMESTAMP}.md"
+        report_path_md = OUTPUT_DIR / f"{self.state.company_ticker}_Stock_Analysis_Report_{TIMESTAMP}.md"
 
-        with open(report_path, "w") as f:
+        with open(report_path_md, "w") as f:
             f.write(f"{intro}\n\n")
             f.write(f"{self.state.executive_summary}\n\n")
             f.write(f"{self.state.market_and_industry_section}\n\n")
             f.write(f"{self.state.competitor_landscape_section}\n\n")
             f.write(f"{self.state.financial_data_section}\n\n")
+            f.write(f"{self.state.trends_section}\n\n")
             f.write(f"{self.state.analyst_insights_section}\n\n")
             f.write(f"{self.state.warren_buffet_section}\n\n")
             f.write(f"{self.state.cathie_wood_section}\n\n")
+            f.write(f"{self.state.stanley_druckenmiller_section}\n\n")
             f.write(f"{self.state.benjamin_graham_section}\n\n")
             f.write(f"{self.state.charlie_munger_section}\n\n")
             f.write(f"{self.state.bill_ackman_section}\n\n")
@@ -723,32 +966,73 @@ class ReportFlow(Flow[ReportState]):
             f.write(f"{self.state.investment_recommendations_section}\n\n")
             f.write(f"{self.state.conclusion}\n\n")
 
-        print(f"Report saved to {report_path} ✅\n")
-        
+        print(f"Report saved to {report_path_md} ✅\n")
+        self.state.report_path_md = str(report_path_md)
         # Final processing of any new markdown files
-        if ReportFlow.setup_instance:
-            ReportFlow.setup_instance.process_new_markdown_files()
+        # if ReportFlow.setup_instance:
+        #     ReportFlow.setup_instance.process_new_markdown_files()
         
-        return report_path
+        return report_path_md
+    
+
+    @timeit
+    @listen(save_markdown_report)
+    def convert_report_to_pdf(self, report_path_md: Path):
+        print("Converting final markdown report to PDF...")
+
+        report_path_pdf = convert_md_to_pdf(report_path_md)
+
+        print(f"Report PDF saved to {report_path_pdf}")
+        self.state.report_path_pdf = str(report_path_pdf)
+
+        return report_path_pdf
+
+
+
+    # @timeit
+    # @listen(save_markdown_report)
+    # def draft_email(self, report_path: Path):
+    #     print("Drafting email...")
+
+    #     with open(report_path, "r") as f:
+    #         report = f.read()
+
+    #     inputs = {
+    #         "company_name": self.state.company_name,
+    #         "date_us": self.state.date_us,
+    #         "report": report,
+    #         "sender": os.getenv("SENDER"),
+    #         "client": os.getenv("CLIENT")
+    #     }
+
+    #     gmail_draft = GmailCrew().crew().kickoff(inputs=inputs)
+
+    #     print(f"🪙 Number of tokens used: {gmail_draft.token_usage.total_tokens:,}")
+    #     self.state.total_token_usage += gmail_draft.token_usage.total_tokens
+    #     print("Email draft complete 👍")
 
 
     @timeit
-    @listen(save_report)
-    def draft_email(self, report_path: Path):
+    @listen(and_(save_markdown_report, convert_report_to_pdf))
+    def draft_email_with_attachment(self):
         print("Drafting email...")
 
-        with open(report_path, "r") as f:
-            report = f.read()
+        report_path_md = self.state.report_path_md
+        report_path_pdf = self.state.report_path_pdf
+
+        with open(report_path_md, "r") as f:
+            report_text = f.read()
 
         inputs = {
             "company_name": self.state.company_name,
             "date_us": self.state.date_us,
-            "report": report,
+            "report_text": report_text,
+            "report_pdf": report_path_pdf,
             "sender": os.getenv("SENDER"),
             "client": os.getenv("CLIENT")
         }
 
-        gmail_draft = GmailCrew().crew().kickoff(inputs=inputs)
+        gmail_draft = GmailAttachmentCrew().crew().kickoff(inputs=inputs)
 
         print(f"🪙 Number of tokens used: {gmail_draft.token_usage.total_tokens:,}")
         self.state.total_token_usage += gmail_draft.token_usage.total_tokens
@@ -756,7 +1040,7 @@ class ReportFlow(Flow[ReportState]):
 
 
     @timeit
-    @listen(draft_email)
+    @listen(draft_email_with_attachment)
     def print_total_token_usage(self):
         print(f"Total tokens used: {self.state.total_token_usage:,}")
 

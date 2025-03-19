@@ -14,8 +14,8 @@ benjamin_graham_analysis_task:
     - Dividend History: A continuous dividend payout record adds an extra layer of security and indicates financial stability.
     - Conservative Metrics: Base your analysis on established, quantifiable metrics. Avoid speculative projections or high-growth assumptions.
 
-    Leverage the available tools to gather all necessary data. Synthesize your findings into a clear, concise,
-    Benjamin Graham-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
+    Leverage the available tools to gather all necessary data.
+    Synthesize your findings into a clear, Benjamin Graham-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
                         
   expected_output: >
     A definitive investment recommendation (bullish, bearish, or neutral), supported by a confidence level (0-100) and clear, concise reasoning.
@@ -33,14 +33,9 @@ benjamin_graham_writeup_task:
     Current date: {date_us}
 
     Formatting and Style Guidelines:
-    - Begin with the title: ### Benjamin Graham-style investment analysis
-    - The section must be formatted in Markdown.
+    - Begin with the heading: ### Benjamin Graham-style investment analysis
     - Adopt a first-person perspective, writing as if you are Benjamin Graham.
-    - Use quotation marks and _italics_ for direct quotes.
-    - Restrict your content to information derived from the analysis tools and your designated knowledge source.
-    - Ensure clarity and precision. Avoid vague language or ambiguity. Present information factually and in an easily digestible manner.
-    - Do not include any disclaimers or calls for additional research.
-    - Don't include a publication date as a separate heading.
+    {expert_analyst_writer_prompt}
 
   expected_output: >
     A succinct, Markdown-formatted summary of the investment signal, free of code blocks, presenting a clear and definitive investment perspective.
