@@ -29,15 +29,27 @@ gemini_thinking = LLM(
 	temperature=0.7
 )
 
-gpt4_mini = LLM(
+gpt4o_mini = LLM(
 	model="gpt-4o-mini",
 	api_key = os.getenv("OPENAI_API_KEY"),
 	temperature=0.7
 )
 
-gemma_3 = LLM(
+gpt4o = LLM(
+	model="gpt-4o",
+	api_key = os.getenv("OPENAI_API_KEY"),
+	temperature=0.7
+)
+
+gemma3 = LLM(
 	model="ollama/gemma3:12b",
     base_url="http://localhost:11434",
-	api_key = 'N/A',
+	api_key = 'NA',
 	temperature=0.7
+)
+
+mistral_large = LLM(
+	model="mistral/mistral-large-latest",
+	api_key = os.getenv("MISTRAL_API_KEY"),
+	temperature=0.25
 )

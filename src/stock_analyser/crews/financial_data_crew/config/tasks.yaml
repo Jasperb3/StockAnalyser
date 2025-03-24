@@ -1,6 +1,3 @@
-# This file contains the task configurations for the Financial Data Crew
-# The crew is responsible for gathering and analyzing financial data for a company
-
 comprehensive_financial_analysis_task:
   description: >
     You are researching content for the "Financial Deep Dive" section in a stock analysis
@@ -18,21 +15,20 @@ comprehensive_financial_analysis_task:
     Focus on populating ALL components of the `FinancialData` model:
 
     1. Income Statement Analysis:
-        - Net income, total revenue, gross profit, operating income, and EBITDA.
-        - Basic EPS, diluted EPS, revenue growth, earnings growth.
+        - Net income, total revenue, gross profit, and operating income.
+        - EBITDA, basic EPS, diluted EPS.
         - Gross margins, operating margin, and profit margin.
 
     2. Balance Sheet Analysis:
         - Total assets, total liabilities, and total equity.
-        - Total debt, net debt, and cash and equivalents.
+        - Total debt, net debt, cash and equivalents, and retained earnings.
         - Working capital, current ratio, quick ratio, and debt-to-equity ratio.
 
     3. Cash Flow Analysis:
-        - Total cash, total debt.
-        - Free cash flow, operating cash flow, and capital expenditure.
+        - Total cash, free cash flow, operating cash flow, and capital expenditure.
         - Repayment of debt and debt issuance.
         - Cash changes, investing cash flow, and financing cash flow.
-        - Repurchases of stock.
+        - Repurchases of stock, and depreciation and amortization.
 
     4. Growth Metrics:
         - Revenue growth
@@ -44,7 +40,7 @@ comprehensive_financial_analysis_task:
     5. Valuation Metrics:
         - Market cap.
         - Trailing and forward P/E ratios.
-        - Price-to-sales, price-to-book ratios.
+        - Price-to-sales, price-to-book ratios, and book value.
         - Enterprise value, EV/Revenue, and EV/EBITDA ratios.
         - Trailing and forward EPS.
 
@@ -67,21 +63,20 @@ comprehensive_financial_analysis_task:
     The complete `FinancialData` Pydantic model with ALL components fully populated:
     
     1. `income_statement_analysis`: Complete `IncomeStatementAnalysis` model with:
-        - `net_income`, `total_revenue`, `gross_profit`, `operating_income`, `ebitda`
-        - `basic_eps`, `diluted_eps`, `revenue_growth`, `earnings_growth`
+        - `net_income`, `total_revenue`, `gross_profit`, `operating_income`,
+        - `ebitda`, `basic_eps`, `diluted_eps`
         - `gross_margins`, `operating_margin`, `profit_margin`
 
     2. `balance_sheet_analysis`: Complete `BalanceSheetAnalysis` model with:
         - `total_assets`, `total_liabilities`, `total_equity`
-        - `total_debt`, `net_debt`, `cash_and_equivalents`
+        - `total_debt`, `net_debt`, `cash_and_equivalents`, `retained_earnings`
         - `working_capital`, `current_ratio`, `quick_ratio`, `debt_to_equity`
     
     3. `cash_flow_analysis`: Complete `CashFlowAnalysis` model with:
-        - `total_cash`, `total_debt`
-        - `free_cash_flow`, `operating_cash_flow`, `capital_expenditures`
+        - `total_cash`, `free_cash_flow`, `operating_cash_flow`, `capital_expenditures`
         - `repayment_of_debt`, `debt_issuance`
         - `cash_changes`, `investing_cash_flow`, `financing_cash_flow`
-        - `repurchases_of_stock`
+        - `repurchases_of_stock`, `depreciation_and_amortization`
 
     4. `growth_metrics`: Complete `GrowthMetrics` model with:
         - `revenue_growth`, `earnings_growth`, `five_year_revenue_growth_rate`, `two_year_revenue_growth_rate`, `free_cash_flow_growth`
@@ -89,7 +84,7 @@ comprehensive_financial_analysis_task:
     5. `valuation_metrics`: Complete `ValuationMetrics` model with:
         - `market_cap`
         - `trailing_pe_ratio`, `forward_pe_ratio`
-        - `price_to_sales`, `price_to_book`
+        - `price_to_sales`, `price_to_book`, `book_value`
         - `enterprise_value`, `enterprise_to_revenue`, `enterprise_to_ebitda`
         - `trailing_eps`, `forward_eps`
 
@@ -113,31 +108,21 @@ writing_task:
     Draft a comprehensive and insightful "Financial Deep Dive" section of the stock analysis report,
     incorporating the detailed findings from the detailed financial analysis provided to you.
     The section should be structured as follows:- An introduction to the section
-    - A sub-section on **Income Statement Analysis**, presenting data and insights from the `IncomeStatementAnalysis` model.
-    - A sub-section on **Balance Sheet Analysis**, presenting data and insights from the `BalanceSheetAnalysis` model.
-    - A sub-section on **Cash Flow Analysis**, presenting data and insights from the `CashFlowAnalysis` model.
-    - A sub-section on **Growth Metrics**, presenting data and insights from the `GrowthMetrics` model.
-    - A sub-section on **Valuation Metrics**, presenting data and insights from the `ValuationMetrics` model.
-    - A sub-section on **Price Metrics**, presenting data and insights from the `PriceMetrics` model.
-    - A sub-section on **Return Metrics**, presenting data and insights from the `ReturnMetrics` model.
-    - A sub-section on **Dividend Metrics**, presenting data and insights from the `DividendMetrics` model.
+    - A sub-section on **Income Statement Analysis**, providing insights into profitability, margins, and key earnings metrics.
+    - A sub-section on **Balance Sheet Analysis**, highlighting essential liquidity, solvency, and leverage metrics.
+    - A sub-section on **Cash Flow Analysis**, detailing cash generation, spending, and liquidity.
+    - A sub-section on **Growth Metrics**, summarizing recent figures for revenue, earnings, and cash flow growth.
+    - A sub-section on **Valuation Metrics**, assessing the company's market valuation and relative pricing indicators.
+    - A sub-section on **Price Metrics**, evaluating recent price position relative to historical trading ranges.
+    - A sub-section on **Return Metrics**, reviewing profitability and efficiency indicators for invested capital.
+    - A sub-section on **Dividend Metrics**, analyzing payout trends, yield, and dividend sustainability indicators.
     Each subsection should clearly present the data gathered, along with insightful analysis and context.
     Guidelines:
     {writer_guidelines}
 
     Current date: {date_us}.
   expected_output: >
-    A complete draft of the "Financial Deep Dive" section including:
-    - An introduction to the section
-    - A sub-section on **Income Statement Analysis**.
-    - A sub-section on **Balance Sheet Analysis**.
-    - A sub-section on **Cash Flow Analysis**.
-    - A sub-section on **Growth Metrics**.
-    - A sub-section on **Valuation Metrics**.
-    - A sub-section on **Price Metrics**.
-    - A sub-section on **Return Metrics**.
-    - A sub-section on **Dividend Metrics**.
-    Each subsection should clearly present the data gathered, along with insightful analysis and context.
+    A complete draft of the "Financial Deep Dive" section.
     You must begin the section with the heading: ## Financial Deep Dive
     The output must be formatted as markdown without code blocks.
   agent: writer
@@ -157,8 +142,8 @@ editing_task:
     Refine and finalize the "Financial Deep Dive" section, incorporating the critic's feedback to achieve the highest possible quality.
     Guidelines:
     {editor_guidelines}
+    - Current date: {date_us}.
     - Make sure the section begins with the heading: ## Financial Deep Dive
-    Current date: {date_us}.
   expected_output: >
     A final, polished version of the "Financial Deep Dive" section, ready for inclusion in the stock analysis report.
     This should be a fully revised and improved version, addressing all feedback from the critic while maintaining

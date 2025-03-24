@@ -21,7 +21,7 @@ def HT_DCPERIOD(df):
     real=HT_DCPERIOD(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_DCPERIOD(close)
 
 
@@ -37,7 +37,7 @@ def HT_DCPHASE(df):
     real=HT_DCPHASE(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_DCPHASE(close)
 
 
@@ -53,7 +53,7 @@ def HT_PHASOR(df):
     inphase, quadrature=HT_PHASOR(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_PHASOR(close)
 
 
@@ -69,7 +69,7 @@ def HT_SINE(df):
     sine, leadsine=HT_SINE(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_SINE(close)
 
 
@@ -85,7 +85,7 @@ def HT_TRENDMODE(df):
     integer=HT_TRENDMODE(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_TRENDMODE(close)
 
 
@@ -104,8 +104,8 @@ def ADD(df):
     real=ADD(high, low)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.ADD(high, low)
 
 
@@ -118,8 +118,8 @@ def DIV(df):
     real=DIV(high, low)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.DIV(high, low)
 
 
@@ -135,7 +135,7 @@ def MAXINDEX(df, time_period=30):
     :param time_period:
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MAXINDEX(close, timeperiod=time_period)
 
 
@@ -151,7 +151,7 @@ def MININDEX(df, time_period=30):
     :param time_period:
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MININDEX(close, timeperiod=time_period)
 
 
@@ -162,7 +162,7 @@ def MINMAX(df, time_period=30):
 
     Introduction: Returns the minimum and maximum values within the given lookback period.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MINMAX(close, timeperiod=time_period)
 
 
@@ -173,7 +173,7 @@ def MINMAXINDEX(df, time_period=30):
 
     Introduction: Returns the indexes of the minimum and maximum values within the given lookback period.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MINMAXINDEX(close, timeperiod=time_period)
 
 
@@ -186,8 +186,8 @@ def MULT(df):
     real=MULT(high, low)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.MULT(high, low)
 
 
@@ -200,8 +200,8 @@ def SUB(df):
     real=SUB(high, low)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.SUB(high, low)
 
 
@@ -218,7 +218,7 @@ def ACOS(df):
 
     Introduction: Calculates the arccosine of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.ACOS(close)
 
 
@@ -229,7 +229,7 @@ def ASIN(df):
 
     Introduction: Calculates the arcsine of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.ASIN(close)
 
 
@@ -240,7 +240,7 @@ def ATAN(df):
 
     Introduction: Calculates the arctangent of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.ATAN(close)
 
 
@@ -251,7 +251,7 @@ def CEIL(df):
 
     Introduction: Returns the smallest integer greater than or equal to each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.CEIL(close)
 
 
@@ -262,7 +262,7 @@ def COS(df):
 
     Introduction: Calculates the cosine of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.COS(close)
 
 
@@ -273,7 +273,7 @@ def COSH(df):
 
     Introduction: Calculates the hyperbolic cosine of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.COSH(close)
 
 
@@ -284,7 +284,7 @@ def EXP(df):
 
     Introduction: Calculates the exponential of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.EXP(close)
 
 
@@ -295,7 +295,7 @@ def FLOOR(df):
 
     Introduction: Returns the largest integer less than or equal to each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.FLOOR(close)
 
 
@@ -308,7 +308,7 @@ def LN(df):
     real=LN(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LN(close)
 
 
@@ -321,7 +321,7 @@ def LOG10(df):
     real=LOG10(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LOG10(close)
 
 
@@ -334,7 +334,7 @@ def SIN(df):
     real=SIN(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.SIN(close)
 
 
@@ -347,18 +347,18 @@ def SINH(df):
     real=SINH(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.SINH(close)
 
 
 def SQRT(df):
     """
-     Function Name: SQRT
-     Name: Vector Square Root
+    Function Name: SQRT
+    Name: Vector Square Root
 
-     Introduction: Calculates the square root of each element in the data series.
+    Introduction: Calculates the square root of each element in the data series.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.SQRT(close)
 
 
@@ -371,7 +371,7 @@ def TAN(df):
     real=TAN(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TAN(close)
 
 
@@ -384,7 +384,7 @@ def TANH(df):
     real=TANH(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TANH(close)
 
 
@@ -424,9 +424,9 @@ def ADX(df, time_period=14):
     Returns:
         pd.Series: The ADX values.
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.ADX(high, low, close, timeperiod=time_period)
 
 
@@ -446,7 +446,7 @@ def ACCER(df, N=8):
         df (pd.DataFrame): DataFrame containing 'High' and 'Low' columns.
         N (int): The time period.
     """
-    CLOSE = df['Close']
+    CLOSE = df["Close"]
     return talib.LINEARREG_SLOPE(CLOSE, timeperiod=N)
 
 
@@ -464,9 +464,9 @@ def ADXR(df, time_period=14):
         df (pd.DataFrame): DataFrame containing 'High', 'Low', and 'Close' columns.
         time_period (int): The time period.
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.ADXR(high, low, close, timeperiod=time_period)
 
 
@@ -481,8 +481,10 @@ def APO(df, fast_period=12, slow_period=26, ma_type=0):
     real=APO(close, fastperiod=12, slowperiod=26, matype=0)
     :return:
     """
-    close = df['Close']
-    return talib.APO(close, fastperiod=fast_period, slowperiod=slow_period, matype=ma_type)
+    close = df["Close"]
+    return talib.APO(
+        close, fastperiod=fast_period, slowperiod=slow_period, matype=ma_type
+    )
 
 
 def AROON(df, time_period=14):
@@ -503,8 +505,8 @@ def AROON(df, time_period=14):
     Returns:
       pd.DataFrame: DataFrame with 'Aroon Up' and 'Aroon Down' columns.
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.AROON(high, low, timeperiod=time_period)
 
 
@@ -517,8 +519,8 @@ def AROONOSC(df, time_period=14):
 
     Formula:  Aroon Oscillator = Aroon Up - Aroon Down
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.AROONOSC(high, low, timeperiod=time_period)
 
 
@@ -531,10 +533,10 @@ def BOP(df):
 
     Formula: BOP = (Close - Open) / (High - Low)
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    open = df['Open']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    open = df["Open"]
     return (close - open) / (high - low)
 
 
@@ -555,7 +557,7 @@ def CMO(df, time_period=14):
     Returns:
         pd.Series: CMO values.
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.CMO(close, timeperiod=time_period)
 
 
@@ -571,24 +573,37 @@ def DX(df, time_period=14):
 
     Refer to ADX for +DI and -DI calculations.
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.DX(high, low, close, timeperiod=time_period)
 
 
-def MACDEXT(df, fast_period=12, fast_ma_type=0, slow_period=26, slow_ma_type=0, signal_period=9,
-            signal_ma_type=0):
+def MACDEXT(
+    df,
+    fast_period=12,
+    fast_ma_type=0,
+    slow_period=26,
+    slow_ma_type=0,
+    signal_period=9,
+    signal_ma_type=0,
+):
     """
     Function Name: MACDEXT
     Name: MACD with controllable MA types
 
     Introduction:  A more flexible version of the MACD, allowing the use of different moving average types.
     """
-    close = df['Close']
-    return talib.MACDEXT(close, fastperiod=fast_period, fastmatype=fast_ma_type,
-                         slowperiod=slow_period, slowmatype=slow_ma_type,
-                         signalperiod=signal_period, signalmatype=signal_ma_type)
+    close = df["Close"]
+    return talib.MACDEXT(
+        close,
+        fastperiod=fast_period,
+        fastmatype=fast_ma_type,
+        slowperiod=slow_period,
+        slowmatype=slow_ma_type,
+        signalperiod=signal_period,
+        signalmatype=signal_ma_type,
+    )
 
 
 def MACDFIX(df, signal_period=9):
@@ -597,7 +612,7 @@ def MACDFIX(df, signal_period=9):
     macd, macdsignal, macdhist=MACDFIX(close, signalperiod=9)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MACDFIX(close, signalperiod=signal_period)
 
 
@@ -623,10 +638,10 @@ def MFI(df, time_period=14):
     real=MFI(high, low, close, volume, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    volume = df['Volume']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    volume = df["Volume"]
     return talib.MFI(high, low, close, volume, timeperiod=time_period)
 
 
@@ -646,9 +661,9 @@ def MINUS_DI(df, time_period=14):
     real=MINUS_DI(high, low, close, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.MINUS_DI(high, low, close, timeperiod=time_period)
 
 
@@ -668,8 +683,8 @@ def MINUS_DM(df, time_period=14):
     real=MINUS_DM(high, low, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.MINUS_DM(high, low, timeperiod=time_period)
 
 
@@ -688,7 +703,7 @@ def MOM(df, time_period=14):
     real=MOM(close, timeperiod=10)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MOM(close, timeperiod=time_period)
 
 
@@ -702,9 +717,9 @@ def PLUS_DI(df, time_period=14):
     Formula:
      +DI = 100 * Wilder_MA(UpMove, N) / ATR(N)
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.PLUS_DI(high, low, close, timeperiod=time_period)
 
 
@@ -717,9 +732,9 @@ def PLUS_DM(df, time_period=14):
 
     Formula: +DM = Wilder_MA(UpMove, N)
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.PLUS_DM(high, low, close, timeperiod=time_period)
 
 
@@ -733,8 +748,10 @@ def PPO(df, fast_period=12, slow_period=26, ma_type=0):
     Formula:
     PPO = 100 * (EMA(close, fastperiod) - EMA(close, slowperiod)) / EMA(close, slowperiod)
     """
-    close = df['Close']
-    return talib.PPO(close, fastperiod=fast_period, slowperiod=slow_period, matype=ma_type)
+    close = df["Close"]
+    return talib.PPO(
+        close, fastperiod=fast_period, slowperiod=slow_period, matype=ma_type
+    )
 
 
 def STOCHF(df, fastk_period=5, fastd_period=3, fastd_matype=0):
@@ -743,11 +760,17 @@ def STOCHF(df, fastk_period=5, fastd_period=3, fastd_matype=0):
     fastk, fastd=STOCHF(high, low, close, fastk_period=5, fastd_period=3, fastd_matype=0)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    return talib.STOCHF(high, low, close, fastk_period=fastk_period, fastd_period=fastd_period,
-                        fastd_matype=fastd_matype)
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    return talib.STOCHF(
+        high,
+        low,
+        close,
+        fastk_period=fastk_period,
+        fastd_period=fastd_period,
+        fastd_matype=fastd_matype,
+    )
 
 
 def STOCHRSI(df, time_period=14, fastk_period=5, fastd_period=3, fastd_matype=0):
@@ -756,9 +779,14 @@ def STOCHRSI(df, time_period=14, fastk_period=5, fastd_period=3, fastd_matype=0)
     fastk, fastd=STOCHRSI(close, timeperiod=14, fastk_period=5, fastd_period=3, fastd_matype=0)
     :return:
     """
-    close = df['Close']
-    return talib.STOCHRSI(close, timeperiod=time_period, fastk_period=fastk_period, fastd_period=fastd_period,
-                          fastd_matype=fastd_matype)
+    close = df["Close"]
+    return talib.STOCHRSI(
+        close,
+        timeperiod=time_period,
+        fastk_period=fastk_period,
+        fastd_period=fastd_period,
+        fastd_matype=fastd_matype,
+    )
 
 
 def TRIX(df, time_period=30):
@@ -767,7 +795,7 @@ def TRIX(df, time_period=30):
     real=TRIX(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TRIX(close, timeperiod=time_period)
 
 
@@ -786,10 +814,17 @@ def ULTOSC(df, time_period1=7, time_period2=14, time_period3=28):
     real=ULTOSC(high, low, close, timeperiod1=7, timeperiod2=14, timeperiod3=28)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    return talib.ULTOSC(high, low, close, timeperiod1=time_period1, timeperiod2=time_period2, timeperiod3=time_period3)
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    return talib.ULTOSC(
+        high,
+        low,
+        close,
+        timeperiod1=time_period1,
+        timeperiod2=time_period2,
+        timeperiod3=time_period3,
+    )
 
 
 def WILLR(df, time_period=14):
@@ -808,9 +843,9 @@ def WILLR(df, time_period=14):
     real=WILLR(high, low, close, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.WILLR(high, low, close, timeperiod=time_period)
 
 
@@ -835,8 +870,14 @@ def BBANDS(df, time_period=5, nb_de_vup=2, nb_dev_dn=2, ma_type=0):
     upperband, middleband, lowerband=BBANDS(close, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0)
     :return:
     """
-    close = df['Close']
-    return talib.BBANDS(close, timeperiod=time_period, nbdevup=nb_de_vup, nbdevdn=nb_dev_dn, matype=ma_type)
+    close = df["Close"]
+    return talib.BBANDS(
+        close,
+        timeperiod=time_period,
+        nbdevup=nb_de_vup,
+        nbdevdn=nb_dev_dn,
+        matype=ma_type,
+    )
 
 
 def DEMA(df, time_period=30):
@@ -854,7 +895,7 @@ def DEMA(df, time_period=30):
     real=DEMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.DEMA(close, timeperiod=time_period)
 
 
@@ -872,7 +913,7 @@ def HT_TRENDLINE(df):
     real=HT_TRENDLINE(close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.HT_TRENDLINE(close)
 
 
@@ -891,7 +932,7 @@ def KAMA(df, time_period=30):
     real=KAMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.KAMA(close, timeperiod=time_period)
 
 
@@ -901,7 +942,7 @@ def MAMA(df, fast_limit=0, slow_limit=0):
     mama, fama=MAMA(close, fastlimit=0, slowlimit=0)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MAMA(close, fastlimit=fast_limit, slowlimit=slow_limit)
 
 
@@ -911,9 +952,11 @@ def MAVP(df, min_period=2, max_period=30, ma_type=0):
     real=MAVP(close, periods, minperiod=2, maxperiod=30, matype=0)
     :return:
     """
-    close = df['Close']
-    low = df['Low']
-    return talib.MAVP(close, low, minperiod=min_period, maxperiod=max_period, matype=ma_type)
+    close = df["Close"]
+    low = df["Low"]
+    return talib.MAVP(
+        close, low, minperiod=min_period, maxperiod=max_period, matype=ma_type
+    )
 
 
 def MIDPOINT(df, time_period=14):
@@ -922,7 +965,7 @@ def MIDPOINT(df, time_period=14):
     real=MIDPOINT(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.MIDPOINT(close, timeperiod=time_period)
 
 
@@ -932,8 +975,8 @@ def MIDPRICE(df, time_period=14):
     real=MIDPRICE(high, low, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.MIDPRICE(high, low, timeperiod=time_period)
 
 
@@ -952,26 +995,41 @@ def SAR(df, acceler_ation=0, max_imum=0):
     real=SAR(high, low, acceleration=0, maximum=0)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.SAR(high, low, acceleration=acceler_ation, maximum=max_imum)
 
 
-def SAREXT(df, start_value=0, offset_onreverse=0, acceleration_init_long=0, acceleration_long=0,
-           acceleration_max_long=0,
-           acceleration_init_short=0, acceleration_short=0,
-           acceleration_max_short=0):
+def SAREXT(
+    df,
+    start_value=0,
+    offset_onreverse=0,
+    acceleration_init_long=0,
+    acceleration_long=0,
+    acceleration_max_long=0,
+    acceleration_init_short=0,
+    acceleration_short=0,
+    acceleration_max_short=0,
+):
     """
     python API
     real=SAREXT(high, low, startvalue=0, offsetonreverse=0, accelerationinitlong=0, accelerationlong=0, accelerationmaxlong=0, accelerationinitshort=0, accelerationshort=0, accelerationmaxshort=0)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    return talib.SAREXT(high, low, startvalue=start_value, offsetonreverse=offset_onreverse,
-                        accelerationinitlong=acceleration_init_long, accelerationlong=acceleration_long,
-                        accelerationmaxlong=acceleration_max_long, accelerationinitshort=acceleration_init_short,
-                        accelerationshort=acceleration_short, accelerationmaxshort=acceleration_max_short)
+    high = df["High"]
+    low = df["Low"]
+    return talib.SAREXT(
+        high,
+        low,
+        startvalue=start_value,
+        offsetonreverse=offset_onreverse,
+        accelerationinitlong=acceleration_init_long,
+        accelerationlong=acceleration_long,
+        accelerationmaxlong=acceleration_max_long,
+        accelerationinitshort=acceleration_init_short,
+        accelerationshort=acceleration_short,
+        accelerationmaxshort=acceleration_max_short,
+    )
 
 
 def SMA(df, time_period=30):
@@ -989,7 +1047,7 @@ def SMA(df, time_period=30):
     real=SMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.SMA(close, timeperiod=time_period)
 
 
@@ -1008,7 +1066,7 @@ def T3(df, time_period=5, v_factor=0):
     real=T3(close, timeperiod=5, vfactor=0)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.T3(close, timeperiod=time_period, vfactor=v_factor)
 
 
@@ -1021,7 +1079,7 @@ def TEMA(df, time_period=30):
     real=TEMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TEMA(close, timeperiod=time_period)
 
 
@@ -1031,7 +1089,7 @@ def TRIMA(df, time_period=30):
     real=TRIMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TRIMA(close, timeperiod=time_period)
 
 
@@ -1050,7 +1108,7 @@ def WMA(df, time_period=30):
     real=WMA(close, timeperiod=30)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.WMA(close, timeperiod=time_period)
 
 
@@ -1071,10 +1129,10 @@ def CDL2CROWS(df):
     integer=CDL2CROWS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL2CROWS(open, high, low, close)
 
 
@@ -1090,10 +1148,10 @@ def CDL3BLACKCROWS(df):
     :param df:
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3BLACKCROWS(open, high, low, close)
 
 
@@ -1108,10 +1166,10 @@ def CDL3INSIDE(df):
     integer=CDL3INSIDE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3INSIDE(open, high, low, close)
 
 
@@ -1126,10 +1184,10 @@ def CDL3LINESTRIKE(df):
     integer=CDL3LINESTRIKE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3LINESTRIKE(open, high, low, close)
 
 
@@ -1144,10 +1202,10 @@ def CDL3OUTSIDE(df):
     integer=CDL3OUTSIDE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3OUTSIDE(open, high, low, close)
 
 
@@ -1162,10 +1220,10 @@ def CDL3STARSINSOUTH(df):
     integer=CDL3STARSINSOUTH(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3STARSINSOUTH(open, high, low, close)
 
 
@@ -1180,10 +1238,10 @@ def CDL3WHITESOLDIERS(df):
     integer=CDL3WHITESOLDIERS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDL3WHITESOLDIERS(open, high, low, close)
 
 
@@ -1198,10 +1256,10 @@ def CDLABANDONEDBABY(df):
     integer=CDLABANDONEDBABY(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLABANDONEDBABY(open, high, low, close)
 
 
@@ -1216,10 +1274,10 @@ def CDLADVANCEBLOCK(df):
     integer=CDLADVANCEBLOCK(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLADVANCEBLOCK(open, high, low, close)
 
 
@@ -1234,10 +1292,10 @@ def CDLBELTHOLD(df):
     integer=CDLBELTHOLD(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLBELTHOLD(open, high, low, close)
 
 
@@ -1252,10 +1310,10 @@ def CDLBREAKAWAY(df):
     integer=CDLBREAKAWAY(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLBREAKAWAY(open, high, low, close)
 
 
@@ -1270,10 +1328,10 @@ def CDLCLOSINGMARUBOZU(df):
     integer=CDLCLOSINGMARUBOZU(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLCLOSINGMARUBOZU(open, high, low, close)
 
 
@@ -1288,10 +1346,10 @@ def CDLCONCEALBABYSWALL(df):
     integer=CDLCONCEALBABYSWALL(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLCONCEALBABYSWALL(open, high, low, close)
 
 
@@ -1305,10 +1363,10 @@ def CDLCOUNTERATTACK(df):
     integer=CDLCOUNTERATTACK(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLCOUNTERATTACK(open, high, low, close)
 
 
@@ -1323,10 +1381,10 @@ def CDLDARKCLOUDCOVER(df):
     integer=CDLDARKCLOUDCOVER(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLDARKCLOUDCOVER(open, high, low, close)
 
 
@@ -1341,10 +1399,10 @@ def CDLDOJI(df):
     integer=CDLDOJI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLDOJI(open, high, low, close)
 
 
@@ -1359,10 +1417,10 @@ def CDLDOJISTAR(df):
     integer=CDLDOJISTAR(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLDOJISTAR(open, high, low, close)
 
 
@@ -1377,10 +1435,10 @@ def CDLDRAGONFLYDOJI(df):
     integer=CDLDRAGONFLYDOJI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLDRAGONFLYDOJI(open, high, low, close)
 
 
@@ -1395,10 +1453,10 @@ def CDLENGULFING(df):
     integer=CDLENGULFING(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLENGULFING(open, high, low, close)
 
 
@@ -1413,10 +1471,10 @@ def CDLEVENINGDOJISTAR(df):
     integer=CDLEVENINGDOJISTAR(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLEVENINGDOJISTAR(open, high, low, close)
 
 
@@ -1431,10 +1489,10 @@ def CDLEVENINGSTAR(df):
     integer=CDLEVENINGSTAR(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLEVENINGSTAR(open, high, low, close)
 
 
@@ -1449,10 +1507,10 @@ def CDLGAPSIDESIDEWHITE(df):
     integer=CDLGAPSIDESIDEWHITE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLGAPSIDESIDEWHITE(open, high, low, close)
 
 
@@ -1467,10 +1525,10 @@ def CDLGRAVESTONEDOJI(df):
     integer=CDLGRAVESTONEDOJI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLGRAVESTONEDOJI(open, high, low, close)
 
 
@@ -1485,10 +1543,10 @@ def CDLHAMMER(df):
     integer=CDLHAMMER(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHAMMER(open, high, low, close)
 
 
@@ -1503,10 +1561,10 @@ def CDLHANGINGMAN(df):
     integer=CDLHANGINGMAN(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHANGINGMAN(open, high, low, close)
 
 
@@ -1521,10 +1579,10 @@ def CDLHARAMI(df):
     integer=CDLHARAMI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHARAMI(open, high, low, close)
 
 
@@ -1539,10 +1597,10 @@ def CDLHARAMICROSS(df):
     integer=CDLHARAMICROSS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHARAMICROSS(open, high, low, close)
 
 
@@ -1557,7 +1615,7 @@ def CDLHIGHWAVE(df):
     integer=CDLHIGHWAVE(open, high, low, close)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.CDLHIGHWAVE(open, high, low, close)
 
 
@@ -1572,10 +1630,10 @@ def CDLHIKKAKE(df):
     integer=CDLHIKKAKE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHIKKAKE(open, high, low, close)
 
 
@@ -1590,10 +1648,10 @@ def CDLHIKKAKEMOD(df):
     integer=CDLHIKKAKEMOD(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHIKKAKEMOD(open, high, low, close)
 
 
@@ -1608,10 +1666,10 @@ def CDLHOMINGPIGEON(df):
     integer=CDLHOMINGPIGEON(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLHOMINGPIGEON(open, high, low, close)
 
 
@@ -1626,10 +1684,10 @@ def CDLIDENTICAL3CROWS(df):
     integer=CDLIDENTICAL3CROWS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLIDENTICAL3CROWS(open, high, low, close)
 
 
@@ -1644,10 +1702,10 @@ def CDLINNECK(df):
     integer=CDLINNECK(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLINNECK(open, high, low, close)
 
 
@@ -1662,10 +1720,10 @@ def CDLINVERTEDHAMMER(df):
     integer=CDLINVERTEDHAMMER(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLINVERTEDHAMMER(open, high, low, close)
 
 
@@ -1680,10 +1738,10 @@ def CDLKICKING(df):
     integer=CDLKICKING(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLKICKING(open, high, low, close)
 
 
@@ -1698,10 +1756,10 @@ def CDLKICKINGBYLENGTH(df):
     integer=CDLKICKINGBYLENGTH(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLKICKINGBYLENGTH(open, high, low, close)
 
 
@@ -1716,10 +1774,10 @@ def CDLLADDERBOTTOM(df):
     integer=CDLLADDERBOTTOM(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLLADDERBOTTOM(open, high, low, close)
 
 
@@ -1734,10 +1792,10 @@ def CDLLONGLEGGEDDOJI(df):
     integer=CDLLONGLEGGEDDOJI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLLONGLEGGEDDOJI(open, high, low, close)
 
 
@@ -1752,10 +1810,10 @@ def CDLLONGLINE(df):
     integer=CDLLONGLINE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLLONGLINE(open, high, low, close)
 
 
@@ -1770,10 +1828,10 @@ def CDLMARUBOZU(df):
     integer=CDLMARUBOZU(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLMARUBOZU(open, high, low, close)
 
 
@@ -1788,10 +1846,10 @@ def CDLMATCHINGLOW(df):
     integer=CDLMATCHINGLOW(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLMATCHINGLOW(open, high, low, close)
 
 
@@ -1806,10 +1864,10 @@ def CDLMATHOLD(df):
     integer=CDLMATHOLD(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLMATHOLD(open, high, low, close)
 
 
@@ -1824,10 +1882,10 @@ def CDLMORNINGDOJISTAR(df):
     integer=CDLMORNINGDOJISTAR(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLMORNINGDOJISTAR(open, high, low, close)
 
 
@@ -1842,10 +1900,10 @@ def CDLMORNINGSTAR(df):
     integer=CDLMORNINGSTAR(open, high, low, close, penetration=0)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLMORNINGSTAR(open, high, low, close)
 
 
@@ -1860,10 +1918,10 @@ def CDLONNECK(df):
     integer=CDLONNECK(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLONNECK(open, high, low, close)
 
 
@@ -1878,10 +1936,10 @@ def CDLPIERCING(df):
     integer=CDLPIERCING(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLPIERCING(open, high, low, close)
 
 
@@ -1896,10 +1954,10 @@ def CDLRICKSHAWMAN(df):
     integer=CDLRICKSHAWMAN(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLRICKSHAWMAN(open, high, low, close)
 
 
@@ -1914,10 +1972,10 @@ def CDLRISEFALL3METHODS(df):
     integer=CDLRISEFALL3METHODS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLRISEFALL3METHODS(open, high, low, close)
 
 
@@ -1932,10 +1990,10 @@ def CDLSEPARATINGLINES(df):
     integer=CDLSEPARATINGLINES(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSEPARATINGLINES(open, high, low, close)
 
 
@@ -1950,10 +2008,10 @@ def CDLSHOOTINGSTAR(df):
     integer=CDLSHOOTINGSTAR(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSHOOTINGSTAR(open, high, low, close)
 
 
@@ -1968,10 +2026,10 @@ def CDLSHORTLINE(df):
     integer=CDLSHORTLINE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSHORTLINE(open, high, low, close)
 
 
@@ -1986,10 +2044,10 @@ def CDLSPINNINGTOP(df):
     integer=CDLSPINNINGTOP(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSPINNINGTOP(open, high, low, close)
 
 
@@ -2004,10 +2062,10 @@ def CDLSTALLEDPATTERN(df):
     integer=CDLSTALLEDPATTERN(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSTALLEDPATTERN(open, high, low, close)
 
 
@@ -2022,10 +2080,10 @@ def CDLSTICKSANDWICH(df):
     integer=CDLSTICKSANDWICH(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLSTICKSANDWICH(open, high, low, close)
 
 
@@ -2040,10 +2098,10 @@ def CDLTAKURI(df):
     integer=CDLTAKURI(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLTAKURI(open, high, low, close)
 
 
@@ -2058,10 +2116,10 @@ def CDLTASUKIGAP(df):
     integer=CDLTASUKIGAP(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLTASUKIGAP(open, high, low, close)
 
 
@@ -2076,10 +2134,10 @@ def CDLTHRUSTING(df):
     integer=CDLTHRUSTING(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLTHRUSTING(open, high, low, close)
 
 
@@ -2094,10 +2152,10 @@ def CDLTRISTAR(df):
     integer=CDLTRISTAR(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLTRISTAR(open, high, low, close)
 
 
@@ -2112,10 +2170,10 @@ def CDLUNIQUE3RIVER(df):
     integer=CDLUNIQUE3RIVER(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLUNIQUE3RIVER(open, high, low, close)
 
 
@@ -2130,10 +2188,10 @@ def CDLUPSIDEGAP2CROWS(df):
     integer=CDLUPSIDEGAP2CROWS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLUPSIDEGAP2CROWS(open, high, low, close)
 
 
@@ -2148,10 +2206,10 @@ def CDLXSIDEGAP3METHODS(df):
     integer=CDLXSIDEGAP3METHODS(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.CDLXSIDEGAP3METHODS(open, high, low, close)
 
 
@@ -2170,10 +2228,10 @@ def AVGPRICE(df):
     real=AVGPRICE(open, high, low, close)
     :return:
     """
-    open = df['Open']
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    open = df["Open"]
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.AVGPRICE(open, high, low, close)
 
 
@@ -2186,8 +2244,8 @@ def MEDPRICE(df):
     real=MEDPRICE(high, low)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.MEDPRICE(high, low)
 
 
@@ -2200,9 +2258,9 @@ def TYPPRICE(df):
     real=TYPPRICE(high, low, close)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.TYPPRICE(high, low, close)
 
 
@@ -2215,9 +2273,9 @@ def WCLPRICE(df):
     real=WCLPRICE(high, low, close)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.WCLPRICE(high, low, close)
 
 
@@ -2247,8 +2305,8 @@ def BETA(df, time_period=5):
     real=BETA(high, low, timeperiod=5)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.BETA(high, low, timeperiod=time_period)
 
 
@@ -2265,8 +2323,8 @@ def CORREL(df, time_period=30):
     real=CORREL(high, low, timeperiod=30)
     :return:
     """
-    high = df['High']
-    low = df['Low']
+    high = df["High"]
+    low = df["Low"]
     return talib.CORREL(high, low, timeperiod=time_period)
 
 
@@ -2286,7 +2344,7 @@ def LINEARREG(df, time_period=14):
     real=LINEARREG(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LINEARREG(close, timeperiod=time_period)
 
 
@@ -2302,7 +2360,7 @@ def LINEARREG_ANGLE(df, time_period=14):
     real=LINEARREG_ANGLE(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LINEARREG_ANGLE(close, timeperiod=time_period)
 
 
@@ -2315,7 +2373,7 @@ def LINEARREG_INTERCEPT(df, time_period=14):
     real=LINEARREG_INTERCEPT(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LINEARREG_INTERCEPT(close, timeperiod=time_period)
 
 
@@ -2328,7 +2386,7 @@ def LINEARREG_SLOPE(df, time_period=14):
     real=LINEARREG_SLOPE(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.LINEARREG_SLOPE(close, timeperiod=time_period)
 
 
@@ -2342,7 +2400,7 @@ def STDDEV(df, time_period=5, nb_dev=1):
     real=STDDEV(close, timeperiod=5, nbdev=1)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.STDDEV(close, timeperiod=time_period, nbdev=nb_dev)
 
 
@@ -2356,7 +2414,7 @@ def TSF(df, time_period=14):
     real=TSF(close, timeperiod=14)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.TSF(close, timeperiod=time_period)
 
 
@@ -2370,7 +2428,7 @@ def VAR(df, time_period=5, nb_dev=1):
     real=VAR(close, timeperiod=5, nbdev=1)
     :return:
     """
-    close = df['Close']
+    close = df["Close"]
     return talib.VAR(close, timeperiod=time_period, nbdev=nb_dev)
 
 
@@ -2399,9 +2457,9 @@ def ATR(df, time_period=14):
     real=ATR(high, low, close, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.ATR(high, low, close, timeperiod=time_period)
 
 
@@ -2416,9 +2474,9 @@ def NATR(df, time_period=14):
     real=NATR(high, low, close, timeperiod=14)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.NATR(high, low, close, timeperiod=time_period)
 
 
@@ -2431,9 +2489,9 @@ def TRANGE(df):
     real=TRANGE(high, low, close)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
     return talib.TRANGE(high, low, close)
 
 
@@ -2464,10 +2522,10 @@ def AD(df):
     real=AD(high, low, close, volume)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    volume = df['Volume']
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    volume = df["Volume"]
     return talib.AD(high, low, close, volume)
 
 
@@ -2488,11 +2546,13 @@ def ADOSC(df, fast_period=3, slow_period=10):
     real=ADOSC(high, low, close, volume, fastperiod=3, slowperiod=10)
     :return:
     """
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    volume = df['Volume']
-    return talib.ADOSC(high, low, close, volume, fastperiod=fast_period, slowperiod=slow_period)
+    high = df["High"]
+    low = df["Low"]
+    close = df["Close"]
+    volume = df["Volume"]
+    return talib.ADOSC(
+        high, low, close, volume, fastperiod=fast_period, slowperiod=slow_period
+    )
 
 
 def OBV(df):
@@ -2516,12 +2576,9 @@ def OBV(df):
     real=OBV(close, volume)
     :return:
     """
-    close = df['Close']
-    volume = df['Volume']
+    close = df["Close"]
+    volume = df["Volume"]
     return talib.OBV(close, volume)
-
-
-
 
 
 TICKER = "MSFT"
@@ -2542,75 +2599,70 @@ obv = OBV(df)
 
 # Create subplots for ADOSC and OBV
 apds = [
-    mpf.make_addplot(adosc, panel=2, color='blue', title='Chaikin A/D Oscillator'),
-    mpf.make_addplot(obv, panel=3, color='green', title='On Balance Volume')
+    mpf.make_addplot(adosc, panel=2, color="blue", title="Chaikin A/D Oscillator"),
+    mpf.make_addplot(obv, panel=3, color="green", title="On Balance Volume"),
 ]
 
-output_file = PLOTS_DIR / f'{TICKER}_candlestick_adosc_obv.png'
+output_file = PLOTS_DIR / f"{TICKER}_candlestick_adosc_obv.png"
 # Plot the candlestick chart with ADOSC and OBV
 mpf.plot(
-        df,
-        type='candle',
-        style='yahoo',
-        volume=True,
-        addplot=apds,
-        title=f'{TICKER} - Candlestick, ADOSC, and OBV',
-        savefig=output_file
-    )
+    df,
+    type="candle",
+    style="yahoo",
+    volume=True,
+    addplot=apds,
+    title=f"{TICKER} - Candlestick, ADOSC, and OBV",
+    savefig=output_file,
+)
 print(f"Plot saved to {output_file}")
 
 
 data = yf.Ticker("MSFT").history(period="1y", interval="1d")
 
 # 1. Trend Identification (200-day SMA)
-data['SMA_200'] = talib.SMA(data['Close'], timeperiod=200)
+data["SMA_200"] = talib.SMA(data["Close"], timeperiod=200)
 
 # 2. Momentum Confirmation (RSI and MACD)
-data['RSI'] = talib.RSI(data['Close'], timeperiod=14)
-data['MACD'], data['MACD_Signal'], data['MACD_Histogram'] = talib.MACD(data['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
+data["RSI"] = talib.RSI(data["Close"], timeperiod=14)
+data["MACD"], data["MACD_Signal"], data["MACD_Histogram"] = talib.MACD(
+    data["Close"], fastperiod=12, slowperiod=26, signalperiod=9
+)
 
 # 3. Volatility Filter (Bollinger Bands)
-data['BB_Upper'], data['BB_Middle'], data['BB_Lower'] = talib.BBANDS(data['Close'], timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+data["BB_Upper"], data["BB_Middle"], data["BB_Lower"] = talib.BBANDS(
+    data["Close"], timeperiod=20, nbdevup=2, nbdevdn=2, matype=0
+)
+
 
 # Generate Trading Signals
 def generate_signals(data):
     signals = pd.DataFrame(index=data.index)
-    signals['signal'] = 0  # 0: No signal, 1: Buy, -1: Sell
+    signals["signal"] = 0  # 0: No signal, 1: Buy, -1: Sell
 
     for i in range(1, len(data)):
         # Buy Signal: Price above 200-day SMA, RSI oversold, MACD crossover
-        if (data['Close'].iloc[i] > data['SMA_200'].iloc[i] and
-            data['RSI'].iloc[i] < 30 and
-            data['MACD'].iloc[i] > data['MACD_Signal'].iloc[i]):
-            signals.iloc[i, signals.columns.get_loc('signal')] = 1
+        if (
+            data["Close"].iloc[i] > data["SMA_200"].iloc[i]
+            and data["RSI"].iloc[i] < 30
+            and data["MACD"].iloc[i] > data["MACD_Signal"].iloc[i]
+        ):
+            signals.iloc[i, signals.columns.get_loc("signal")] = 1
 
         # Sell Signal: Price below 200-day SMA, RSI overbought, MACD crossover
-        elif (data['Close'].iloc[i] < data['SMA_200'].iloc[i] and
-              data['RSI'].iloc[i] > 70 and
-              data['MACD'].iloc[i] < data['MACD_Signal'].iloc[i]):
-            signals.iloc[i, signals.columns.get_loc('signal')] = -1
+        elif (
+            data["Close"].iloc[i] < data["SMA_200"].iloc[i]
+            and data["RSI"].iloc[i] > 70
+            and data["MACD"].iloc[i] < data["MACD_Signal"].iloc[i]
+        ):
+            signals.iloc[i, signals.columns.get_loc("signal")] = -1
 
         # Reset signal if outside criteria
         else:
-            signals.iloc[i, signals.columns.get_loc('signal')] = 0
+            signals.iloc[i, signals.columns.get_loc("signal")] = 0
 
     return signals
 
-signals = generate_signals(data.copy()) #Important to copy the dataframe
 
-print(signals.index[signals['signal'] == 1])
+signals = generate_signals(data.copy())  # Important to copy the dataframe
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print(signals.index[signals["signal"] == 1])

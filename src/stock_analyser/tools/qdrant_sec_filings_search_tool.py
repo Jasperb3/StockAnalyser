@@ -40,13 +40,13 @@ class QdrantSECFilingsSearchTool(BaseTool):
     Custom tool to search a Qdrant database for relevant information,
     specifically designed for the 'stock_knowledge' collection.
     """
-
+    model_config = {"arbitrary_types_allowed": True}
+    client: QdrantClient = None
     name: str = "QdrantSECFilingsSearchTool"
     description: str = (
         "A tool to search SEC Filings for relevant information"
     )
     args_schema: Type[BaseModel] = QdrantSECFilingsSearchToolSchema
-    client: Optional[QdrantClient] = None
     collection_name: str = Field(
         default="stock_knowledge", description="Name of the Qdrant collection to search."
     )

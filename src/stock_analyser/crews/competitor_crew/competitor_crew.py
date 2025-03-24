@@ -6,8 +6,6 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.yfinance_competitor_kpis_tool import YFinanceCompetitorKPIsTool
-from stock_analyser.tools.gemini_competitor_news_search_tool import CompetitorNewsSearchTool
-from stock_analyser.tools.yfinance_stock_kpi_tool import YFinanceStockKPITool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.google_search_tool import GoogleSearchTool
@@ -54,7 +52,7 @@ class CompetitorCrew():
 				google_search_tool,
 				# CompetitorNewsSearchTool()
 			],
-			llm=RESEARCH_MODEL,
+			llm=EXPERT_MODEL,
 			verbose=True,
 		)
 	

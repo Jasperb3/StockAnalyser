@@ -111,7 +111,7 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
         print(f"No news articles provided for {ticker}")
         return []
 
-    system_prompt = f"""
+    system_prompt = """
     You are an expert sentiment analyst tasked with evaluating the emotional tone of news articles. Your analysis will contribute to determining the overall public perception of a specific company.
 
     Task:
@@ -135,18 +135,18 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
 
     Example Output:
     [
-        NewsItem({{
+        NewsItem({
             "title": "Article Title 1",
             "sentiment": 7.5
-        }}),
-        NewsItem({{
+        }),
+        NewsItem({
             "title": "Article Title 2",
             "sentiment": -5.0
-        }}),
-        NewsItem({{
+        }),
+        NewsItem({
             "title": "Article Title 3",
             "sentiment": 0
-        }})
+        })
     ]
     """
 

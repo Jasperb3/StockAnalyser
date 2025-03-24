@@ -39,5 +39,5 @@ class YFinanceCathieWoodAnalysisTool(BaseTool):
 # Example usage within CrewAI
 if __name__ == "__main__":
     tool_instance = YFinanceCathieWoodAnalysisTool()
-    cathie_wood_analysis = tool_instance.run(ticker='MSFT', growth_rate=0.20, discount_rate=0.15, terminal_multiple=25, projection_years=5)
+    cathie_wood_analysis = tool_instance.run(ticker='MANU', growth_rate=0.20, discount_rate=0.15, terminal_multiple=25, projection_years=5)
     print(cathie_wood_analysis)

@@ -89,7 +89,7 @@ writing_task:
     Guidelines:
     {writer_guidelines}
 
-    - Do not have an explicit conclusion sub-section header, but do finish the section with conclusory remarks.
+    - Finish the section with conclusory remarks but do not separate the conclusion from the rest of the section with a sub-section header.
 
 
   expected_output: >
@@ -119,10 +119,10 @@ editing_task:
     Ensure all supporting information is accurate and consistent, enhancing rather than reducing the existing content.
     Guidelines:
     {editor_guidelines}
+    - Current date: {date_us}.
     - Make sure the section begins with the heading: ## Investment Recommendation
     - Do not include an explicit conclusion sub-section header, but do finish the section with conclusory remarks.
     
-    Current date: {date_us}.
   expected_output: >
     A final, polished version of the "Investment Recommendation" section, ready for inclusion in the report.
     This should be a fully revised and improved version, addressing all feedback from the critic.

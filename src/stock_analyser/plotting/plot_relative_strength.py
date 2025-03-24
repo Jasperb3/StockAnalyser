@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-import matplotlib.dates as mdates
+from stock_analyser.utils.constants import FONT_FAMILY
 
 
 # Fetch stock and S&P 500 (^GSPC) data
@@ -59,8 +59,8 @@ def plot_data(stock_prices, rs_line, rsi, ticker, output_dir, timestamp):
     for ma in ma_list:
         stock_ma = stock_prices['Close'].rolling(window=ma).mean()
         ax_stock.plot(stock_prices.index, stock_ma, label=f'{ma}-Day MA', alpha=0.5, linestyle='-')
-    ax_stock.set_title(f'{ticker} Stock Price with Moving Averages')
-    ax_stock.set_ylabel('Stock Price (USD)')
+    ax_stock.set_title(f'{ticker} Stock Price with Moving Averages', fontfamily=FONT_FAMILY, fontsize=18)
+    ax_stock.set_ylabel('Stock Price (USD)', fontfamily=FONT_FAMILY)
     ax_stock.legend(loc='upper left')
     ax_stock.grid()
     ax_stock.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
@@ -68,7 +68,7 @@ def plot_data(stock_prices, rs_line, rsi, ticker, output_dir, timestamp):
     # Plot volume in grayscale
     ax_volume = fig.add_subplot(gs[1], sharex=ax_stock)
     ax_volume.bar(stock_prices.index, stock_prices['Volume'], color='gray', alpha=0.5)
-    ax_volume.set_ylabel('Volume')
+    ax_volume.set_ylabel('Volume', fontfamily=FONT_FAMILY)
     ax_volume.grid()
     ax_volume.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
 
@@ -79,9 +79,9 @@ def plot_data(stock_prices, rs_line, rsi, ticker, output_dir, timestamp):
     ax_rs.plot(stock_prices.index, rs_line_ma10, label='10-Day MA', alpha=0.8, color='gray', linestyle='-')
     ax_rs.fill_between(stock_prices.index, rs_line, rs_line_ma10, where=(rs_line < rs_line_ma10), color='red', alpha=0.5, label='Below MA 10')
     ax_rs.fill_between(stock_prices.index, rs_line, rs_line_ma10, where=(rs_line > rs_line_ma10), color='green', alpha=0.5, label='Above MA 10')
-    ax_rs.set_title(f'Relative Strength Line ({ticker} vs S&P 500)')
-    ax_rs.set_xlabel('Date')
-    ax_rs.set_ylabel('RS Value')
+    ax_rs.set_title(f'Relative Strength Line ({ticker} vs S&P 500)', fontfamily=FONT_FAMILY, fontsize=18)
+    ax_rs.set_xlabel('Date', fontfamily=FONT_FAMILY)
+    ax_rs.set_ylabel('RS Value', fontfamily=FONT_FAMILY)
     ax_rs.legend(loc='upper left')
     ax_rs.grid()
     
@@ -91,17 +91,17 @@ def plot_data(stock_prices, rs_line, rsi, ticker, output_dir, timestamp):
     ax_rsi.plot(stock_prices.index, stock_prices['RSI_10_MA'], label='10-Day MA of RSI', color='red', alpha=0.5, linestyle='-')
     ax_rsi.axhline(y=30, color='red', linestyle='-', linewidth=1, label='Oversold (30)')
     ax_rsi.axhline(y=70, color='green', linestyle='-', linewidth=1, label='Overbought (70)')
-    ax_rsi.set_title('Relative Strength Index (RSI)')
-    ax_rsi.set_xlabel('Date')
-    ax_rsi.set_ylabel('RSI Value')
+    ax_rsi.set_title('Relative Strength Index (RSI)', fontfamily=FONT_FAMILY, fontsize=18)
+    ax_rsi.set_xlabel('Date', fontfamily=FONT_FAMILY)
+    ax_rsi.set_ylabel('RSI Value', fontfamily=FONT_FAMILY)
     ax_rsi.legend(loc='upper left')
     ax_rsi.grid()
 
 
     plt.tight_layout()
 
-    file_path = output_dir + f'/{ticker}_relative_strength_{timestamp}.png'
-    plt.savefig(file_path)
+    file_path = f'{output_dir}/{ticker}_relative_strength_{timestamp}.png'
+    plt.savefig(file_path, dpi=300)
 
     return file_path
 
@@ -117,7 +117,8 @@ def plot_relative_strength(ticker, output_dir, timestamp):
     return file_path
 
 if __name__ == "__main__":
+    from stock_analyser.utils.constants import TIMESTAMP, PLOTS_DIR
     ticker = 'APP'
-    output_dir = 'plots/rs'
-    timestamp = '2025-03-16_154500'
+    output_dir = PLOTS_DIR
+    timestamp = TIMESTAMP
     plot_relative_strength(ticker, output_dir, timestamp)

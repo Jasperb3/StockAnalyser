@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
+from stock_analyser.utils.constants import FONT_FAMILY
 
 
 RED = '#fd6b6c'

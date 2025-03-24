@@ -1,11 +1,10 @@
 import os
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from stock_analyser.utils.embeddings_fn import custom_gemini_embedding_fn
 from stock_analyser.utils.models import ReportCritique, FutureOutlookModel
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
-from crewai_tools import EXASearchTool, QdrantVectorSearchTool
+from crewai_tools import EXASearchTool
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.qdrant_sec_filings_search_tool import QdrantSECFilingsSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
@@ -16,15 +15,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-# qdrant_tool = QdrantVectorSearchTool(
-#     qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
-#     qdrant_api_key=os.getenv("QDRANT_API_KEY"),
-#     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
-#     limit=5,
-#     score_threshold=0.35,
-# 	custom_embedding_fn=custom_gemini_embedding_fn
-# )
 
 qdrant_sec_filings_tool = QdrantSECFilingsSearchTool(
 	qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
@@ -59,7 +49,7 @@ class FutureOutlookCrew():
 				TrafilaturaWebscrapeTool()
 			],
 			verbose=True,
-			max_iter=5,
+			max_iter=8,
 			# max_rpm=10
 		)
 

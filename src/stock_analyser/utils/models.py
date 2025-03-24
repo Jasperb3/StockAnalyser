@@ -557,10 +557,6 @@ class IncomeStatementAnalysis(BaseModel):
     """Example: "Basic EPS: $6.25" """
     diluted_eps: str
     """Example: "Diluted EPS: $6.14" """
-    revenue_growth: str
-    """Example: "Revenue Growth: 8.1%" """
-    earnings_growth: str
-    """Example: "Earnings Growth: 9.2%" """
     gross_margins: str
     """Example: "Gross Margins: 43.3%" """
     operating_margin: str
@@ -592,6 +588,8 @@ class BalanceSheetAnalysis(BaseModel):
     """Example: "Quick Ratio: 1.2" """
     debt_to_equity: str
     """Example: "Debt-to-Equity: 1.68" """
+    retained_earnings: str
+    """Example: "Retained Earnings: $100.00B" """
 
 class CashFlowAnalysis(BaseModel):
     """
@@ -619,6 +617,8 @@ class CashFlowAnalysis(BaseModel):
     """Example: "Financing Cash Flow: $30.25B" """
     repurchases_of_stock: str
     """Example: "Repurchases of Stock: $25.75B" """
+    depreciation_and_amortization: str
+    """Example: "Depreciation and Amortization: $10.25B" """
 
 class GrowthMetrics(BaseModel):
     """
@@ -651,6 +651,8 @@ class ValuationMetrics(BaseModel):
     """Example: "Price to Sales (TTM): 7.2" """
     price_to_book: str
     """Example: "Price to Book: 35.7" """
+    book_value: str
+    """Example: "Book Value: $100.00B" """
     enterprise_to_ebitda: str
     """Example: "Enterprise Value to EBITDA: 20.3" """
     enterprise_to_revenue: str

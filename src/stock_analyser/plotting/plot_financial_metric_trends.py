@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 from pathlib import Path
+from stock_analyser.utils.convert_currency import convert_currency
+from stock_analyser.utils.constants import FONT_FAMILY
 
 # --- Constants for Consistent Styling ---
-FONT_FAMILY = 'DejaVu Sans'
 TITLE_FONT_SIZE = 14
 AXIS_LABEL_FONT_SIZE = 12
 TICK_LABEL_FONT_SIZE = 10
@@ -17,9 +18,11 @@ GRID_LINE_STYLE = '--'
 GRID_ALPHA = 0.5
 
 # --- Helper Functions ---
+        
 
 def format_currency(value, pos):
     """Formats currency values for y-axis labels."""
+
     if value >= 1e9:
         return f'${value/1e9:.1f}B'  # Format as billions
     elif value >= 1e6:
@@ -47,8 +50,15 @@ def plot_revenue_trends(ticker: str, output_dir: Path, timestamp: str) -> Path:
     Plot the revenue trends for a given stock ticker.
     """
     stock = yf.Ticker(ticker)
-    financial_data = stock.financials
-    revenue_data = financial_data.loc['Total Revenue']
+    exchange_rate = convert_currency(ticker)
+
+    try:
+        financial_data = stock.financials
+        revenue_data = financial_data.loc['Total Revenue']
+        revenue_data = revenue_data.apply(lambda x: x * exchange_rate)
+    except Exception as e:
+        print(f"Error plotting revenue trends for {ticker}: {e}")
+        return None
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(revenue_data.index, revenue_data.values, marker='o', linestyle='-', color=COLORS[0],
@@ -69,7 +79,7 @@ def plot_revenue_trends(ticker: str, output_dir: Path, timestamp: str) -> Path:
 
     plt.tight_layout()
     file_path = Path(f"{output_dir}/{ticker}_revenue_trends_{timestamp}.png")
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     return file_path
 
 
@@ -78,8 +88,15 @@ def plot_net_income_trends(ticker: str, output_dir: Path, timestamp: str) -> Pat
     Plot the Net Income for a given stock ticker.
     """
     stock = yf.Ticker(ticker)
-    financial_data = stock.financials
-    net_income_data = financial_data.loc['Net Income']
+    exchange_rate = convert_currency(ticker)
+
+    try:
+        financial_data = stock.financials
+        net_income_data = financial_data.loc['Net Income']
+        net_income_data = net_income_data.apply(lambda x: x * exchange_rate)
+    except Exception as e:
+        print(f"Error plotting net income trends for {ticker}: {e}")
+        return None
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -100,7 +117,7 @@ def plot_net_income_trends(ticker: str, output_dir: Path, timestamp: str) -> Pat
 
     plt.tight_layout()
     file_path = Path(f"{output_dir}/{ticker}_net_income_trends_{timestamp}.png")
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     return file_path
 
 
@@ -109,10 +126,19 @@ def plot_gross_margin_trends(ticker: str, output_dir: Path, timestamp: str) -> P
     Plot the Gross Margin for a given stock ticker.
     """
     stock = yf.Ticker(ticker)
-    financial_data = stock.financials
-    gross_profit_data = financial_data.loc['Gross Profit']
-    revenue_data = financial_data.loc['Total Revenue']
-    gross_margin_data = gross_profit_data / revenue_data
+    exchange_rate = convert_currency(ticker)
+
+    try:
+        financial_data = stock.financials
+        financial_data = financial_data.apply(lambda x: x * exchange_rate)
+
+        gross_profit_data = financial_data.loc['Gross Profit']
+        revenue_data = financial_data.loc['Total Revenue']
+
+        gross_margin_data = gross_profit_data / revenue_data
+    except Exception as e:
+        print(f"Error plotting gross margin trends for {ticker}: {e}")
+        return None
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(gross_margin_data.index, gross_margin_data.values, marker='o', linestyle='-', color=COLORS[2],
@@ -123,7 +149,7 @@ def plot_gross_margin_trends(ticker: str, output_dir: Path, timestamp: str) -> P
 
     plt.tight_layout()
     file_path = Path(f"{output_dir}/{ticker}_gross_margin_trends_{timestamp}.png")
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     return file_path
 
 
@@ -132,9 +158,17 @@ def plot_earnings_per_share_trends(ticker: str, output_dir: Path, timestamp: str
     Plot the EPS trends for a given stock ticker.
     """
     stock = yf.Ticker(ticker)
-    financial_data = stock.financials
-    basic_eps_data = financial_data.loc['Basic EPS']
-    diluted_eps_data = financial_data.loc['Diluted EPS']
+    exchange_rate = convert_currency(ticker)
+
+    try:
+        financial_data = stock.financials
+        financial_data = financial_data.apply(lambda x: x * exchange_rate)
+
+        basic_eps_data = financial_data.loc['Basic EPS']
+        diluted_eps_data = financial_data.loc['Diluted EPS']
+    except Exception as e:
+        print(f"Error plotting earnings per share trends for {ticker}: {e}")
+        return None
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(basic_eps_data.index, basic_eps_data.values, marker='o', linestyle='-', color=COLORS[3],
@@ -148,7 +182,7 @@ def plot_earnings_per_share_trends(ticker: str, output_dir: Path, timestamp: str
 
     plt.tight_layout()
     file_path = Path(f"{output_dir}/{ticker}_earnings_per_share_trends_{timestamp}.png")
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     return file_path
 
 
@@ -157,9 +191,18 @@ def plot_free_cash_flow_trends(ticker: str, output_dir: Path, timestamp: str) ->
     Plot the Free Cash Flow for a given stock ticker.
     """
     stock = yf.Ticker(ticker)
-    cash_flow_data = stock.cashflow
-    free_cash_flow_data = cash_flow_data.loc['Free Cash Flow']
+    exchange_rate = convert_currency(ticker)
 
+    try:
+        cash_flow_data = stock.cashflow
+        cash_flow_data = cash_flow_data.apply(lambda x: x * exchange_rate)
+
+        free_cash_flow_data = cash_flow_data.loc['Free Cash Flow']
+    except Exception as e:
+        print(f"Error plotting free cash flow trends for {ticker}: {e}")
+        return None
+    
+    
     fig, ax = plt.subplots(figsize=(10, 5))
 
     # Separate positive and negative values
@@ -180,11 +223,12 @@ def plot_free_cash_flow_trends(ticker: str, output_dir: Path, timestamp: str) ->
 
     plt.tight_layout()
     file_path = Path(f"{output_dir}/{ticker}_free_cash_flow_trends_{timestamp}.png")
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
+    print(f"Plot saved to {file_path}")
     return file_path
 
 if __name__ == "__main__":
-    ticker = 'SOUN'
+    ticker = 'MANU'
     output_dir = Path('plots/fin_data')
     timestamp = '20250317_233000'
 

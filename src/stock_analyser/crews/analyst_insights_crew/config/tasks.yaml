@@ -46,9 +46,9 @@ writing_task:
     The section should be structured as follows:
     - An introduction to the section.
     - A sub-section on **Analyst Recommendations**, with a summary of the analyst recommendations, including the specific numbers of Strong Buy, Buy, Hold, Sell, and Strong Sell recommendations.
-    - A sub-section on **Analyst Price Targets**, with a summary of the analyst price targets, including the high, low, mean, and median targets.
     - A sub-section on **Average Analyst Rating**, with a summary of the average analyst rating (e.g., Buy, Hold, Sell).
     - A sub-section on **Recent Rating Changes**, with a summary of recent upgrades and downgrades, including dates, firms, and the old and new ratings.
+    - A sub-section on **Analyst Price Targets**, with a summary of the analyst price targets, including the high, low, mean, and median targets.
     - A sub-section on **Estimated Intrinsic Value**, with a summary of the estimated intrinsic value per share.
     For this "Estimated Intrinsic Value" sub-section, briefly summarize the methodology and underlying assumptions.
     Explain that the intrinsic value is estimated by projecting key financial metrics, including revenue, EBIT, taxes, depreciation and amortization, capital expenditures (Capex), and changes in working capital—all as percentages of revenue.
@@ -78,9 +78,9 @@ writing_task:
   expected_output: >
     A complete draft of the "Analyst & Professional Insights" section including:
     - A sub-section on **Analyst Recommendations**, using the `analyst_recommendations` research.
-    - A sub-section on **Analyst Price Targets**, using the `analyst_price_targets` research.
     - A sub-section on **Average Analyst Rating**, using the `average_analyst_rating` research.
     - A sub-section on **Recent Rating Changes**, using the `upgrades_downgrades` research.
+    - A sub-section on **Analyst Price Targets**, using the `analyst_price_targets` research.
     - A sub-section on **Estimated Intrinsic Value**, using the `estimated_intrinsic_value` research.
     - A sub-section on **Growth Estimates**, using the `growth_estimates` research.
     - A sub-section on **Revenue Estimates**, using the `revenue_estimates` research.
@@ -112,10 +112,13 @@ editing_task:
     Guidelines:
     {editor_guidelines}
     - Ensure the section starts with: ## Analyst & Professional Insights.
-    - At the end of the intrinsic value sub-section, precisely insert the placeholder: `[sensitivityAnalysis]`.
-    - Do not add any other text or formatting to this placeholder.
-    - This placeholder will be replaced later with a sensitivity analysis chart showing how intrinsic value varies with different Weighted Average Cost of Capital (WACC) and Terminal Growth Rate (TGR) assumptions.
-    - Continue with the rest of the section after the placeholder.
+    **Image placeholders**
+    1. At the end of the "Analyst Price Targets" sub-section, precisely insert the placeholder: `[rsiChart]`.
+    2. Directly after this, precisely insert the placeholder: `[squeezeMomentumChart]`.
+    3. At the end of the "Estimated Intrinsic Value" sub-section, precisely insert the placeholder: `[sensitivityAnalysis]`.
+    - Do not add any other text or formatting to the placeholders.
+    - These placeholders will be replaced later with charts, so it is vital that they are placed correctly using the exact text specified.
+    - Continue with the rest of the section after each placeholder.
     Current date: {date_us}.
   expected_output: >
     A final, publication-ready "Analyst & Professional Insights" section. The section should be accurate, unbiased, and effectively communicate the key findings.

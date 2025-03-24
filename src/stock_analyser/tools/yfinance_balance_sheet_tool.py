@@ -9,7 +9,7 @@ import numpy as np
 # Define the input schema using Pydantic
 class YFinanceStockBalanceSheetToolInput(BaseModel):
     """Input schema for YFinanceStockBalanceSheetTool."""
-    ticker: str = Field(..., description="Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)")
+    ticker: str = Field(..., description="Stock ticker symbol for the company.")
 
 # Define the tool class
 class YFinanceStockBalanceSheetTool(BaseTool):
@@ -20,7 +20,7 @@ class YFinanceStockBalanceSheetTool(BaseTool):
     def _run(self, ticker: str) -> str:
         """
         Fetches balance sheet data for a given ticker using yfinance.
-        :param ticker: Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)
+        :param ticker: Stock ticker symbol for the company.
         :return: A string containing the stock's balance sheet data.
         """
         # Fetch the stock data

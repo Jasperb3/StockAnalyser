@@ -27,3 +27,5 @@ DB_DIR = Path("/home/j/ai/crewAI/finance/stock_analyser/db").resolve()
 CSS_FILE = Path("/home/j/ai/crewAI/finance/stock_analyser/src/stock_analyser/utils/styling.css").resolve()
 
 BACKOFF_TIME = 20
+
+FONT_FAMILY = 'DejaVu Sans'  # for charts and plots

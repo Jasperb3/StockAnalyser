@@ -115,8 +115,8 @@ editing_task:
     Revise the "Market & Industry Context" section, incorporating the critic's feedback to enhance clarity, accuracy, and conciseness.
     Guidelines:
     {editor_guidelines}
+    - Current date: {date_us}.
     - Make sure the section begins with the heading: ## Market & Industry Context
-    Current date: {date_us}.
   expected_output: >
     A final, polished version of the "Market & Industry Context" section, ready for inclusion in the stock analysis report.
     This should be a fully revised and improved version, addressing all feedback from the critic.

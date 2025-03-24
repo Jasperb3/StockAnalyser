@@ -42,9 +42,15 @@ competitor_financial_data_task:
 competitor_section_writing_task:
   description: >
     Review the collected financial data and news articles for {company_name}'s competitors.
-    Compose a report section that presents this information in a clear, engaging, and easily digestible manner.
+    Compose a "Competitor Analysis" section for a stock analysis report that presents this information in a clear, engaging, and easily digestible manner.
 
-    Create a markdown table summarizing the key financial metrics of the competitors, using {company_name} as a benchmark for comparison.
+    The section should consist of four main sub-sections:
+    1. A markdown table summarizing the key financial metrics of the competitors, using {company_name} as a benchmark for comparison.
+    2. Analysis of {company_name}'s financial performance relative to its competitors based on these figures.
+    3. A placeholder for a chart.
+    4. A summary of recent news about the competitors.
+
+    1.) Create a markdown table summarizing the key financial metrics of the competitors, using {company_name} as a benchmark for comparison.
     The table should include:
     - Revenue growth (year-over-year)
     - Net margin
@@ -53,9 +59,14 @@ competitor_section_writing_task:
     - Price-to-earnings ratio (P/E)
     - Price-to-book ratio (P/B)
 
-    Provide an analysis of {company_name}'s financial performance relative to its competitors.
+    2.) Provide analysis of {company_name}'s financial performance relative to its competitors based on these figures.
 
-    Highlight any significant news or research findings about the competitors that could potentially affect {company_name}.
+    3.) After this analysis, precisely insert the placeholder: `[competitorPrices]`.
+    Do not add any other text or formatting to this placeholder.
+    This placeholder will be replaced later with a chart showing the prices of {company_name} and its competitors.
+    Continue with the rest of the section after the placeholder.
+
+    4.) Highlight any significant news or research findings about the competitors that could potentially affect {company_name}.
     Include the source URL where provided, formatted with correct markdown link formatting, e.g. [publicationName](https://example.com)
 
     You must begin the section `content` with the heading: ## Competitor Analysis
@@ -70,7 +81,8 @@ competitor_section_writing_task:
     A `CompetitorSection` model instance containing:
     1) the content for the "Competitor Analysis" section of the report. This must include:
         - a markdown table of the financial data
-        - a narrative analysis of {company_name}'s financial performance in comparison to its competitors
-        - a summary of the recent news articles, including source URLs formatted with correct markdown link formatting, e.g. [publicationName](https://example.com)
+        - a comparative analysis of {company_name}'s financial performance in comparison to its competitors
+        - the placeholder for a chart
+        - a summary of any recent relevant news stories about the competitors that might affect {company_name}, including sources formatted with correct markdown link formatting, e.g. [publicationName](https://example.com)
     2) a list of the competitors with their company name and tickers
   agent: competitor_section_writing_agent

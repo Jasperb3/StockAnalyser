@@ -67,9 +67,9 @@ editing_task:
     - Make sure that special characters such as '$', '%', and '&' are not escaped.
     - Avoid unnecessary disclaimers or caveats.
     - Do not explicitly mention the critic's feedback in the revised text.
+    - Current date: {date_us}.
     - Do not include the publication date in the section heading or as a separate subheading.
-    Make sure the section begins with the heading: ## Executive Summary
-    Current date: {date_us}.
+    - Make sure the section begins with the heading: ## Executive Summary
   expected_output: >
     A final, publication-ready "Executive Summary". The summary should be concise,
     accurate, and effectively communicate the key findings of the analysis.

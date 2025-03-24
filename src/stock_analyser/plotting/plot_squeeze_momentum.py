@@ -4,6 +4,7 @@ import yfinance as yf
 import mplfinance as mpf
 from datetime import datetime
 import matplotlib.pyplot as plt
+from stock_analyser.utils.constants import FONT_FAMILY
 
 # Set the style for all plots
 plt.style.use('seaborn-v0_8-darkgrid')
@@ -44,7 +45,6 @@ def calculate_squeeze_momentum(df, length=20, mult=2, length_KC=20, mult_KC=1.5)
     df['tr1'] = abs(df["High"] - df["Close"].shift())
     df['tr2'] = abs(df["Low"] - df["Close"].shift())
     df['tr'] = df[['tr0', 'tr1', 'tr2']].max(axis=1)
-
     # Calculate Keltner Channel
     range_ma = df['tr'].rolling(window=length_KC).mean()
     df['upper_KC'] = m_avg + range_ma * mult_KC
@@ -59,7 +59,6 @@ def calculate_squeeze_momentum(df, length=20, mult=2, length_KC=20, mult_KC=1.5)
     df['value'] = df['value'].rolling(window=length_KC).apply(lambda x: 
                                 np.polyfit(fit_y, x, 1)[0] * (length_KC-1) + 
                                 np.polyfit(fit_y, x, 1)[1], raw=True)
-
     # Check for 'squeeze'
     df['squeeze_on'] = (df['lower_BB'] > df['lower_KC']) & (df['upper_BB'] < df['upper_KC'])
     df['squeeze_off'] = (df['lower_BB'] < df['lower_KC']) & (df['upper_BB'] > df['upper_KC'])
@@ -150,6 +149,9 @@ def plot_squeeze_momentum(df, symbol, output_dir='plots', timestamp=None, lookba
     """
     if timestamp is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    company_ticker = yf.Ticker(symbol)
+    company_name = company_ticker.info.get('displayName') if company_ticker.info.get('displayName') else company_ticker.info.get('shortName')
     
     # Use only the last 'lookback' rows for better visualization
     plot_df = df[-lookback:].copy()
@@ -212,14 +214,13 @@ def plot_squeeze_momentum(df, symbol, output_dir='plots', timestamp=None, lookba
     os.makedirs(output_dir, exist_ok=True)
     
     # Set filename
-    filename = f'{symbol}_squeeze_momentum_{timestamp}.png'
-    filepath = os.path.join(output_dir, filename)
+    filepath = f'{output_dir}/{symbol}_squeeze_momentum_{timestamp}.png'
     
     # Get signal information
     signals = check_squeeze_signals(df)
     
     # Create title with signal information
-    title = f'{symbol} - Squeeze Momentum Indicator (LazyBear)'
+    title = f'{company_name} Squeeze Momentum Indicator'
     subtitle = f"Status: {signals['status']} | Momentum: {signals['momentum']}"
     
     # Plot and save
@@ -230,23 +231,26 @@ def plot_squeeze_momentum(df, symbol, output_dir='plots', timestamp=None, lookba
         addplot=apds,
         volume=True,
         figsize=(16, 12),
-        title=title,
+        # title=title,
         panel_ratios=(6, 3, 2),
         main_panel=0,      # Main panel is panel 0
         volume_panel=2,    # Volume is panel 2
         returnfig=True
     )
+
+    # Add title
+    axes[0].set_title(title, fontsize=24, fontfamily=FONT_FAMILY)
     
     # Add subtitle
-    axes[0].text(0.5, 0.96, subtitle, transform=fig.transFigure, ha='center', fontsize=12)
+    axes[0].text(0.5, 0.96, subtitle, transform=fig.transFigure, ha='center', fontsize=12, fontfamily=FONT_FAMILY)
     
     # Add legend for the momentum bars
-    axes[0].text(0.05, 0.05, 'Momentum Bars:', transform=axes[1].transAxes, fontsize=9)
-    axes[0].text(0.05, 0.02, 'Green/Lime: Bullish | Red/Maroon: Bearish', transform=axes[1].transAxes, fontsize=9)
+    axes[0].text(0.05, 0.05, 'Momentum Bars:', transform=axes[1].transAxes, fontsize=9, fontfamily=FONT_FAMILY)
+    axes[0].text(0.05, 0.02, 'Green/Lime: Bullish | Red/Maroon: Bearish', transform=axes[1].transAxes, fontsize=9, fontfamily=FONT_FAMILY)
     
     # Add legend for the squeeze markers
-    axes[0].text(0.65, 0.05, 'Squeeze Status:', transform=axes[1].transAxes, fontsize=9)
-    axes[0].text(0.65, 0.02, 'Black X: Squeeze ON | Gray X: Squeeze OFF', transform=axes[1].transAxes, fontsize=9)
+    axes[0].text(0.65, 0.05, 'Squeeze Status:', transform=axes[1].transAxes, fontsize=9, fontfamily=FONT_FAMILY)
+    axes[0].text(0.65, 0.02, 'Black X: Squeeze ON | Gray X: Squeeze OFF', transform=axes[1].transAxes, fontsize=9, fontfamily=FONT_FAMILY)
     
     # Add signal information
     signal_text = ""
@@ -257,7 +261,7 @@ def plot_squeeze_momentum(df, symbol, output_dir='plots', timestamp=None, lookba
     
     if signal_text:
         axes[0].text(0.5, 0.93, signal_text, transform=fig.transFigure, ha='center', 
-                    fontsize=14, fontweight='bold', color='red' if signals['short'] else 'green')
+                    fontsize=14, fontweight='bold', color='red' if signals['short'] else 'green', fontfamily=FONT_FAMILY)
     
     # Save the figure
     plt.savefig(filepath, bbox_inches='tight', dpi=300)
@@ -401,11 +405,14 @@ def analyze_single_stock(symbol, length=20, mult=2, length_KC=20, mult_KC=1.5,
 
 if __name__ == "__main__":
     # Example usage when script is run directly
+    from stock_analyser.utils.constants import OUTPUT_DIR, TIMESTAMP
     results = analyze_single_stock(
-        symbol='AAPL',
-        output_dir='plots/squeeze_momentum',
-        start_date='2020-01-01'
+        symbol='PLTR',
+        output_dir=OUTPUT_DIR,
+        timestamp=TIMESTAMP,
+        # start_date='2020-01-01'
     )
 
     file_path = results.get('plot_path')
-    print(file_path)
+    # print(file_path)
+    print(f"Results: {results}")

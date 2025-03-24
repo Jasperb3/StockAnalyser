@@ -3,7 +3,7 @@ from typing import List
 import matplotlib.pyplot as plt
 from palettable.cartocolors.sequential import SunsetDark_7
 from stock_analyser.utils.models import RiskSeverity
-
+from stock_analyser.utils.constants import FONT_FAMILY
 
 def plot_risk_severity(risk_severity: List[RiskSeverity], output_dir: str, timestamp: str):
 
@@ -42,9 +42,9 @@ def plot_risk_severity(risk_severity: List[RiskSeverity], output_dir: str, times
     num_risks = len(risk_severity)
     fontsize = max(8, 16 - num_risks * 0.2 - max_risk_length * 0.1)
     
-    ax.set_title("Risk Severity Assessment", fontsize=fontsize+4)
-    ax.set_xlabel("Identified Risks", fontsize=fontsize+2, labelpad=10)
-    ax.set_ylabel("Severity", fontsize=fontsize+2)
+    ax.set_title("Risk Severity Assessment", fontsize=fontsize+4, fontfamily=FONT_FAMILY)
+    ax.set_xlabel("Identified Risks", fontsize=fontsize+2, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_ylabel("Severity", fontsize=fontsize+2, fontfamily=FONT_FAMILY)
 
     # Rotate x-axis labels AND set the correct alignment
     plt.xticks(rotation=33.75, ha="right", fontsize=fontsize)
@@ -52,7 +52,7 @@ def plot_risk_severity(risk_severity: List[RiskSeverity], output_dir: str, times
     plt.tight_layout()
 
     output_path = f"{output_dir}/risk_severity_{timestamp}.png"
-    plt.savefig(output_path)
+    plt.savefig(output_path, dpi=300)
 
     return output_path
 

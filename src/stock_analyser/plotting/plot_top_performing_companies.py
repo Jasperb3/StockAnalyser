@@ -149,7 +149,7 @@ def top_performing_dumbbell_chart(ticker: str, output_dir: str, timestamp: str):
 
     file_path = os.path.join(output_dir, f"{ticker}_{timestamp}_top_performing_companies_dumbbell_chart.png")
     plt.tight_layout()
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     print(f"Dumbbell chart saved to {file_path}")
 
     return file_path

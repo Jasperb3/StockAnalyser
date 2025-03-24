@@ -1,6 +1,7 @@
 import pandas as pd
 import yfinance as yf
 import mplfinance as mpf
+from stock_analyser.utils.constants import FONT_FAMILY
 
 
 # Add MACD as subplot
@@ -29,6 +30,7 @@ def Stochastic(df, window, smooth_window):
 
 def plot_macd_stochastic(ticker: str, period: str, output_dir: str, timestamp: str):
     company_ticker = yf.Ticker(ticker)
+    company_name = company_ticker.info.get('displayName') if company_ticker.info.get('displayName') else company_ticker.info.get('shortName')
     df = company_ticker.history(period=period)
     macd = MACD(df, 12, 26, 9)
     stochastic = Stochastic(df, 14, 3)
@@ -59,13 +61,13 @@ def plot_macd_stochastic(ticker: str, period: str, output_dir: str, timestamp: s
     )
 
     # Add title
-    axes[0].set_title(f'{ticker} - MACD and Stochastic ({period})', fontsize=16)
+    axes[0].set_title(f'{company_name} {period} MACD and Stochastic', fontsize=24, fontfamily=FONT_FAMILY)
 
 
     file_path = f'{output_dir}/{ticker}_{period}_macd_stochastic_ao_{timestamp}.png'
     
     try:
-        fig.savefig(file_path)
+        fig.savefig(file_path, dpi=300)
     except Exception as e:
         print(f"Error saving plot: {e}")
         return None
@@ -76,8 +78,8 @@ def plot_macd_stochastic(ticker: str, period: str, output_dir: str, timestamp: s
 
 
 if __name__ == "__main__":
-    ticker = 'AAPL'
+    ticker = 'HMC'
     period = '6mo'
     output_dir = 'plots/macd_stochastic'
-    timestamp = '20250310_094854'
+    timestamp = '20250310_094855'
     plot_macd_stochastic(ticker, period, output_dir, timestamp)

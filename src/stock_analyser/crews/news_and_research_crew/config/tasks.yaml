@@ -1,7 +1,7 @@
 research_task:
   description: >
     Research and compile a list of 10 recent, interesting, and relevant news or research articles about {company_name}.
-    Prioritize articles that offer significant insights into the company's current performance, future outlook, and market position.
+    Prioritize recent articles that offer significant insights into the company's current performance, future outlook, and market position.
     You can include articles that are positive, negative, or neutral in tone.
     Aim for a diverse range of sources, including reputable news outlets, financial websites, and industry-specific publications.
     Do not include articles that are behind a paywall or require a subscription to access.
@@ -23,7 +23,8 @@ writing_task:
   expected_output: >
     A markdown section containing summaries of the top 5 news articles.
     Each summary should include:
-    - The article title and publication date in bold.
+    - The article title in bold.
+    - The publication date on a new line after the title, in italics (not bold).
     - A brief, informative summary of the article's content and its relevance to the company.
     - The source URL and a hyperlink to the original article.
     You must begin the section with the heading: ## Recent News Articles about {company_name}

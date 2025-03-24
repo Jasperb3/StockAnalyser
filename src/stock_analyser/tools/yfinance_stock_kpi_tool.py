@@ -4,6 +4,8 @@ import yfinance as yf
 import numpy as np
 from datetime import datetime
 from typing import Type
+from stock_analyser.utils.convert_currency import convert_currency
+
 
 # Define the input schema using Pydantic
 class YFinanceStockKPIToolInput(BaseModel):
@@ -24,19 +26,32 @@ class YFinanceStockKPITool(BaseTool):
         """
         # Fetch the stock data
         stock = yf.Ticker(ticker)
+
+        exchange_rate = convert_currency(ticker)
         
-        # Get the info dictionary
+        # Get the data
         info = stock.info
-        
+
+        financials = stock.financials
+        financials = financials.apply(lambda x: x * exchange_rate)
+
+        balance_sheet = stock.balance_sheet
+        balance_sheet = balance_sheet.apply(lambda x: x * exchange_rate)
+
+        cashflow = stock.cashflow
+        cashflow = cashflow.apply(lambda x: x * exchange_rate)
+
         # Get historical data
         history = stock.history(period="5y")
+        history = history.apply(lambda x: x * exchange_rate)
+
+
         
         # Calculate 52-Week High/Low
         week_52_high = history['High'].tail(252).max() if not history.empty else None
         week_52_low = history['Low'].tail(252).min() if not history.empty else None
         
         # Calculate 5-year revenue growth rate
-        financials = stock.financials
         five_yr_revenue_growth = None
         if financials is not None and not financials.empty and 'Total Revenue' in financials.index:
             revenue_5y = financials.loc['Total Revenue'].iloc[:5]
@@ -44,7 +59,6 @@ class YFinanceStockKPITool(BaseTool):
                 five_yr_revenue_growth = (revenue_5y.iloc[0] / revenue_5y.iloc[-1]) ** (1/5) - 1
         
         # Calculate 2-year revenue growth rate
-        financials = stock.financials
         two_yr_revenue_growth = None
         if financials is not None and not financials.empty and 'Total Revenue' in financials.index:
             revenue_2y = financials.loc['Total Revenue'].iloc[:2]
@@ -53,7 +67,7 @@ class YFinanceStockKPITool(BaseTool):
 
         # Calculate FCF growth
 
-        fcf = stock.cashflow.loc['Free Cash Flow']
+        fcf = cashflow.loc['Free Cash Flow']
         fcf_changes = fcf.pct_change(fill_method=None)
         for i in range(len(fcf_changes)):
             if not np.isnan(fcf_changes.iloc[i]):
@@ -68,17 +82,17 @@ class YFinanceStockKPITool(BaseTool):
         # Calculate Return on Invested Capital
         return_on_invested_capital = None
         try:
-            invested_capital = stock.balance_sheet.loc["Invested Capital"].iloc[0]
-            operating_income = stock.financials.loc["Operating Income"].iloc[0]
-            tax_rate_for_calcs = stock.financials.loc["Tax Rate For Calcs"].iloc[0]
+            invested_capital = balance_sheet.loc["Invested Capital"].iloc[0]
+            operating_income = financials.loc["Operating Income"].iloc[0]
+            tax_rate_for_calcs = financials.loc["Tax Rate For Calcs"].iloc[0]
 
             if (invested_capital is not None
                     and operating_income is not None
                     and invested_capital != 0):
 
                 if tax_rate_for_calcs is None:
-                    tax_provision = stock.financials.loc["Tax Provision"].iloc[0]
-                    pretax_income = stock.financials.loc["Pretax Income"].iloc[0]
+                    tax_provision = financials.loc["Tax Provision"].iloc[0]
+                    pretax_income = financials.loc["Pretax Income"].iloc[0]
                     if (tax_provision is not None and pretax_income is not None
                             and pretax_income != 0):
                         estimated_tax_rate = tax_provision / pretax_income
@@ -111,12 +125,13 @@ class YFinanceStockKPITool(BaseTool):
             'Previous Close': f"${info.get('previousClose', 'N/A')}" if info.get('previousClose') else 'N/A',
 
             '💲': 'Valuation ->',
-            'Market Cap': f"${info.get('marketCap', 'N/A'):,}" if info.get('marketCap') else 'N/A',
-            'Enterprise Value': f"${info.get('enterpriseValue', 'N/A'):,}" if info.get('enterpriseValue') else 'N/A',
+            'Market Cap': f"${info.get('marketCap') * exchange_rate:,}" if info.get('marketCap') else 'N/A',
+            'Enterprise Value': f"${info.get('enterpriseValue') * exchange_rate:,}" if info.get('enterpriseValue') else 'N/A',
             'P/E Ratio (Trailing)': info.get('trailingPE', 'N/A'),
             'Forward P/E Ratio': info.get('forwardPE', 'N/A'),
-            'Price to Sales Trailing 12 Months': f"${info.get('priceToSalesTrailing12Months', 'N/A'):.2f}" if info.get('priceToSalesTrailing12Months') else 'N/A',
+            'Price to Sales Trailing 12 Months': f"${info.get('priceToSalesTrailing12Months') * exchange_rate :.2f}" if info.get('priceToSalesTrailing12Months') else 'N/A',
             'P/B Ratio': info.get('priceToBook', 'N/A'),
+            'Book Value': f"${info.get('bookValue') * exchange_rate:,}" if info.get('bookValue') else 'N/A',
             'Enterprise to Revenue': info.get('enterpriseToRevenue', 'N/A'),
             'Enterprise to EBITDA': info.get('enterpriseToEbitda', 'N/A'),
             'Trailing EPS': info.get('trailingEps', 'N/A'),
@@ -130,13 +145,13 @@ class YFinanceStockKPITool(BaseTool):
             "EBITDA Margin": info.get('ebitdaMargins', 'N/A'),
 
             '💲': 'Financial Health ->',
-            'Total Cash': f"${info.get('totalCash', 'N/A'):,}" if info.get('totalCash') else 'N/A',
-            'Total Debt': f"${info.get('totalDebt', 'N/A'):,}" if info.get('totalDebt') else 'N/A',
+            'Total Cash': f"${info.get('totalCash') * exchange_rate:,}" if info.get('totalCash') else 'N/A',
+            'Total Debt': f"${info.get('totalDebt') * exchange_rate:,}" if info.get('totalDebt') else 'N/A',
             'Debt-to-Equity Ratio': info.get('debtToEquity', 'N/A'),
             'Current Ratio': info.get('currentRatio', 'N/A'),
             'Quick Ratio': info.get('quickRatio', 'N/A'),
-            'Operating Cashflow': f"${info.get('operatingCashflow', 'N/A'):,}" if info.get('operatingCashflow') else 'N/A',
-            'Free Cash Flow': f"${info.get('freeCashflow', 'N/A'):,}" if info.get('freeCashflow') else 'N/A',
+            'Operating Cashflow': f"${info.get('operatingCashflow') * exchange_rate:,}" if info.get('operatingCashflow') else 'N/A',
+            'Free Cash Flow': f"${info.get('freeCashflow') * exchange_rate:,}" if info.get('freeCashflow') else 'N/A',
 
             '💲': 'Dividends ->',
             'Dividend Rate': info.get('dividendRate', 'N/A'),
@@ -211,5 +226,5 @@ class YFinanceStockKPITool(BaseTool):
 # Example usage within CrewAI
 if __name__ == "__main__":
     tool_instance = YFinanceStockKPITool()
-    nvidia_analysis = tool_instance.run(ticker='NVDA')
-    print(nvidia_analysis)
+    stock_kpi_data = tool_instance.run(ticker='ACN')
+    print(stock_kpi_data)

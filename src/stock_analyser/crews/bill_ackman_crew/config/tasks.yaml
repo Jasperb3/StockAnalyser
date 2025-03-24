@@ -24,7 +24,7 @@ bill_ackman_analysis_task:
     - Provide a rational, data-driven recommendation (bullish, bearish, or neutral).
 
     Leverage the available tools to gather all necessary data.
-    Synthesize your findings into a clear, Bill Ackman-style investment signal that substantiates the investment recommendation with reference to specific metrics in the analysis.
+    Synthesize your findings into a clear, Bill Ackman-style investment signal that substantiates the investment recommendation with detailed reference to specific metrics in the analysis.
                         
   expected_output: >
     A rational recommendation (bullish, bearish, or neutral), with a confidence level (0-100) and concise reasoning.

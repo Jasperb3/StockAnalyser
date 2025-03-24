@@ -49,7 +49,8 @@ research_task:
     - `weaknesses`: The company's weaknesses and competitive disadvantages going forward.
     - `opportunities`: The company's opportunities for growth and expansion going forward.
     - `threats`: Threats and challenges that could impact the company's future outlook going forward.
-    - `other_outlook_possibilities`: Other potential future developments relevant to the company going forward.
+    - `other_outlook_possibilities`: Other potential future developments relevant to the company going forward
+    Use the "qdrant_sec_filings_tool" to search the company's SEC filings for information on the company's future outlook.
     Current date (ISO format): {date_iso}.
   expected_output: >
     A `FutureOutlookModel` Pydantic model with the `expected_industry_disruptions`, `long_term_strategic_initiatives`, `macro_trends_impact`, `catalysts_and_triggers`, `strengths`, `weaknesses`, `opportunities`, `threats`, and `other_outlook_possibilities` fields populated.
@@ -99,8 +100,8 @@ editing_task:
     Revise and finalize the "Forward-Looking Outlook" section, incorporating the critic's feedback to achieve the highest possible quality.
     Guidelines:
     {editor_guidelines}
+    - Current date: {date_us}.
     - Make sure the section begins with the heading: ## Forward-Looking Outlook
-    Current date: {date_us}.
   expected_output: >
     A polished, final version of the "Forward-Looking Outlook" section, ready for inclusion in the overall stock analysis report.
     The report should be free of errors, well-formatted, and present a clear, insightful perspective on the future of {company_name}.

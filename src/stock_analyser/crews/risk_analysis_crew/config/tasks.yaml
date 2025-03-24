@@ -19,7 +19,7 @@ research_task:
     - `market_volatility`: Analyze current market conditions and identify potential volatility risks.
     - `regulatory_risks`: Identify and analyze regulatory challenges and their potential impact.
     - `macroeconomic_risks`: Analyze macroeconomic risks that could impact the company's stock performance.
-    - `company_specific_issues`: Use the "qdrant_tool" to search the company's SEC 10-Q and 10-K filings for specific operational, financial, or strategic risks that could materially impact future stock performance.
+    - `company_specific_issues`: Use the "qdrant_sec_filings_tool" to search the company's SEC 10-Q and 10-K filings for specific operational, financial, or strategic risks that could materially impact future stock performance.
     - `esg_risks`: Use the "YFinance ESG Tool" to identify and analyze any ESG risks that could impact the company's future stock performance.
     - `other_risks`: Identify and analyze any other relevant risks not covered in the previous categories.
     Use the tools available to you to gather information on each risk, including specific examples, data, and potential consequences.
@@ -74,8 +74,9 @@ editing_task:
     Revise the "Risk Disclosure & Mitigation" section, incorporating the critic's feedback to achieve the highest possible quality.
     Guidelines:
     {editor_guidelines}
-    - Make sure the section begins with the header: ## Risk Disclosure & Mitigation
-    Current date: {date_us}.
+    
+    - Current date: {date_us}.
+    - Make sure the section begins with the heading: ## Risk Disclosure & Mitigation
   expected_output: >
     A final, polished version of the "Risk Disclosure & Mitigation" section, ready for inclusion in the stock analysis report.
     This should be a fully revised and improved version, addressing all feedback from the critic.

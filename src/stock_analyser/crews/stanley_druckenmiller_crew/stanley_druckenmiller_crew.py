@@ -2,7 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ExpertAnalystSignal
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
-from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL
+from stock_analyser.utils.agent_llms import EXPERT_ANALYSIS_MODEL, WRITING_MODEL
 from stock_analyser.tools.yfinance_druckenmiller_analysis_tool import YFinanceDruckenmillerAnalysisTool
 
 from dotenv import load_dotenv
@@ -22,7 +22,7 @@ class StanleyDruckenmillerCrew():
 	def stanley_druckenmiller_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['stanley_druckenmiller_agent'],
-			llm=RESEARCH_MODEL,
+			llm=EXPERT_ANALYSIS_MODEL,
 			tools=[
 				YFinanceDruckenmillerAnalysisTool()
 			],

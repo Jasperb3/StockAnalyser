@@ -3,20 +3,24 @@ import yfinance as yf
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from stock_analyser.tools.tool_utils.news_sentiment_util import get_news_sentiment_scores, get_news
+from stock_analyser.tools.tool_utils.news_sentiment_util import (
+    get_news_sentiment_scores,
+)
+from stock_analyser.utils.convert_currency import convert_currency
 
 today = datetime.now().strftime("%Y-%m-%d")
+
 
 def get_ticker(ticker: str):
     """
     Get a yfinance Ticker object for the given ticker symbol.
-    
+
     Args:
         ticker (str): The stock ticker symbol
-        
+
     Returns:
         yf.Ticker: A yfinance Ticker object
-        
+
     Raises:
         Exception: If ticker data cannot be retrieved
     """
@@ -24,23 +28,23 @@ def get_ticker(ticker: str):
         return yf.Ticker(ticker.upper())
     except Exception as e:
         raise Exception(f"Failed to get ticker data for {ticker}: {str(e)}")
-    
+
 
 def safe_get_row(df: pd.DataFrame, row_name: str, alternative_names=None):
     """
     Safely get a row from a DataFrame, handling KeyError and empty DataFrames.
-    
+
     Args:
         df (pd.DataFrame): The DataFrame to get the row from
         row_name (str): The name of the row to get
         alternative_names (list, optional): Alternative names to try if row_name is not found
-        
+
     Returns:
         pd.Series or None: The row data or None if not found
     """
     if df is None or df.empty:
         return None
-    
+
     try:
         return df.loc[row_name]
     except KeyError:
@@ -56,21 +60,20 @@ def safe_get_row(df: pd.DataFrame, row_name: str, alternative_names=None):
 def filter_valid_values(series):
     """
     Filter a series to only include valid numeric values (not None or NaN).
-    
+
     Args:
         series: A pandas Series or list-like object
-        
+
     Returns:
         list: A list of valid numeric values
     """
     if series is None:
         return []
-    
+
     if isinstance(series, pd.Series):
         return [val for val in series if val is not None and not np.isnan(val)]
     else:
         return [val for val in series if val is not None and not np.isnan(val)]
-    
 
 
 def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
@@ -93,14 +96,14 @@ def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
     financials = company_ticker.financials
     if financials.empty:
         return {"score": 0, "max_score": 0, "details": "No financial data available"}
-        
+
     revenue_df = safe_get_row(financials, "Total Revenue", ["Revenue", "Revenues"])
-    
+
     if revenue_df is None:
         details.append("Revenue data not available in financial statements.")
     else:
         revenues = filter_valid_values(revenue_df)
-        
+
     if len(revenues) >= 2:
         try:
             # Check if overall revenue grew from first to last
@@ -118,23 +121,30 @@ def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
                 rev_growth = (latest - earliest) / abs(earliest)
                 if rev_growth > 0.3:
                     raw_score += 3
-                    details.append(f"Strong revenue growth: {(rev_growth*100):.1f}% over the full period.")
+                    details.append(
+                        f"Strong revenue growth: {(rev_growth * 100):.1f}% over the full period."
+                    )
                 elif rev_growth > 0.15:
                     raw_score += 2
-                    details.append(f"Moderate revenue growth: {(rev_growth*100):.1f}% over the full period.")
+                    details.append(
+                        f"Moderate revenue growth: {(rev_growth * 100):.1f}% over the full period."
+                    )
                 elif rev_growth > 0.05:
                     raw_score += 1
-                    details.append(f"Slight growth: ({(rev_growth*100):.1f}%).")
+                    details.append(f"Slight growth: ({(rev_growth * 100):.1f}%).")
                 else:
-                    details.append(f"No growth or decline in revenue: {(rev_growth*100):.1f}%.")
+                    details.append(
+                        f"No growth or decline in revenue: {(rev_growth * 100):.1f}%."
+                    )
 
             else:
-                details.append("Older revenue is zero/negative; can't compute revenue growth.")
+                details.append(
+                    "Older revenue is zero/negative; can't compute revenue growth."
+                )
         except Exception as e:
             details.append(f"Error calculating revenue growth: {str(e)}")
     else:
         details.append("Not enough revenue data to calculate growth.")
-
 
     #
     # 2. EPS Growth
@@ -161,15 +171,21 @@ def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
                 eps_growth = (latest - earliest) / abs(earliest)
                 if eps_growth > 0.3:
                     raw_score += 3
-                    details.append(f"Strong EPS growth: {(eps_growth*100):.1f}% over the full period.")
+                    details.append(
+                        f"Strong EPS growth: {(eps_growth * 100):.1f}% over the full period."
+                    )
                 elif eps_growth > 0.15:
                     raw_score += 2
-                    details.append(f"Moderate EPS growth: {(eps_growth*100):.1f}% over the full period.")
+                    details.append(
+                        f"Moderate EPS growth: {(eps_growth * 100):.1f}% over the full period."
+                    )
                 elif eps_growth > 0.05:
                     raw_score += 1
-                    details.append(f"Slight growth: ({(eps_growth*100):.1f}%).")
+                    details.append(f"Slight growth: ({(eps_growth * 100):.1f}%).")
                 else:
-                    details.append(f"Minimal/negative EPS growth: {(eps_growth*100):.1f}%.")
+                    details.append(
+                        f"Minimal/negative EPS growth: {(eps_growth * 100):.1f}%."
+                    )
 
             else:
                 details.append("Older EPS is zero/negative; can't compute EPS growth.")
@@ -177,8 +193,7 @@ def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
             details.append(f"Error calculating EPS growth: {str(e)}")
     else:
         details.append("Not enough EPS data to calculate growth.")
-        
-    
+
     #
     # 3. Price Momentum
     #
@@ -197,25 +212,35 @@ def analyze_growth_and_momentum(ticker: str, prices: pd.DataFrame):
 
                 if pct_change > 0.5:
                     raw_score += 3
-                    details.append(f"Very strong price momentum: {(pct_change*100):.1f}% over the full period.")
+                    details.append(
+                        f"Very strong price momentum: {(pct_change * 100):.1f}% over the full period."
+                    )
                 elif pct_change > 0.2:
                     raw_score += 2
-                    details.append(f"Moderate price momentum: {(pct_change*100):.1f}% over the full period.")
+                    details.append(
+                        f"Moderate price momentum: {(pct_change * 100):.1f}% over the full period."
+                    )
                 elif pct_change > 0.0:
                     raw_score += 1
-                    details.append(f"Slight positive momentum: {(pct_change*100):.1f}% over the full period.")
+                    details.append(
+                        f"Slight positive momentum: {(pct_change * 100):.1f}% over the full period."
+                    )
                 else:
-                    details.append(f"Negative price momentum: {(pct_change*100):.1f}%.")
+                    details.append(
+                        f"Negative price momentum: {(pct_change * 100):.1f}%."
+                    )
 
             else:
-                details.append("Start price is zero/negative; can't compute price momentum.")
+                details.append(
+                    "Start price is zero/negative; can't compute price momentum."
+                )
 
         else:
             details.append("Insufficient price data to calculate momentum.")
 
     else:
         details.append("Not enough price data to calculate momentum.")
-                           
+
     # We assigned up to 3 points each for:
     #   revenue growth, eps growth, momentum
     # => max raw_score = 9
@@ -240,17 +265,17 @@ def analyze_insider_activity(insider_trades: pd.DataFrame) -> dict:
     if insider_trades.empty:
         details.append("No insider trades data available; defaulting to neutral.")
         return {"score": score, "details": "; ".join(details)}
-    
+
     buys, sells = insider_trades["Trans"].iloc[0], insider_trades["Trans"].iloc[1]
-    
+
     total = buys + sells
 
     if total == 0:
         details.append("No insider trades data available; defaulting to neutral.")
         return {"score": score, "details": "; ".join(details)}
-    
+
     buy_ratio = buys / total
-    
+
     if buy_ratio > 0.7:
         # Heavy buying => +3 points from the neutral 5 => 8
         score = 8
@@ -265,18 +290,20 @@ def analyze_insider_activity(insider_trades: pd.DataFrame) -> dict:
         details.append(f"Mostly insider selling: {buys} buys vs. {sells} sells")
 
     return {"score": score, "details": "; ".join(details)}
-    
 
 
 def analyze_sentiment(ticker: str) -> dict:
     """
     Analyze the sentiment of a stock.
     """
-        
+
     sentiment_score = get_news_sentiment_scores(ticker, 7)
 
     if not sentiment_score:
-        return {"score": 5, "details": "No sentiment data; defaulting to neutral sentiment"}
+        return {
+            "score": 5,
+            "details": "No sentiment data; defaulting to neutral sentiment",
+        }
 
     details = []
     if sentiment_score < -30:
@@ -310,7 +337,7 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
     company_ticker = get_ticker(ticker)
     if prices.empty:
         return {"score": 0, "details": "Insufficient data for risk-reward analysis"}
-    
+
     details = []
 
     raw_score = 0  # We'll accumulate up to 6 raw points, then scale to 0-10
@@ -322,11 +349,16 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
     balance_sheet = company_ticker.balance_sheet
     if balance_sheet.empty:
         return {"score": 0, "max_score": 0, "details": "No financial data available"}
-    
+
     debt_values = safe_get_row(balance_sheet, "Total Debt", ["Current Debt"])
     equity_values = safe_get_row(balance_sheet, "Stockholders Equity")
 
-    if not debt_values.empty and not equity_values.empty and len(debt_values) == len(equity_values) and len(debt_values) > 0:
+    if (
+        not debt_values.empty
+        and not equity_values.empty
+        and len(debt_values) == len(equity_values)
+        and len(debt_values) > 0
+    ):
         recent_debt = debt_values.iloc[0]
         recent_equity = equity_values.iloc[0] if equity_values.iloc[0] else 1e-9
         de_ratio = recent_debt / recent_equity
@@ -346,7 +378,6 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
     else:
         details.append("No consistent debt/equity data available.")
 
-    
     #
     # 2. Price Volatility
     #
@@ -359,7 +390,9 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
             for i in range(1, len(close_prices)):
                 prev_close = close_prices.iloc[i - 1]
                 if prev_close > 0:
-                    daily_returns.append((close_prices.iloc[i] - prev_close) / prev_close)
+                    daily_returns.append(
+                        (close_prices.iloc[i] - prev_close) / prev_close
+                    )
             if daily_returns:
                 stdev = statistics.pstdev(daily_returns)  # population stdev
                 if stdev < 0.01:
@@ -367,16 +400,22 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
                     details.append(f"Low volatility: daily returns stdev {stdev:.2%}")
                 elif stdev < 0.02:
                     raw_score += 2
-                    details.append(f"Moderate volatility: daily returns stdev {stdev:.2%}")
+                    details.append(
+                        f"Moderate volatility: daily returns stdev {stdev:.2%}"
+                    )
                 elif stdev < 0.04:
                     raw_score += 1
                     details.append(f"High volatility: daily returns stdev {stdev:.2%}")
                 else:
-                    details.append(f"Very high volatility: daily returns stdev {stdev:.2%}")
+                    details.append(
+                        f"Very high volatility: daily returns stdev {stdev:.2%}"
+                    )
             else:
                 details.append("Insufficient daily returns data for volatility calc.")
         else:
-            details.append("Not enough close-price data points for volatility analysis.")
+            details.append(
+                "Not enough close-price data points for volatility analysis."
+            )
     else:
         details.append("Not enough price data for volatility analysis.")
 
@@ -385,7 +424,7 @@ def analyze_risk_reward(ticker: str, prices: pd.DataFrame):
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_druckenmiller_valuation(ticker: str, market_cap: float):
+def analyze_druckenmiller_valuation(ticker: str):
     """
     Druckenmiller is willing to pay up for growth, but still checks:
       - P/E
@@ -396,12 +435,32 @@ def analyze_druckenmiller_valuation(ticker: str, market_cap: float):
     """
 
     company_ticker = get_ticker(ticker)
+    exchange_rate = convert_currency(ticker)
 
-    financials = company_ticker.financials
-    cash_flow = company_ticker.cashflow
-    balance_sheet = company_ticker.balance_sheet
-    if financials.empty or cash_flow.empty or balance_sheet.empty:
+    try:
+        financials = company_ticker.financials.apply(lambda x: x * exchange_rate)
+        cash_flow = company_ticker.cashflow.apply(lambda x: x * exchange_rate)
+        balance_sheet = company_ticker.balance_sheet.apply(lambda x: x * exchange_rate)
+        market_cap = company_ticker.info["marketCap"]
+    except Exception as e:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Error retrieving financial data: {str(e)}",
+        }
+
+    if financials.empty:
         return {"score": 0, "max_score": 0, "details": "No financial data available"}
+
+    if cash_flow.empty:
+        return {"score": 0, "max_score": 0, "details": "No cash flow data available"}
+
+    if balance_sheet.empty:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": "No balance sheet data available",
+        }
 
     if not market_cap:
         return {"score": 0, "details": "Insufficient data to perform valuation"}
@@ -416,8 +475,12 @@ def analyze_druckenmiller_valuation(ticker: str, market_cap: float):
     ebitda_values = filter_valid_values(safe_get_row(financials, "EBITDA"))
 
     # For EV calculation, let's get the most recent total_debt & cash
-    debt_values = filter_valid_values(safe_get_row(balance_sheet, "Total Debt", ["Current Debt"]))
-    cash_values = filter_valid_values(safe_get_row(financials, "Cash and Cash Equivalents")) # Consider adding alternative names if necessary.
+    debt_values = filter_valid_values(
+        safe_get_row(balance_sheet, "Total Debt", ["Current Debt"])
+    )
+    cash_values = filter_valid_values(
+        safe_get_row(financials, "Cash and Cash Equivalents")
+    )  # Consider adding alternative names if necessary.
     recent_debt = debt_values[0] if debt_values else 0
     recent_cash = cash_values[0] if cash_values else 0
 
@@ -496,8 +559,6 @@ def analyze_druckenmiller_valuation(ticker: str, market_cap: float):
     final_score = min(10, (raw_score / 8) * 10)
 
     return {"score": final_score, "details": "; ".join(details)}
-        
-
 
 
 def calculate_druckenmiller_data(ticker: str):
@@ -506,7 +567,6 @@ def calculate_druckenmiller_data(ticker: str):
     """
 
     company_ticker = get_ticker(ticker)
-    market_cap = company_ticker.info['marketCap']
 
     insider_trades = company_ticker.insider_purchases
 
@@ -520,7 +580,7 @@ def calculate_druckenmiller_data(ticker: str):
 
     risk_reward_analysis = analyze_risk_reward(ticker, prices)
 
-    valuation_analysis = analyze_druckenmiller_valuation(ticker, market_cap)
+    valuation_analysis = analyze_druckenmiller_valuation(ticker)
 
     # Combine partial scores with weights typical for Druckenmiller:
     #   35% Growth/Momentum, 20% Risk/Reward, 20% Valuation,

@@ -4,6 +4,7 @@ import yfinance as yf
 from pprint import pprint
 from datetime import datetime
 from typing import Type, List
+from stock_analyser.utils.convert_currency import convert_currency
 
 # Define the input schema using Pydantic
 class YFinanceCompetitorKPIsToolInput(BaseModel):
@@ -29,6 +30,8 @@ class YFinanceCompetitorKPIsTool(BaseTool):
             
             # Get the info dictionary
             info = stock.info
+
+            exchange_rate = convert_currency(ticker)
             
             # Get historical data
             history = stock.history(period="5y")
@@ -53,21 +56,21 @@ class YFinanceCompetitorKPIsTool(BaseTool):
                 'Industry': info.get('industry', 'N/A'),
 
                 # Price Information
-                'Current Price': f"${info.get('currentPrice', 'N/A')}" if info.get('currentPrice') else 'N/A',
-                '52-Week High': f"${round(week_52_high, 2)}" if week_52_high else 'N/A',
-                '52-Week Low': f"${round(week_52_low, 2)}" if week_52_low else 'N/A',
-                '50 Day Average': f"${info.get('fiftyDayAverage', 'N/A'):.2f}" if info.get('fiftyDayAverage') else 'N/A',
+                'Current Price': f"${info.get('currentPrice')}" if info.get('currentPrice') else 'N/A',
+                '52-Week High': f"${week_52_high}" if week_52_high else 'N/A',
+                '52-Week Low': f"${week_52_low}" if week_52_low else 'N/A',
+                '50 Day Average': f"${info.get('fiftyDayAverage')}" if info.get('fiftyDayAverage') else 'N/A',
                 '50 Day Average Change': info.get('fiftyDayAverageChangePercent', 'N/A'),
-                '200 Day Average': f"${info.get('twoHundredDayAverage', 'N/A'):.2f}" if info.get('twoHundredDayAverage') else 'N/A',
+                '200 Day Average': f"${info.get('twoHundredDayAverage')}" if info.get('twoHundredDayAverage') else 'N/A',
                 '200 Day Average Change': info.get('twoHundredDayAverageChangePercent', 'N/A'),
-                'Previous Close': f"${info.get('previousClose', 'N/A')}" if info.get('previousClose') else 'N/A',
+                'Previous Close': f"${info.get('previousClose')}" if info.get('previousClose') else 'N/A',
 
                 # Valuation
-                'Market Cap': f"${info.get('marketCap', 'N/A'):,}" if info.get('marketCap') else 'N/A',
-                'Enterprise Value': f"${info.get('enterpriseValue', 'N/A'):,}" if info.get('enterpriseValue') else 'N/A',
+                'Market Cap': f"${info.get('marketCap'):,}" if info.get('marketCap') else 'N/A',
+                'Enterprise Value': f"${info.get('enterpriseValue'):,}" if info.get('enterpriseValue') else 'N/A',
                 'P/E Ratio (Trailing)': info.get('trailingPE', 'N/A'),
                 'Forward P/E Ratio': info.get('forwardPE', 'N/A'),
-                'Price to Sales Trailing 12 Months': f"${info.get('priceToSalesTrailing12Months', 'N/A'):.2f}" if info.get('priceToSalesTrailing12Months') else 'N/A',
+                'Price to Sales Trailing 12 Months': f"${info.get('priceToSalesTrailing12Months'):.2f}" if info.get('priceToSalesTrailing12Months') else 'N/A',
                 'P/B Ratio': info.get('priceToBook', 'N/A'),
                 'Enterprise to Revenue': info.get('enterpriseToRevenue', 'N/A'),
                 'Enterprise to EBITDA': info.get('enterpriseToEbitda', 'N/A'),
@@ -82,13 +85,13 @@ class YFinanceCompetitorKPIsTool(BaseTool):
                 "EBITDA Margin": info.get('ebitdaMargins', 'N/A'),
 
                 # Financial Health
-                'Total Cash': f"${info.get('totalCash', 'N/A'):,}" if info.get('totalCash') else 'N/A',
-                'Total Debt': f"${info.get('totalDebt', 'N/A'):,}" if info.get('totalDebt') else 'N/A',
+                'Total Cash': f"${info.get('totalCash') * exchange_rate:,.0f}" if info.get('totalCash') else 'N/A',
+                'Total Debt': f"${info.get('totalDebt') * exchange_rate:,.0f}" if info.get('totalDebt') else 'N/A',
                 'Debt-to-Equity Ratio': info.get('debtToEquity', 'N/A'),
                 'Current Ratio': info.get('currentRatio', 'N/A'),
                 'Quick Ratio': info.get('quickRatio', 'N/A'),
-                'Operating Cashflow': f"${info.get('operatingCashflow', 'N/A'):,}" if info.get('operatingCashflow') else 'N/A',
-                'Free Cash Flow': f"${info.get('freeCashflow', 'N/A'):,}" if info.get('freeCashflow') else 'N/A',
+                'Operating Cashflow': f"${info.get('operatingCashflow') * exchange_rate:,.0f}" if info.get('operatingCashflow') else 'N/A',
+                'Free Cash Flow': f"${info.get('freeCashflow') * exchange_rate:,.0f}" if info.get('freeCashflow') else 'N/A',
 
                 # Dividends
                 'Dividend Rate': info.get('dividendRate', 'N/A'),
@@ -112,7 +115,7 @@ class YFinanceCompetitorKPIsTool(BaseTool):
                 'Held Percent Institutions': info.get('heldPercentInstitutions', 'N/A'),
 
                 # Analyst Ratings and Targets
-                'Analyst Target Price': f"${info.get('targetMedianPrice', 'N/A')}" if info.get('targetMedianPrice') else 'N/A',
+                'Analyst Target Price': f"${info.get('targetMedianPrice')}" if info.get('targetMedianPrice') else 'N/A',
                 'Average Analyst Rating': info.get('averageAnalystRating', 'N/A'),
                 'Recommendation': info.get('recommendationKey', 'N/A'),
                 'Number of Analyst Opinions': info.get('numberOfAnalystOpinions', 'N/A'),
@@ -148,5 +151,5 @@ class YFinanceCompetitorKPIsTool(BaseTool):
 
 if __name__ == "__main__":
     tool_instance = YFinanceCompetitorKPIsTool()
-    nvidia_analysis = tool_instance.run(tickers=['NVDA', 'AAPL', 'GOOG'])
+    nvidia_analysis = tool_instance.run(tickers=['NVDA', 'MANU', 'HMC', 'SKBSY'])
     pprint(nvidia_analysis)

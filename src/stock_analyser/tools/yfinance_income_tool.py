@@ -2,6 +2,7 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 import yfinance as yf
 from datetime import datetime, timedelta
+from stock_analyser.utils.convert_currency import convert_currency
 from typing import Type
 import pandas as pd
 
@@ -26,7 +27,12 @@ class YFinanceIncomeTool(BaseTool):
         """
         # Fetch the stock data
         stock = yf.Ticker(ticker)
+
+        exchange_rate = convert_currency(ticker)
+
         income_statement = stock.income_stmt
+        if income_statement is not None and not income_statement.empty and (income_statement != 0).any().any():
+            income_statement = income_statement.map(lambda x: x * exchange_rate if isinstance(x, (int, float)) else x)
 
         # Convert the income statement to a human-readable format
         output = f"\nIncome statement for {ticker} for the last {years} years:\n\n"

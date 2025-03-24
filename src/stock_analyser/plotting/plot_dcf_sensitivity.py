@@ -2,6 +2,8 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from stock_analyser.utils.constants import FONT_FAMILY
+from stock_analyser.utils.convert_currency import convert_currency
 
 
 def interpolate(initial_value, terminal_value, nyears):
@@ -41,9 +43,10 @@ def get_cost_of_equity(ticker: str):
 
 def calculate_cost_of_debt(ticker: str):
     stock = yf.Ticker(ticker)
-    debt = stock.info.get('totalDebt')
+    exchange_rate = convert_currency(ticker)
+    debt = stock.info.get('totalDebt') * exchange_rate
     # print(f"Total Debt: ${debt:,.2f}")
-    interest_expense = stock.financials.loc['Interest Expense'].dropna().iloc[0]
+    interest_expense = stock.financials.loc['Interest Expense'].dropna().iloc[0] * exchange_rate
     # print(f"Interest Expense: ${interest_expense:,.2f}")
     tax_rate = stock.financials.loc['Tax Rate For Calcs'].dropna().iloc[0]
     # print(f"Tax Rate: {tax_rate:.2%}")
@@ -57,11 +60,12 @@ def calculate_cost_of_debt(ticker: str):
 def get_WACC(ticker: str, tax_perc_T: float):
 
     stock = yf.Ticker(ticker)
+    exchange_rate = convert_currency(ticker)
     cost_of_equity = get_cost_of_equity(ticker)
     cost_of_debt = calculate_cost_of_debt(ticker)
     market_cap = stock.info.get('marketCap')
     # print(f"Market Cap: ${market_cap:,.2f}")
-    debt = stock.info.get("totalDebt")
+    debt = stock.info.get("totalDebt") * exchange_rate
     # print(f"Debt (from balance sheet): ${debt:,.2f}")
     total = market_cap + debt
     # print(f"Total (Market Cap + Debt): ${total:,.2f}")
@@ -75,11 +79,12 @@ def get_WACC(ticker: str, tax_perc_T: float):
 
 def get_data(ticker: str):
     stock = yf.Ticker(ticker)
-
+    exchange_rate = convert_currency(ticker)
+    
     #download BS, IS, CFS from EOD historical data
-    balance_sheet = stock.balance_sheet
-    income_statment = stock.income_stmt
-    cash_flow = stock.cash_flow
+    balance_sheet = stock.balance_sheet.apply(lambda x: x * exchange_rate)
+    income_statment = stock.financials.apply(lambda x: x * exchange_rate)
+    cash_flow = stock.cashflow.apply(lambda x: x * exchange_rate)
 
 
     # transpose and concatenate
@@ -176,10 +181,13 @@ def calculate_implied_share_price(ticker,
 
 def plot_dcf_sensitivity(ticker: str, output_dir: str, timestamp: str):
     stock = yf.Ticker(ticker)
-    company_name = stock.info.get('shortName')
+    company_name = stock.info.get('displayName') if stock.info.get('displayName') else stock.info.get('shortName')
     OutShares = stock.info.get('sharesOutstanding')
     file_path = f'{output_dir}/{ticker}_sensitivity_analysis_{timestamp}.png'
 
+    # Fetch data once outside the loop
+    df = get_data(ticker)
+    
     # Define the range of WACC and TGR values
     waccs = np.linspace(0.06, 0.18, 25)  
     tgrs = np.linspace(0.01, 0.04, 25)
@@ -189,29 +197,73 @@ def plot_dcf_sensitivity(ticker: str, output_dir: str, timestamp: str):
 
     # Calculate NPV for each combination of cost of debt and growth rate
     dcf_results = np.zeros_like(waccs_mesh)
+    
+    # Pre-calculate common parameters once
+    last_year = df.iloc[-1, :]
+    n = 10
+    revenue_growth_T = 0.07
+    ebit_perc_T = 0.23
+    tax_perc_T = 0.21
+    dna_perc_T = 0.03
+    capex_perc_T = 0.05
+    nwc_perc_T = 0.05
+    
+    # Get these values once
+    cash = last_year["Cash And Cash Equivalents"]
+    debt = stock.info.get("totalDebt")
+    
     for i in range(len(tgrs)):
-        for j in range(len(waccs)):            
-            dcf_results[i, j] = calculate_implied_share_price(ticker,
-                                                              n=10,
-                                                              OutShares=OutShares,
-                                                              revenue_growth_T=0.07,
-                                                              ebit_perc_T=0.23,
-                                                              tax_perc_T=0.21,
-                                                              dna_perc_T=0.03,
-                                                              capex_perc_T=0.05,
-                                                              nwc_perc_T=0.05,
-                                                              WACC=waccs[j],
-                                                              TGR=tgrs[i])
+        for j in range(len(waccs)):
+            # Create a new DataFrame for projections
+            years = range(df.index[-1]+1, df.index[-1] + n + 1)
+            df_proj = pd.DataFrame(index=years, columns=df.columns)
+
+            # Generate projected values
+            df_proj["rev_growth"] = interpolate(last_year["rev_growth"], revenue_growth_T, n)
+            df_proj["ebit_of_sales"] = interpolate(last_year["ebit_of_sales"], ebit_perc_T, n)
+            df_proj["dna_of_sales"] = interpolate(last_year["dna_of_sales"], dna_perc_T, n)
+            df_proj["capex_of_sales"] = interpolate(last_year["capex_of_sales"], capex_perc_T, n)
+            df_proj["tax_of_ebit"] = interpolate(last_year["tax_of_ebit"], tax_perc_T, n)
+            df_proj["nwc_of_sales"] = interpolate(last_year["nwc_of_sales"], nwc_perc_T, n)
+
+            df_proj["totalRevenue"] = last_year["Total Revenue"] * (1 + df_proj["rev_growth"]).cumprod()
+            df_proj["ebit"] = df_proj["totalRevenue"] * df_proj["ebit_of_sales"]
+            df_proj["capitalExpenditures"] = df_proj["totalRevenue"] * df_proj["capex_of_sales"] * -1
+            df_proj["depreciationAndAmortization"] = df_proj["totalRevenue"] * df_proj["dna_of_sales"]
+            df_proj["delta_nwc"] = df_proj["totalRevenue"] * df_proj["nwc_of_sales"] * -1
+            df_proj["taxProvision"] = df_proj["ebit"] * df_proj["tax_of_ebit"]
+            df_proj["ebiat"] = df_proj["ebit"] - df_proj["taxProvision"]
+            df_proj["freeCashFlow"] = df_proj["ebiat"] + df_proj["depreciationAndAmortization"] - df_proj["capitalExpenditures"] - df_proj["delta_nwc"]
+
+            # Calculate present value with current WACC
+            current_wacc = waccs[j]
+            df_proj["pv_FCF"] = calculate_present_value(df_proj["freeCashFlow"].values, current_wacc)
+
+            # Calculate terminal value with current TGR and WACC
+            current_tgr = tgrs[i]
+            terminal_value = df_proj["freeCashFlow"].values[-1] * (1 + current_tgr) / (current_wacc - current_tgr)
+            pv_terminal_value = terminal_value/(1 + current_wacc)**n
+
+            # Calculate enterprise value
+            enterprise_value = np.sum(df_proj["pv_FCF"]) + pv_terminal_value
+
+            # Calculate equity value
+            eq_value = enterprise_value - debt + cash
+
+            # Calculate implied share price
+            implied_share_price = eq_value/OutShares
+            
+            dcf_results[i, j] = implied_share_price
             
     fig = plt.figure(figsize=(16, 9))  # Adjust figure size
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(waccs_mesh, tgrs_mesh, dcf_results, cmap='viridis') #Change color map
     # fig.colorbar(surf, ax = ax) #add color bar
 
-    ax.set_xlabel('Weighted Average Cost of Capital (WACC)', fontsize=12, labelpad=10)
-    ax.set_ylabel('Terminal Growth Rate', fontsize=12, labelpad=10)
-    ax.set_zlabel('Implied Share Price', fontsize=12, labelpad=10)
-    ax.set_title(f'{company_name} Sensitivity Analysis', fontsize=24, fontweight='bold', pad=1)
+    ax.set_xlabel('Weighted Average Cost of Capital (WACC)', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_ylabel('Terminal Growth Rate', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_zlabel('Implied Share Price ($)', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_title(f'{company_name} DCF Sensitivity Analysis', fontsize=24, fontweight='bold', pad=1, fontfamily=FONT_FAMILY)
 
     # Format tick labels as percentages
     ax.set_xticks(np.linspace(waccs.min(), waccs.max(), 5))
@@ -223,8 +275,8 @@ def plot_dcf_sensitivity(ticker: str, output_dir: str, timestamp: str):
     ax.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(file_path)
-
+    plt.savefig(file_path, dpi=300)
+    print(f"Sensitivity analysis saved to {file_path}")
     return file_path
 
 
@@ -247,7 +299,7 @@ if __name__ == "__main__":
     # Terminal Growth Rate = 2.5%
     TGR = 0.025
 
-    ticker = "AAPL"
+    ticker = "AMZN"
     output_dir = "plots/sensitivity_anal"
     timestamp = '2025-03-17_012000'
     stock = yf.Ticker(ticker)
@@ -273,4 +325,3 @@ if __name__ == "__main__":
     price = calculate_implied_share_price(ticker, **inputs)
     print(f"Estimated Implied Share Price for {ticker}: ${price:.2f}")
     plot_file_path = plot_dcf_sensitivity(ticker, output_dir, timestamp)
-    print(f"Sensitivity analysis saved to {plot_file_path}")

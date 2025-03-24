@@ -182,8 +182,8 @@ def plot_intrinsic_values(results):
     # Calculate statistics
     eps_mean = np.mean(eps_values)
     fcf_mean = np.mean(fcf_values)
-    eps_median = np.median(eps_values)
-    fcf_median = np.median(fcf_values)
+    # eps_median = np.median(eps_values)
+    # fcf_median = np.median(fcf_values)
     
     # Plot intrinsic values
     ax1.scatter(range(len(eps_values)), eps_values, color='blue', alpha=0.5, label='EPS-based')

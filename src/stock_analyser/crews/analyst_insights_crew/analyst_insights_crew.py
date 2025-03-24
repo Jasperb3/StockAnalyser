@@ -4,12 +4,9 @@ from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITI
 from stock_analyser.utils.models import ReportCritique, AnalystsInsightsModel
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai_tools import EXASearchTool, QdrantVectorSearchTool
-from stock_analyser.utils.embeddings_fn import custom_gemini_embedding_fn
+from crewai_tools import EXASearchTool
 from stock_analyser.tools.calculator_tool import CalculatorTool
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
-from stock_analyser.tools.filings_search_tool import FilingsSearchTool
-from stock_analyser.tools.qdrant_sec_filings_search_tool import QdrantSECFilingsSearchTool
 from stock_analyser.tools.yfinance_analysis_and_holdings_tool import YFinanceAnalysisAndHoldingsTool
 from stock_analyser.tools.yfinance_income_tool import YFinanceIncomeTool
 from stock_analyser.tools.yfinance_swing_trading_tool import YFinanceSwingTradingTool
@@ -17,22 +14,6 @@ from stock_analyser.tools.yfinance_swing_trading_tool import YFinanceSwingTradin
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# qdrant_tool = QdrantVectorSearchTool(
-#     qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
-#     qdrant_api_key=os.getenv("QDRANT_API_KEY"),
-#     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
-#     limit=5,
-#     score_threshold=0.35,
-# 	custom_embedding_fn=custom_gemini_embedding_fn,
-# 	description = "Use this tool to perform a vector search of the SEC filings."
-# )
-
-qdrant_sec_filings_tool = QdrantSECFilingsSearchTool(
-	qdrant_url=os.getenv("QDRANT_CLUSTER_URL"),
-    qdrant_api_key=os.getenv("QDRANT_API_KEY"),
-    collection_name=os.getenv("QDRANT_COLLECTION_NAME")
-)
 
 exa_api_key = os.getenv("EXA_API_KEY")
 exasearch_tool = EXASearchTool(api_key=exa_api_key, content=True, summary=True)
@@ -55,7 +36,6 @@ class AnalystInsightsCrew():
 				YFinanceAnalysisAndHoldingsTool(),
 				YFinanceIncomeTool(),
 				YFinanceSwingTradingTool(),
-				GeminiSearchTool(),
 				CalculatorTool(),
 				# FilingsSearchTool(
 				# 	config=dict(
@@ -100,6 +80,9 @@ class AnalystInsightsCrew():
 	def editor(self) -> Agent:
 		return Agent(
 			config=self.agents_config['editor'],
+			tools=[
+				GeminiSearchTool()
+			],
 			llm=EDITOR_MODEL,
 			verbose=True
 		)

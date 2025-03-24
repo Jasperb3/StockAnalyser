@@ -7,6 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
+from stock_analyser.utils.constants import FONT_FAMILY
 
 # Set the style for all plots
 plt.style.use('seaborn-v0_8-darkgrid')
@@ -107,9 +108,9 @@ def plot_supertrend(df, filename='supertrend_plot.png', output_dir='plots'):
     
     # Add title and labels with better styling
     symbol = filename.split('_')[0]
-    ax.set_title(f'Supertrend Analysis: {symbol}', fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Date', fontsize=12, labelpad=10)
-    ax.set_ylabel('Price', fontsize=12, labelpad=10)
+    ax.set_title(f'Supertrend Analysis: {symbol}', fontsize=16, fontweight='bold', pad=20, fontfamily=FONT_FAMILY)
+    ax.set_xlabel('Date', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_ylabel('Price', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
     
     # Improve the legend
     ax.legend(loc='upper left', frameon=True, framealpha=0.9, fontsize=10)
@@ -131,7 +132,7 @@ def plot_supertrend(df, filename='supertrend_plot.png', output_dir='plots'):
             textstr = f'ATR Period: {period}\nMultiplier: {mult}'
             props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
             ax.text(0.05, 0.80, textstr, transform=ax.transAxes, fontsize=10,
-                    verticalalignment='top', bbox=props)
+                    verticalalignment='top', bbox=props, fontfamily=FONT_FAMILY)
         except:
             pass
     
@@ -222,9 +223,9 @@ def plot_backtest(df, entry, exit, filename='backtest_plot.png', output_dir='plo
     
     # Add title and labels with better styling
     symbol = filename.split('_')[0]
-    ax.set_title(f'Supertrend Backtest: {symbol}', fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Date', fontsize=12, labelpad=10)
-    ax.set_ylabel('Price', fontsize=12, labelpad=10)
+    ax.set_title(f'Supertrend Backtest: {symbol}', fontsize=16, fontweight='bold', pad=20, fontfamily=FONT_FAMILY)
+    ax.set_xlabel('Date', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
+    ax.set_ylabel('Price', fontsize=12, labelpad=10, fontfamily=FONT_FAMILY)
     
     # Improve the legend
     ax.legend(loc='upper left', frameon=True, framealpha=0.9, fontsize=10)
@@ -269,7 +270,7 @@ def plot_backtest(df, entry, exit, filename='backtest_plot.png', output_dir='plo
         roi_text = f'ROI: {roi}%\nTrades: {len(entry)}'
         props = dict(boxstyle='round,pad=0.5', facecolor='wheat', alpha=0.7)
         ax.text(0.05, 0.80, roi_text, transform=ax.transAxes, fontsize=12,
-                verticalalignment='top', bbox=props)
+                verticalalignment='top', bbox=props, fontfamily=FONT_FAMILY)
     
     # Create directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
