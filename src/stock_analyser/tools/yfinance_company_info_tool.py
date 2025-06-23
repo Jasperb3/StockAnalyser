@@ -52,7 +52,7 @@ class YFinanceCompanyInfoTool(BaseTool):
         # Prepare the analysis results
         company_info = {
             'Ticker Symbol': ticker,
-            'Company Name': info.get('longName', 'N/A'),
+            'Company Name': info.get('displayName', info.get('shortName', info.get('longName', ticker))),
             'Sector': info.get('sector', 'N/A'),
             'Industry': info.get('industry', 'N/A'),
             'Website': info.get('website', 'N/A'),

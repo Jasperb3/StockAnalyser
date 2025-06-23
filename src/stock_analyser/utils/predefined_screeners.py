@@ -29,15 +29,16 @@ def make_predefined_query(index: str):
     sorted_quotes = sorted(quotes, key=lambda x: x.get('ask', '0'))
 
     for quote in sorted_quotes:
-        name = quote.get('displayName') if quote.get('displayName') else quote.get('symbol')
+        symbol = quote.get('symbol')
+        name = quote.get('displayName') if quote.get('displayName') else symbol
         price = quote.get('ask')
         av_rating = quote.get('averageAnalystRating')
-        print(f"{name} - ${price} - av.rating: {av_rating}")
+        print(f"{name} ({symbol}) - ${price} - av.rating: {av_rating}")
     return quotes
 
 
 
 
 if __name__ == "__main__":
-    query = make_predefined_query('8')
+    query = make_predefined_query('4')
     # print(query)

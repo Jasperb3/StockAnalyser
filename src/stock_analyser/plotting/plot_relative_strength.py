@@ -1,6 +1,5 @@
 import yfinance as yf
-import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from stock_analyser.utils.constants import FONT_FAMILY
@@ -13,8 +12,8 @@ def fetch_data(ticker):
 
     sp500 = yf.Ticker('^GSPC')
 
-    start_date = '2024-01-01'
     end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 
     # stock prices data
     stock_prices = stock.history(start=start_date, end=end_date)

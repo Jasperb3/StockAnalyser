@@ -500,6 +500,6 @@ class YFinanceFinancialMetricsTool(BaseTool):
 
 
 if __name__ == "__main__":
-    financial_metrics_tool = FinancialMetricsTool()
+    financial_metrics_tool = YFinanceFinancialMetricsTool()
     tool_results = financial_metrics_tool.run(ticker='ACN')
     print(tool_results)

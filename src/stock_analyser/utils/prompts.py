@@ -34,9 +34,10 @@ data_research_guidelines = """
         * Use the percentage symbol (%) after the number, with no space.
         * Example: 25.5%
     * Decimal Places:
-        * Generally, use one or two decimal places. The appropriate level of precision depends on the context.
+        * Use no decimal places for percentages that are integers.
+        * Generally, use one or two decimal places for floating percentages. The appropriate level of precision depends on the context.
         * For very small percentages, or when showing changes in percentages, more decimal places may be necessary.
-        * Examples: 12.3%; 12.34%; 0.05%
+        * Examples: 40%, 12.3%; 12.34%; 0.05%
     * Negative Percentages:
         * Use a negative sign before the number.
         * Example: -5.2%
@@ -54,8 +55,8 @@ data_research_guidelines = """
         * Include the currency symbol and the phrase "per share."
         * Example: $10.50 per share
     * Decimal Places:
-        * Use a consistent number of decimal places, typically two or three.
-        * Example: $10.50 per share; $2.345 per share
+        * Use a consistent number of decimal places, typically two.
+        * Example: $10.50 per share
 5. Ratios and Multiples:
     * Decimal Places:
         * Use a consistent number of decimal places (typically one or two) appropriate to the ratio.
@@ -130,13 +131,14 @@ editor_guidelines = """
  - Avoid unnecessary disclaimers or caveats.
  - Do not explicitly mention the critic's feedback in revised text.
  - Do not include the current date in the section heading or as a separate subheading.
+ - Make sure that markdown is used correctly and that the section is formatted without code blocks.
 """
 
 
 expert_analyst_writer_prompt = """
  - The section must be formatted in Markdown without code blocks.
- - Use quotation marks and italics for direct quotes.
- - Base the investment signal entirely on the the analysis provided to you.
+ - Incorporate direct quotes to reinforce key insights and add credibility to the analysis.
+ - Base the investment signal entirely on the analysis provided to you.
  - Ensure clarity and precision. Avoid vague language or ambiguity.
  - Present information factually and in an easily digestible manner.
  - Do not include any disclaimers or calls for additional research.

@@ -36,10 +36,8 @@ planning_task:
 
     The research questions should be specific, actionable, and relevant to the report's contents.
     Don't ask about information that is already present in the report.
-    
   expected_output: >
-    A structured research plan with prioritized research questions to supplement the report and inform the investment recommendation.
-    Output in a `ResearchQuestions` Pydantic model.
+    A structured `ResearchQuestions` Pydantic model with prioritized research questions to supplement the report and inform the investment recommendation.
   agent: planner
 
 research_task:
@@ -59,10 +57,10 @@ research_task:
     Refer to the content of the report and use the tools you have available to you to gather information in answer to the research questions.
 
     Provide the answers to the research questions in the `ResearchAnswers` Pydantic model.
+    Ensure your final output is ONLY the JSON object conforming to the `ResearchAnswers` Pydantic model, without any introductory text or explanations.
     
   expected_output: >
-    A structured set of self-contained answers to each of the research questions, crafted for contextual independence.
-    Output in the `ResearchAnswers` Pydantic model.
+    A structured `ResearchAnswers` Pydantic model with a set of self-contained answers to each of the research questions, crafted for contextual independence.
   agent: researcher
 
 writing_task:
@@ -104,8 +102,9 @@ critic_task:
     {critic_guidelines}
     - Assessment of the recommendation's clarity and justification.
     Current date (ISO format): {date_iso}.
+
   expected_output: >
-    A detailed critique of the draft, including:
+    A `ReportCritique` Pydantic model containing a detailed critique of the draft, including:
     - Evaluation of the rationale's strength and supporting evidence.
     - Feedback on the relevance and impact of identified catalysts.
     - Review of technical considerations (if any) for accuracy and feasibility.

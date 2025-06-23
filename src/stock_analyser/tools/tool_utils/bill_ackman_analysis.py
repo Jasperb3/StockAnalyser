@@ -73,6 +73,7 @@ def analyse_business_quality(ticker: str):
     """
     Analyze whether the company has a high-quality business with stable or growing cash flows,
     durable competitive advantages, and potential for long-term growth.
+    Also tries to infer brand strength if intangible_assets data is present (optional).
 
     Args:
         ticker (str): Stock ticker symbol
@@ -150,10 +151,10 @@ def analyse_business_quality(ticker: str):
                 if earliest is not None:
                     # Simple growth rate
                     growth_rate = (latest - earliest) / abs(earliest)
-                    if growth_rate > 0.5:  # e.g., 50% growth over the available time
+                    if growth_rate > 0.5:  # e.g., 50% cumulative growth
                         score += 2
                         details.append(
-                            f"Revenue grew by {(growth_rate * 100):.1f}% over the full period."
+                            f"Revenue grew by {(growth_rate * 100):.1f}% over the full period (strong growth)."
                         )
                     else:
                         score += 1
@@ -211,7 +212,7 @@ def analyse_business_quality(ticker: str):
             if above_15 >= (len(op_margin_vals) // 2 + 1):
                 score += 2
                 details.append(
-                    f"Operating margins have exceeded 15% in {above_15} of {len(op_margin_vals)} periods."
+                    f"Operating margins have exceeded 15% in {above_15} of {len(op_margin_vals)} periods (indicates good profitability)."
                 )
             else:
                 details.append(
@@ -245,16 +246,25 @@ def analyse_business_quality(ticker: str):
         if return_on_equity > 0.15:
             score += 2
             details.append(
-                f"High ROE of {return_on_equity:.1%}, indicating potential moat."
+                f"High ROE of {return_on_equity:.1%}, indicating a competitive advantage."
             )
         else:
             details.append(
-                f"ROE of {return_on_equity:.1%} is below 15% threshold for strong moat."
+                f"ROE of {return_on_equity:.1%} is moderate and below 15% threshold for strong moat."
             )
     else:
         details.append("ROE data not available in company information.")
 
     max_score += 2  # Increment by the *highest* possible score for this section
+
+    # 4. (Optional) Brand Intangible (if intangible_assets are fetched)
+    intangible_df = safe_get_row(financials, "Intangible Assets")
+    intangible_vals = filter_valid_values(intangible_df)
+    if intangible_vals and sum(intangible_vals) > 0:
+        details.append("Significant intangible assets may indicate brand value or proprietary tech.")
+        score += 1
+
+    max_score += 1  # Increment by the *highest* possible score for this section
 
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
@@ -343,14 +353,14 @@ def analyse_financial_discipline(ticker: str):
             if below_one_count >= (len(debt_to_equity_vals) // 2 + 1):
                 score += 2
                 details.append(
-                    f"Debt-to-equity < 1.0 for {below_one_count} of {len(debt_to_equity_vals)} periods."
+                    f"Debt-to-equity < 1.0 for {below_one_count} of {len(debt_to_equity_vals)} periods (reasonable leverage)."
                 )
             else:
                 details.append(
-                    f"Debt-to-equity >= 1.0 in {len(debt_to_equity_vals) - below_one_count} of {len(debt_to_equity_vals)} periods."
+                    f"Debt-to-equity >= 1.0 in {len(debt_to_equity_vals) - below_one_count} of {len(debt_to_equity_vals)} periods (could be high leverage)."
                 )
         else:
-            # Fallback to total_liabilities/total_assets if D/E not available
+            # Fallback to total_liabilities / total_assets
             total_assets_df = safe_get_row(balance_sheet, "Total Assets")
 
             if total_assets_df is None:
@@ -468,6 +478,90 @@ def analyse_financial_discipline(ticker: str):
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
+def analyse_activism_potential(ticker: str) -> dict:
+    """
+    Bill Ackman often engages in activism if a company has a decent brand or moat
+    but is underperforming operationally.
+    
+    We'll do a simplified approach:
+    - Look for positive revenue trends but subpar margins
+    - That may indicate 'activism upside' if operational improvements could unlock value.
+    """
+    score = 0
+    max_score = 0
+    details = []
+
+    try:
+        company_ticker = get_ticker(ticker)
+    except Exception as e:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Failed to get ticker data: {str(e)}",
+        }
+
+    try:
+        income_statement = company_ticker.income_stmt
+        if income_statement is None or income_statement.empty:
+            return {
+                "score": 0,
+                "max_score": 0,
+                "details": "No income statement data available",
+            }
+    except Exception as e:
+        return {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Error retrieving income statement data: {str(e)}",
+        }
+    
+    # Check revenue growth vs. operating margin
+    total_revenues = safe_get_row(income_statement, "Total Revenue")
+    if total_revenues is None:
+        return {
+            "score": 0,
+            "details": "No total revenue data available",
+        }
+    else:
+        total_revenues = filter_valid_values(total_revenues)
+    
+    op_income = safe_get_row(income_statement, "Operating Income")
+    if op_income is None:
+        return {
+            "score": 0,
+            "details": "No operating income data available",
+        }
+    else:
+        op_income = filter_valid_values(op_income)
+
+    op_margins = [i / r * 100 for i, r in zip(op_income, total_revenues)]
+    
+    if len(total_revenues) < 2 or not op_margins:
+        return {
+            "score": 0,
+            "details": "Not enough data to assess activism potential (need multi-year revenue + margins)."
+        }
+    
+    initial, final = total_revenues[-1], total_revenues[0]
+    revenue_growth = (final - initial) / abs(initial) if initial else 0
+    avg_margin = sum(op_margins) / len(op_margins)
+
+    
+    # Suppose if there's decent revenue growth but margins are below 10%, Ackman might see activism potential.
+    if revenue_growth > 0.15 and avg_margin < 0.10:
+        score += 2
+        details.append(
+            f"Revenue growth is healthy (~{revenue_growth*100:.1f}%), but margins are low (avg {avg_margin*100:.1f}%). "
+            "Activism could unlock margin improvements."
+        )
+    else:
+        details.append("No clear sign of activism opportunity (either margins are already decent or growth is weak).")
+
+    max_score += 2
+    
+    return {"score": score, "max_score": max_score, "details": "; ".join(details)}
+
+
 def analyse_valuation(
     ticker: str,
     growth_rate: float = 0.06,
@@ -477,7 +571,7 @@ def analyse_valuation(
 ):
     """
     Ackman invests in companies trading at a discount to intrinsic value.
-    We can do a simplified DCF or an FCF-based approach.
+    Uses a simplified DCF with FCF as a proxy, plus margin of safety analysis.
 
     Args:
         ticker (str): Stock ticker symbol
@@ -569,6 +663,7 @@ def analyse_valuation(
         terminal_value = (
             fcf * (1 + growth_rate) ** projection_years * terminal_multiple
         ) / ((1 + discount_rate) ** projection_years)
+
         intrinsic_value = present_value + terminal_value
 
         # Compare with market cap => margin of safety
@@ -650,6 +745,15 @@ def calculate_bill_ackman_analysis_data(
         }
 
     try:
+        activism_analysis = analyse_activism_potential(ticker)
+    except Exception as e:
+        activism_analysis = {
+            "score": 0,
+            "max_score": 0,
+            "details": f"Error in activism potential analysis: {str(e)}",
+        }
+
+    try:
         valuation_analysis = analyse_valuation(
             ticker, growth_rate, discount_rate, terminal_multiple, projection_years
         )
@@ -665,11 +769,13 @@ def calculate_bill_ackman_analysis_data(
     total_score = (
         quality_analysis.get("score", 0)
         + balance_sheet_analysis.get("score", 0)
+        + activism_analysis["score"]
         + valuation_analysis.get("score", 0)
     )
     max_possible_score = (
         quality_analysis.get("max_score", 0)
         + balance_sheet_analysis.get("max_score", 0)
+        + activism_analysis.get("max_score", 0)
         + valuation_analysis.get("max_score", 0)
     )
 
@@ -687,6 +793,7 @@ def calculate_bill_ackman_analysis_data(
         "max_score": max_possible_score,
         "quality_analysis": quality_analysis,
         "balance_sheet_analysis": balance_sheet_analysis,
+        "activism_analysis": activism_analysis,
         "valuation_analysis": valuation_analysis,
     }
 
@@ -694,4 +801,4 @@ def calculate_bill_ackman_analysis_data(
 
 
 if __name__ == "__main__":
-    print(calculate_bill_ackman_analysis_data("MSFT", 0.06, 0.10, 15, 5))
+    print(calculate_bill_ackman_analysis_data("BRK-B", 0.06, 0.10, 15, 5))

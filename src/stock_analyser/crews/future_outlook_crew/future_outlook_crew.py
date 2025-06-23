@@ -10,6 +10,7 @@ from stock_analyser.tools.qdrant_sec_filings_search_tool import QdrantSECFilings
 from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_news_tool import YFinanceNewsTool
+from stock_analyser.tools.linkup_search_tool import LinkUpSearchTool
 
 from dotenv import load_dotenv
 
@@ -44,9 +45,7 @@ class FutureOutlookCrew():
 				qdrant_sec_filings_tool,
 				GeminiSearchTool(),
 				YFinanceNewsTool(),
-				exasearch_tool,
-				TavilySearchTool(),
-				TrafilaturaWebscrapeTool()
+				LinkUpSearchTool()
 			],
 			verbose=True,
 			max_iter=8,

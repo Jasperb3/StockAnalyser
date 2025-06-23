@@ -18,19 +18,16 @@ writing_task:
   description: >
     Develop the planner's outline into a compelling, easily digestible narrative for the "Executive Summary" section.
     This summary must effectively communicate the core investment analysis and recommendations to investors.
-    Expand each sub-section (Company Overview, Recent Stock Performance, Major Takeaways, Investment Thesis) with concise yet informative detail.
-    Guidelines:
-    - Begin with a compelling fact, statistic, or statement to emphasize the report's significance.
-    - Clearly identify the report's core objective, ensuring the summary remains focused on this central point. Avoid extraneous details.
-    - Maintain brevity and conciseness: Aim for a single, well-structured paragraph per sub-section. The executive summary serves as a brief overview, so concision is key.
-    - Prioritize the most critical information: Highlight key findings and recommendations pertinent to investors, omitting non-essential details.
-    - Employ clear, concise language, avoiding jargon or technical terms unfamiliar to a broad audience. Use straightforward language for maximum comprehension.
-    - Conclude with a definitive call to action: End with a clear investment recommendation ("Buy," "Hold," or "Sell") to provide investors with immediate clarity.
+    Begin with a compelling fact, statistic, or statement to emphasize the report's significance.
+    Clearly identify the report's core objective, ensuring the summary remains focused on this central point. Avoid extraneous details.
+    Maintain brevity and conciseness: Aim for a single, well-structured paragraph per sub-section. The executive summary serves as a brief overview, so concision is key.
+    Prioritize the most critical information: Highlight key findings and recommendations pertinent to investors, omitting non-essential details.
+    Employ clear, concise language, avoiding jargon or technical terms unfamiliar to a broad audience. Use straightforward language for maximum comprehension.
+    Conclude with a definitive call to action: End with a clear investment recommendation ("Buy," "Hold," or "Sell") to provide investors with immediate clarity.
     The executive summary is the first part that investors will read; therefore, a strong first impression is crucial.
     Current date: {date_us}.
   expected_output: >
-    A complete draft of the Executive Summary.
-    Each section should be a well-written paragraph or series of paragraphs, providing a comprehensive overview without unnecessary detail.
+    A complete draft of the Executive Summary, providing a comprehensive overview of the report without unnecessary detail.
     The output must be formatted as markdown without code blocks.
     You must begin the section with the heading: ## Executive Summary
   agent: writer

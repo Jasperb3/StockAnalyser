@@ -8,7 +8,7 @@ gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
 client = genai.Client(api_key=gemini_api_key, http_options={'api_version': 'v1alpha'})
 
-MODEL = 'gemini-2.0-flash-exp'
+MODEL = 'gemini-2.0-flash'
 
 
 class CompetitorNewsSearchToolInput(BaseModel):
@@ -31,7 +31,7 @@ class CompetitorNewsSearchTool(BaseTool):
         results = []
 
         for ticker in ticker_list:
-            query = f"What is the latest news on {ticker}?"
+            query = f"What is the latest news on {ticker}? Provide a list of recent articles and for each article provide 1) the article title, 2) the URL of the source article, 3) the publisher, and 4) a summary of the article text."
             r = chat.send_message(query)
             results.append(r.text)
 

@@ -43,11 +43,12 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for filing_type in filing_types:
-        filings = get_most_recent_filing(symbol, filing_type)
-        if filings:
-            print(f"Downloading {filing_type} filing for {symbol}...")
+        try:
+            filings = get_most_recent_filing(symbol, filing_type)
+            if filings:
+                print(f"Downloading {filing_type} filing for {symbol}...")
             save_filings(
                 symbol, filing_type, output_dir / f"{symbol}_{filing_type}.txt"
             )
-        else:
-            print(f"No {filing_type} filings found for {symbol}")
+        except Exception as e:
+            print(f"Error downloading {filing_type} filing for {symbol}: {e}")

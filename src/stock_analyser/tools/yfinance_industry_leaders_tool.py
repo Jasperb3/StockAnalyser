@@ -66,7 +66,7 @@ class YFinanceIndustryLeadersTool(BaseTool):
         # Industry Overview
         analysis = ""
         analysis += f"**Industry Name:** {industry_name}\n"
-        analysis += f"**Industry Overview:**\n"
+        analysis += "**Industry Overview:**\n"
         analysis += f"Description: {description}\n"
         analysis += f"Market Weight: {market_weight}\n"
         analysis += f"Market Cap: {market_cap}\n"

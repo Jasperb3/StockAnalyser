@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import random
 import yfinance as yf
 from pathlib import Path
@@ -18,7 +19,8 @@ from .plotting.plot_financial_metric_trends import (
 from .plotting.plot_macd_stochastic import plot_macd_stochastic
 from .plotting.plot_relative_strength import plot_relative_strength
 from .plotting.plot_squeeze_momentum import analyze_single_stock
-from .plotting.plotting_tools import plot_competitor_prices, plot_candlestick_chart
+from .plotting.plot_competitor_prices import plot_competitor_prices
+from .plotting.plotting_tools import plot_candlestick_chart
 
 from .utils.get_sp500_tickers import get_sp500_tickers
 from .utils.setup import Setup
@@ -35,9 +37,8 @@ from .utils.constants import TIMESTAMP, OUTPUT_DIR, PLOTS_DIR, BACKOFF_TIME
 
 from crewai.flow.flow import Flow, listen, start, and_
 from .crews.news_and_research_crew.news_and_research_crew import NewsAndResearchCrew
-from .crews.market_and_industry_crew.market_and_industry_crew import (
-    MarketAndIndustryCrew,
-)
+from .crews.market_and_industry_crew.market_and_industry_crew import MarketAndIndustryCrew
+from .crews.competition_identifier_crew.competition_identifier_crew import CompetitionIdentifierCrew
 from .crews.competitor_crew.competitor_crew import CompetitorCrew
 from .crews.financial_data_crew.financial_data_crew import FinancialDataCrew
 from .crews.trends_crew.trends_crew import TrendsCrew
@@ -46,15 +47,11 @@ from .crews.benjamin_graham_crew.benjamin_graham_crew import BenjaminGrahamCrew
 from .crews.warren_buffet_crew.warren_buffet_crew import WarrenBuffetCrew
 from .crews.charlie_munger_crew.charlie_munger_crew import CharlieMungerCrew
 from .crews.cathie_wood_crew.cathie_wood_crew import CathieWoodCrew
-from .crews.stanley_druckenmiller_crew.stanley_druckenmiller_crew import (
-    StanleyDruckenmillerCrew,
-)
+from .crews.stanley_druckenmiller_crew.stanley_druckenmiller_crew import StanleyDruckenmillerCrew
 from .crews.bill_ackman_crew.bill_ackman_crew import BillAckmanCrew
 from .crews.risk_analysis_crew.risk_analysis_crew import RiskAnalysisCrew
 from .crews.risk_severity_crew.risk_severity_crew import RiskSeverityCrew
-from .crews.investment_recommendation_crew.investment_recommendation_crew import (
-    InvestmentRecommendationCrew,
-)
+from .crews.investment_recommendation_crew.investment_recommendation_crew import InvestmentRecommendationCrew
 from .crews.future_outlook_crew.future_outlook_crew import FutureOutlookCrew
 from .crews.executive_summary_crew.executive_summary_crew import ExecutiveSummaryCrew
 from .crews.conclusion_crew.conclusion_crew import ConclusionCrew
@@ -204,8 +201,27 @@ class ReportFlow(Flow[ReportState]):
             market_and_industry_section.token_usage.total_tokens
         )
 
+
     @timeit
     @listen(generate_market_and_industry_section)
+    def identify_competitors(self):
+        print("Identifying competitors...")
+
+        inputs = {
+            "company_name": self.state.company_name,
+            "company_ticker": self.state.company_ticker,
+            "industry": self.state.industry,
+            "date_iso": self.state.date_iso,
+        }
+
+        competition_identifier_section = CompetitionIdentifierCrew().crew().kickoff(inputs=inputs)
+
+        self.state.competitors_list = competition_identifier_section.pydantic.competitors
+        print("Competition identifier section generated ✅")
+
+    
+    @timeit
+    @listen(identify_competitors)
     def generate_competitor_landscape_section(self):
         print("Generating competitor landscape section...")
 
@@ -215,44 +231,43 @@ class ReportFlow(Flow[ReportState]):
             "industry": self.state.industry,
             "date_iso": self.state.date_iso,
             "date_us": self.state.date_us,
+            "competitors_list": self.state.competitors_list,
         }
 
-        competitor_landscape = CompetitorCrew().crew().kickoff(inputs=inputs)
+        crew_result = CompetitorCrew().crew().kickoff(inputs=inputs)
 
-        self.state.competitor_landscape_section = competitor_landscape.pydantic.content
+        self.state.competitor_landscape_section = crew_result.raw
         print("Competitor landscape section generated ✅")
         print(
-            f"🪙 Number of tokens used: {competitor_landscape.token_usage.total_tokens:,}"
+            f"🪙 Number of tokens used: {crew_result.token_usage.total_tokens:,}"
         )
-        self.state.total_token_usage += competitor_landscape.token_usage.total_tokens
+        self.state.total_token_usage += crew_result.token_usage.total_tokens
 
-        # Plot competitor prices
 
-        ticker_list = [self.state.company_ticker]
-
-        for competitor in competitor_landscape.pydantic.competitors:
-            ticker_list.append(competitor.ticker)
-
-        print(f"Competitors of {self.state.company_ticker}: {ticker_list}")
-
+    @timeit
+    @listen(generate_competitor_landscape_section)
+    def plot_competitor_prices(self):
         print("Plotting competitor prices...")
 
         try:
             competitor_prices_plot = plot_competitor_prices(
-                ticker_list, PLOTS_DIR, TIMESTAMP
+                self.state.competitors_list, PLOTS_DIR, TIMESTAMP
             )
-            print(f"📊 Competitor prices plot saved to {competitor_prices_plot}\n")
         except Exception as e:
             print(f"❌ Error plotting competitor prices: {str(e)}")
-            competitor_prices_plot = None
 
         if competitor_prices_plot:
+            print(f"📊 Competitor prices plot saved to {competitor_prices_plot}\n")
             self.state.competitor_landscape_section = self.state.competitor_landscape_section.replace(
                 "[competitorPrices]",
                 f"\n\n### Competitor Prices\n![Competitor Price Plot]({competitor_prices_plot})\n\n",
             )
         else:
             print("❌ Competitor prices plot not generated. Skipping...")
+            self.state.competitor_landscape_section = self.state.competitor_landscape_section.replace(
+                "[competitorPrices]",
+                ""
+            )
 
     @timeit
     @listen(generate_competitor_landscape_section)
@@ -928,7 +943,7 @@ class ReportFlow(Flow[ReportState]):
         print("Saving report...")
 
         intro = dedent(f"""
-        # **Research report on _{self.state.company_name}_ ({self.state.company_ticker})**
+        # **Equity Research Report on _{self.state.company_name}_ ({self.state.company_ticker})**
 
         Official website: [{self.state.company_website.lstrip("https://")}]({self.state.company_website})
 
@@ -969,12 +984,9 @@ class ReportFlow(Flow[ReportState]):
     @listen(save_markdown_report)
     def convert_report_to_pdf(self, report_path_md: Path):
         print("Converting final markdown report to PDF...")
-
         report_path_pdf = convert_md_to_pdf(report_path_md)
-
         print(f"Report PDF saved to {report_path_pdf}")
         self.state.report_path_pdf = str(report_path_pdf)
-
         return report_path_pdf
 
     @timeit
@@ -982,17 +994,33 @@ class ReportFlow(Flow[ReportState]):
     def draft_email_with_attachment(self):
         print("Drafting email...")
 
-        report_path_md = self.state.report_path_md
-        report_path_pdf = self.state.report_path_pdf
+        try:
+            token_file_path = "src/stock_analyser/tools/token.json"
+            with open(token_file_path, "r") as f:
+                token_data = json.load(f)
+                expiry_date = token_data.get("expiry")
+                if expiry_date:
+                    expiry_date = datetime.fromisoformat(expiry_date)
+                    if expiry_date < datetime.now():
+                        print("Token expired. Re-authentication required.")
+                        os.remove(token_file_path)
 
-        with open(report_path_md, "r") as f:
+        except FileNotFoundError:
+            print("Token file not found. Re-authentication required.")
+        except json.JSONDecodeError:
+            print("Error decoding token file. Re-authentication required.")
+            os.remove(token_file_path)
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+
+        with open(self.state.report_path_md, "r") as f:
             report_text = f.read()
 
         inputs = {
             "company_name": self.state.company_name,
             "date_us": self.state.date_us,
             "report_text": report_text,
-            "report_pdf": report_path_pdf,
+            "report_pdf": self.state.report_path_pdf,
             "sender": os.getenv("SENDER"),
             "client": os.getenv("CLIENT"),
         }

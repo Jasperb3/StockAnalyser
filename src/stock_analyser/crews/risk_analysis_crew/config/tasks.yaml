@@ -14,6 +14,7 @@ research_task:
 
     Gather data and insights on the risks to populate the `RiskAnalysisModel`.
     Focus on gathering information for the following fields:
+    - `risk_analysis`: Analyze the company's risk profile, including calculated risk metrics and analysis.
     - `operational_risks`: Identify and analyze operational risks that could impact the company's stock performance.
     - `financial_risks`: Identify and analyze financial risks that could impact the company's stock performance.
     - `market_volatility`: Analyze current market conditions and identify potential volatility risks.
@@ -24,7 +25,7 @@ research_task:
     - `other_risks`: Identify and analyze any other relevant risks not covered in the previous categories.
     Use the tools available to you to gather information on each risk, including specific examples, data, and potential consequences.
   expected_output: >
-    A `RiskAnalysisModel` Pydantic model with the `operational_risks`, `financial_risks`, `market_volatility`, `regulatory_risks`, `macroeconomic_risks`, `company_specific_issues`, `esg_risks`, and `other_risks` fields populated.
+    A `RiskAnalysisModel` Pydantic model with the `risk_analysis`, `operational_risks`, `financial_risks`, `market_volatility`, `regulatory_risks`, `macroeconomic_risks`, `company_specific_issues`, `esg_risks`, and `other_risks` fields populated.
   agent: researcher
 
 writing_task:
@@ -32,14 +33,15 @@ writing_task:
     Craft a compelling and easily understandable narrative for the "Risk Disclosure & Mitigation" section of the stock analysis report, incorporating the detailed findings from the research task provided to you.
     The section should be structured as follows:
     - An introduction to the section.
-    - A sub-section on **Operational Risks**, presenting identified operational risks and their potential impact on the company's stock.
-    - A sub-section on **Financial Risks**, detailing identified financial risks and their potential impact, including debt levels, interest coverage ratio, and other financial metrics.
-    - A sub-section on **Market Volatility**, presenting identified market volatility risks and their potential impact on the company's stock.
+    - A sub-section on **Risk Analysis**, presenting calculated risk metrics and analysis.
+    - A sub-section on **Operational Risks**, presenting identified operational risks, their potential impact on the company's stock, and proposed mitigation strategies.
+    - A sub-section on **Financial Risks**, detailing identified financial risks and their potential impact, including debt levels, interest coverage ratio, and other financial metrics, and proposed mitigation strategies.
+    - A sub-section on **Market Volatility**, presenting identified market volatility risks and their potential impact on the company's stock, and proposed mitigation strategies.
     - A sub-section on **Regulatory Risks**, detailing identified regulatory challenges, their potential impact, and possible mitigation strategies.
-    - A sub-section on **Macroeconomic Risks**, analyzing identified macroeconomic risks and their potential impact on the company's stock performance.
-    - A sub-section on **Company-Specific Issues**, highlighting specific operational, financial, or strategic risks discovered in the company's SEC filings, and their potential consequences for stock performance.
-    - A sub-section on **ESG Risks**, analyzing identified ESG risks and their potential to affect the company's stock value and reputation.
-    - A sub-section on **Other Risks**, covering any additional relevant risks not included in the previous categories, with analysis of their potential impact.
+    - A sub-section on **Macroeconomic Risks**, analyzing identified macroeconomic risks and their potential impact on the company's stock performance, and proposed mitigation strategies.
+    - A sub-section on **Company-Specific Issues**, highlighting specific operational, financial, or strategic risks discovered in the company's SEC filings, and their potential consequences for stock performance, and proposed mitigation strategies.
+    - A sub-section on **ESG Risks**, analyzing identified ESG risks and their potential to affect the company's stock value and reputation, and proposed mitigation strategies.
+    - A sub-section on **Other Risks**, covering any additional relevant risks not included in the previous categories, with analysis of their potential impact, and proposed mitigation strategies.
     Each sub-section should clearly present the data gathered, along with insightful analysis and context, including proposed mitigation strategies or actions investors might consider.
     Guidelines:
     {writer_guidelines}
@@ -47,14 +49,15 @@ writing_task:
   expected_output: >
     A complete draft of the "Risk Disclosure & Mitigation" section, including:
     - An introduction to the section.
-    - A sub-section for **Operational Risks**, using the `operational_risks` research.
-    - A sub-section for **Financial Risks**, using the `financial_risks` research.
-    - A sub-section for **Market Volatility**, using the `market_volatility` research.
-    - A sub-section for **Regulatory Risks**, using the `regulatory_risks` research.
-    - A sub-section for **Macroeconomic Risks**, using the `macroeconomic_risks` research.
-    - A sub-section for **Company-Specific Issues**, using the `company_specific_issues` research.
-    - A sub-section for **ESG Risks**, using the `esg_risks` research.
-    - A sub-section for **Other Risks**, using the `other_risks` research.
+    - A sub-section on Risk Analysis.
+    - A sub-section on Operational Risks.
+    - A sub-section on Financial Risks.
+    - A sub-section on Market Volatility.
+    - A sub-section on Regulatory Risks.
+    - A sub-section on Macroeconomic Risks.
+    - A sub-section on Company-Specific Issues.
+    - A sub-section on ESG Risks.
+    - A sub-section on Other Risks.
     The output must be formatted as markdown without code blocks.
     You must begin the section with the heading: ## Risk Disclosure & Mitigation
   agent: writer

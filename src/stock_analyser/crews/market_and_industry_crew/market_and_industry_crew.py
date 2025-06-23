@@ -12,6 +12,7 @@ from stock_analyser.tools.tavily_search import TavilySearchTool
 from stock_analyser.tools.trafilatura_webscrape import TrafilaturaWebscrapeTool
 from stock_analyser.tools.yfinance_company_info_tool import YFinanceCompanyInfoTool
 from stock_analyser.tools.yfinance_industry_leaders_tool import YFinanceIndustryLeadersTool
+from stock_analyser.tools.linkup_search_tool import LinkUpSearchTool
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -49,6 +50,7 @@ class MarketAndIndustryCrew():
 				YFinanceIndustryLeadersTool(),
 				TavilySearchTool(),
 				TrafilaturaWebscrapeTool(),
+				LinkUpSearchTool()
 			],
 			verbose=True,
 			max_iter=10,

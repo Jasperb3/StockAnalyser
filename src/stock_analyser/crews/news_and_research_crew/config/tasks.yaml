@@ -5,11 +5,16 @@ research_task:
     You can include articles that are positive, negative, or neutral in tone.
     Aim for a diverse range of sources, including reputable news outlets, financial websites, and industry-specific publications.
     Do not include articles that are behind a paywall or require a subscription to access.
-    Use the "TrafilaturaWebscrapeTool" to scrape the articles if possible.
-    Compile the `NewsAndResearchModel` Pydantic model with your findings.
+
+    You must structure your entire findings into a *single* `NewsAndResearchModel` Pydantic model instance.
+    The `articles` field within this single model instance should contain the list of all 10 found articles. Do not attempt to return each article separately.
+
     Current date (ISO format): {date_iso}.
   expected_output: >
-    A `NewsAndResearchModel` Pydantic model containing a list of 10 news articles, each with a title, URL, and the article's text (or a summary if the full text is not available).
+    A **single** `NewsAndResearchModel` Pydantic model instance.
+    This instance must contain one field named `articles`.
+    The `articles` field must be a list containing 10 `Article` objects.
+    Each `Article` object in the list must have a `title`, `url`, `publication_date`, `publisher`, and `article_text` (or a summary if the full text is not available).
   agent: researcher
 
 writing_task:
@@ -18,15 +23,15 @@ writing_task:
     Analyze the compiled `NewsAndResearchModel` from the research task and select the top 5 most impactful articles.
     Write a concise summary for each of the selected articles, highlighting the key take-aways and their potential implications for the company.
     You must include the source URL and a hyperlink to the original article.
-    Use correct markdown formatting for the hyperlinks, e.g. [publicationName](https://website-name.com)
+    Use correct markdown formatting for the hyperlinks, e.g. [publisher](https://website-name.com)
     Current date: {date_us}.
   expected_output: >
     A markdown section containing summaries of the top 5 news articles.
     Each summary should include:
     - The article title in bold.
-    - The publication date on a new line after the title, in italics (not bold).
+    - The date of the article on a new line after the title, in italics (not bold).
     - A brief, informative summary of the article's content and its relevance to the company.
-    - The source URL and a hyperlink to the original article.
+    - The source URL and a hyperlink to the original article, formatted as: [publisher](https://website-name.com)
     You must begin the section with the heading: ## Recent News Articles about {company_name}
     Format the output as markdown without code blocks.
   agent: writer

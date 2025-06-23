@@ -34,6 +34,9 @@ class ReportState(BaseModel):
 
     trends_section: str = Field(default="", description="Trends section")
     """Example: "The technology sector continues to show strong growth, with particular momentum in AI and cloud services." """
+
+    competitors_list: List[str] = Field(default=[], description="List of competitors")
+    """Example: ["NVDA", "AMD", "INTEL"]"""
     
     competitor_landscape_section: str = Field(default="", description="Competitor landscape section")
     """Example: "The technology sector continues to show strong growth, with particular momentum in AI and cloud services." """
@@ -165,6 +168,8 @@ class Article(BaseModel):
     """
     title: str
     url: str
+    publication_date: Optional[str] = None
+    publisher: Optional[str] = None
     article_text: str
 
 
@@ -182,6 +187,16 @@ class CompetitorList(BaseModel):
     """
 
 
+class CompetitorTickerList(BaseModel):
+    """
+    Represents a list of competitor companies.
+    """
+    competitors: List[str]
+    """
+    Example: ["SSNLF", "1810.HK", "Private"]
+    """
+
+
 class CompetitorData(BaseModel):
     """
     Represents the data of a competitor company.
@@ -192,79 +207,63 @@ class CompetitorData(BaseModel):
     competitor_ticker: str
     """Example: "SSNLF" """
 
-    revenue_growth_yoy: float = None
+    revenue_growth_yoy: Optional[float]
     """Example: 0.10 (representing 10% growth)"""
 
-    net_margin: float = None
+    net_margin: Optional[float]
     """Example: 0.20 (representing a 20% net margin)"""
 
-    return_on_equity: float = None
+    return_on_equity: Optional[float]
     """Example: 0.25 (representing a 25% return on equity)"""
 
-    price_to_earnings_ratio: float = None
+    price_to_earnings_ratio: Optional[float]
     """Example: 25.5"""
 
-    price_to_sales_ratio: float = None
+    price_to_sales_ratio: Optional[float]
     """Example: 5.2"""
 
-    price_to_book_ratio: float = None
+    price_to_book_ratio: Optional[float]
     """Example: 1.5"""
 
-    recent_news_articles: List[Article] = None
-    """Example: [
-        {"title": "Samsung Electronics Co., Ltd. announces new product launch", "url": "https://www.samsung.com/us/news/press-releases/2024/03/samsung-electronics-co-ltd-announces-new-product-launch", "article_text": "Samsung Electronics Co., Ltd. announces new product launch"},
-        {"title": "Xiaomi Corporation reports strong quarterly earnings", "url": "https://www.xiaomi.com/news/press-releases/2024/03/xiaomi-corporation-reports-strong-quarterly-earnings", "article_text": "Xiaomi Corporation reports strong quarterly earnings"},
-        {"title": "Huawei Technologies Co., Ltd. faces regulatory scrutiny", "url": "https://www.huawei.com/news/press-releases/2024/03/huawei-technologies-co-ltd-faces-regulatory-scrutiny", "article_text": "Huawei Technologies Co., Ltd. faces regulatory scrutiny"}
-    ]"""
-    
-    
-class CompetitorFinancialData(BaseModel):
+
+class CompetitorNewsItem(BaseModel):
     """
-    Represents the financial data of a competitor company.
+    Represents the news articles for a single competitor.
     """
-    competitors: List[CompetitorData]
+    ticker: str = Field(description="Ticker symbol of the competitor.")
+    """Example: "SSNLF" """
+    articles: List[Article] = Field(description="List of news articles for this competitor.")
     """Example: [
-        {"competitor_name": "Samsung Electronics Co., Ltd.", "competitor_ticker": "SSNLF", "revenue_growth_yoy": 0.10, "net_margin": 0.20, "roe": 0.25, "pe_ratio": 25.5, "ps_ratio": 5.2, "recent_news_articles": [
-            {"title": "Samsung Electronics Co., Ltd. announces new product launch", "url": "https://www.samsung.com/us/news/press-releases/2024/03/samsung-electronics-co-ltd-announces-new-product-launch", "article_text": "Samsung Electronics Co., Ltd. announces new product launch"},
-            {"title": "Xiaomi Corporation reports strong quarterly earnings", "url": "https://www.xiaomi.com/news/press-releases/2024/03/xiaomi-corporation-reports-strong-quarterly-earnings", "article_text": "Xiaomi Corporation reports strong quarterly earnings"},
-            {"title": "Huawei Technologies Co., Ltd. faces regulatory scrutiny", "url": "https://www.huawei.com/news/press-releases/2024/03/huawei-technologies-co-ltd-faces-regulatory-scrutiny", "article_text": "Huawei Technologies Co., Ltd. faces regulatory scrutiny"}
-        ]}
+        {"title": "Samsung News 1", "url": "...", "publication_date": "March 20, 2024", "publisher": "The Wall Street Journal", "article_text": "..."},
+        {"title": "Samsung News 2", "url": "...", "publication_date": "March 20, 2024", "publisher": "Motley Fool", "article_text": "..."}
     ]"""
-    
-    
 
-# class CompetitorFinancialData(BaseModel):
-#     """
-#     Represents the financial data of a competitor company.
-#     """
-#     competitors: List[Competitor]
-#     """Example: [
-#         {"company_name": "Samsung Electronics Co., Ltd.", "ticker": "SSNLF"},
-#         {"company_name": "Xiaomi Corporation", "ticker": "1810.HK"},
-#         {"company_name": "Huawei Technologies Co., Ltd.", "ticker": "Private"}
-#     ]"""
 
-#     revenue_growth_yoy: Optional[float] = None
-#     """Example: 0.10 (representing 10% growth)"""
+class CompetitorResearch(BaseModel):
+    """
+    Represents the financial data and news of competitor companies.
+    """
+    competitors_financials: List[CompetitorData] = Field(description="List containing financial data for each competitor and the main company.")
+    """Example: [
+        {"competitor_name": "Samsung Electronics Co., Ltd.", "competitor_ticker": "SSNLF", "revenue_growth_yoy": 0.10, "net_margin": 0.20, "return_on_equity": 0.25, "price_to_earnings_ratio": 25.5, "price_to_sales_ratio": 5.2, "price_to_book_ratio": 1.5},
+        # ... other competitors ...
+    ]"""
 
-#     net_margin: Optional[float] = None
-#     """Example: 0.20 (representing a 20% net margin)"""
+    competitor_news: Optional[List[CompetitorNewsItem]] = Field(description="List containing news items for each competitor.")
+    """Example: [
+        {"ticker": "SSNLF", "articles": [{"title": "Samsung News 1", "url": "...", "article_text": "..."}, {"title": "Samsung News 2", "url": "...", "article_text": "..."}]},
+        {"ticker": "GOOG", "articles": [{"title": "Google News 1", "url": "...", "article_text": "..."}]}
+    ]"""
 
-#     roe: Optional[float] = None
-#     """Example: 0.25 (representing a 25% return on equity)"""
 
-#     pe_ratio: Optional[float] = None
-#     """Example: 25.5"""
-
-#     ps_ratio: Optional[float] = None
-#     """Example: 5.2"""
-
-#     news_articles: Optional[List[Article]] = None
-#     """Example: [
-#         {"title": "Samsung Electronics Co., Ltd. announces new product launch", "url": "https://www.samsung.com/us/news/press-releases/2024/03/samsung-electronics-co-ltd-announces-new-product-launch", "article_text": "Samsung Electronics Co., Ltd. announces new product launch"},
-#         {"title": "Xiaomi Corporation reports strong quarterly earnings", "url": "https://www.xiaomi.com/news/press-releases/2024/03/xiaomi-corporation-reports-strong-quarterly-earnings", "article_text": "Xiaomi Corporation reports strong quarterly earnings"},
-#         {"title": "Huawei Technologies Co., Ltd. faces regulatory scrutiny", "url": "https://www.huawei.com/news/press-releases/2024/03/huawei-technologies-co-ltd-faces-regulatory-scrutiny", "article_text": "Huawei Technologies Co., Ltd. faces regulatory scrutiny"}
-#     ]"""
+class ProcessedCompetitorData(BaseModel):
+    """
+    Contains the processed financial data and news for competitors,
+    along with the full list of tickers analyzed (including the main company).
+    """
+    financial_data: CompetitorResearch = Field(description="The financial data and news gathered.")
+    all_tickers: List[str] = Field(description="List of all ticker symbols analyzed, including the main company and its competitors.")
+    """Example: ["AAPL", "MSFT", "GOOG"]"""
 
 
 class CompetitorSection(BaseModel):
@@ -704,7 +703,6 @@ class DividendMetrics(BaseModel):
     """Example: "Ex-Dividend Date: 2024-03-15" """
     next_dividend_date: str
     """Example: "Next Dividend Date: 2024-06-15" """ 
-    
 
 class FinancialData(BaseModel):
     """
@@ -731,6 +729,7 @@ class RiskAnalysisModel(BaseModel):
     Example:
     ```json
     {
+        "risk_analysis": "beta: 2.030, sharpe_ratio: -8.171, value_at_risk_95: -0.051, max_drawdown: 8.199, volatility: 0.531"
         "operational_risks": "Supply chain concentration in Asia poses geopolitical risk; 70% of manufacturing in single region.",
         "financial_risks": "High debt levels and interest coverage ratio of 2.5x, exposed to interest rate risk.",
         "market_volatility": "High interest rate sensitivity with beta of 1.2, exposed to tech sector rotation risk.",
@@ -742,6 +741,9 @@ class RiskAnalysisModel(BaseModel):
     }
     ```
     """
+    risk_analysis: str
+    """Example: "beta: 2.030, sharpe_ratio: -8.171, value_at_risk_95: -0.051, max_drawdown: 8.199, volatility: 0.531" """
+
     operational_risks: Optional[str] = None
     """Example: "Supply chain concentration in Asia poses geopolitical risk; 70% of manufacturing in single region." """
 
@@ -809,24 +811,12 @@ class RiskSeverityList(BaseModel):
 # News & Research Models
 ####################### 
 
-class Article(BaseModel):
-    """
-    Represents a news article.
-    """
-    title: str
-    """Example: "Apple to unveil new iPhone models in September" """
-    url: str
-    """Example: "https://www.apple.com/newsroom/2024/03/apple-to-unveil-new-iphone-models-in-september/" """
-    article_text: str
-    """Example: "Apple is expected to unveil new iPhone models in September 2024. The new models are expected to feature improved camera systems and faster processors." """
-
-
 class NewsAndResearchModel(BaseModel):
     """
     Represents the news and research analysis of a company.
     """
     articles: List[Article]
-    """Example: [Article(title="Apple to unveil new iPhone models in September", url="https://www.apple.com/newsroom/2024/03/apple-to-unveil-new-iphone-models-in-september/", article_text="Apple is expected to unveil new iPhone models in September 2024. The new models are expected to feature improved camera systems and faster processors.")] """
+    """Example: [Article(title="Apple to unveil new iPhone models in September", url="https://www.apple.com/newsroom/2024/03/apple-to-unveil-new-iphone-models-in-september/", article_text="Apple is expected to unveil new iPhone models in September 2024. The new models are expected to feature improved camera systems and faster processors.", publication_date="September 2024", publisher="FT.com")] """
 
 
 

@@ -6,6 +6,7 @@ from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
 from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
 from crewai_tools import EXASearchTool
 from stock_analyser.tools.qdrant_sec_filings_search_tool import QdrantSECFilingsSearchTool
+from stock_analyser.tools.yfinance_risk_analysis_tool import YFinanceRiskAnalysisTool
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
 from stock_analyser.tools.tavily_search import TavilySearchTool
@@ -44,6 +45,7 @@ class RiskAnalysisCrew():
 			llm=RESEARCH_MODEL,
 			tools=[
 				qdrant_sec_filings_tool,
+				YFinanceRiskAnalysisTool(),
 				GeminiSearchTool(),
 				CompanyNewsSearchTool(),
 				YFinanceNewsTool(),

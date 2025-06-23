@@ -10,7 +10,7 @@ try:
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    QdrantClient = Any  # type placeholder
+    QdrantClient = Any
     Filter = Any
     FieldCondition = Any
     MatchValue = Any
@@ -41,7 +41,7 @@ class QdrantSECFilingsSearchTool(BaseTool):
     specifically designed for the 'stock_knowledge' collection.
     """
     model_config = {"arbitrary_types_allowed": True}
-    client: QdrantClient = None
+    client: Any = None
     name: str = "QdrantSECFilingsSearchTool"
     description: str = (
         "A tool to search SEC Filings for relevant information"

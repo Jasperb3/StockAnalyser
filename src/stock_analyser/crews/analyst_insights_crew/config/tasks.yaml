@@ -76,20 +76,20 @@ writing_task:
     
     Current date: {date_us}.
   expected_output: >
-    A complete draft of the "Analyst & Professional Insights" section including:
-    - A sub-section on **Analyst Recommendations**, using the `analyst_recommendations` research.
-    - A sub-section on **Average Analyst Rating**, using the `average_analyst_rating` research.
-    - A sub-section on **Recent Rating Changes**, using the `upgrades_downgrades` research.
-    - A sub-section on **Analyst Price Targets**, using the `analyst_price_targets` research.
-    - A sub-section on **Estimated Intrinsic Value**, using the `estimated_intrinsic_value` research.
-    - A sub-section on **Growth Estimates**, using the `growth_estimates` research.
-    - A sub-section on **Revenue Estimates**, using the `revenue_estimates` research.
-    - A sub-section on **Earnings Estimates**, using the `earnings_estimates` research.
-    - A sub-section on **Ownership Structure**, using the `shares_outstanding`, `held_percent_insiders`, and `held_percent_institutions` research.
-    - A sub-section on **Institutional and Mutual Fund Holders**, using the `institutional_and_mutual_fund_holders` research.
-    - A sub-section on **Insider Holders**, using the `insider_holders` research.
-    - A sub-section on **Insider Purchases/Sales**, using the `insider_purchases_last_6m` and `insider_sales_last_6m` research.
-    - A sub-section on **Other Insights**, using the `other_insights` research.
+    A complete draft of the "Analyst & Professional Insights" section, with subsections on:
+    - Analyst Recommendations
+    - Average Analyst Rating
+    - Recent Rating Changes
+    - Analyst Price Targets
+    - Estimated Intrinsic Value
+    - Growth Estimates
+    - Revenue Estimates
+    - Earnings Estimates
+    - Ownership Structure
+    - Institutional and Mutual Fund Holders
+    - Insider Holders
+    - Insider Purchases/Sales
+    - Other Insights
     The output must be formatted as markdown without code blocks.
     You must begin the section with the heading: ## Analyst & Professional Insights
   agent: writer

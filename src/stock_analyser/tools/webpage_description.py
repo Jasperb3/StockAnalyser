@@ -276,4 +276,9 @@ class WebpageDescriptionTool(BaseTool):
             description = self._analyze_screenshot(result, url)
             return description
         except Exception as e:
-            raise Exception(f"Failed to analyze screenshot: {str(e)}") 
+            raise Exception(f"Failed to analyze screenshot: {str(e)}")
+        
+if __name__ == "__main__":
+    tool = WebpageDescriptionTool()
+    result = tool.run("https://www.google.com")
+    print(result)

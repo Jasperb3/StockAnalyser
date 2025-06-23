@@ -1,5 +1,5 @@
 import os
-from stock_analyser.utils.agent_llms import EMAIL_MODEL, EDITOR_MODEL
+from stock_analyser.utils.agent_llms import EMAIL_MODEL, WRITING_MODEL
 from stock_analyser.utils.models import Email
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
@@ -20,7 +20,7 @@ class GmailAttachmentCrew():
 	def email_writing_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['email_writing_agent'],
-			llm=EDITOR_MODEL,
+			llm=WRITING_MODEL,
 			verbose=True
 )
 

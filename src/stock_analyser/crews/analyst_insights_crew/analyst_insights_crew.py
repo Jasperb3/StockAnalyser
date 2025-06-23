@@ -10,6 +10,7 @@ from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.yfinance_analysis_and_holdings_tool import YFinanceAnalysisAndHoldingsTool
 from stock_analyser.tools.yfinance_income_tool import YFinanceIncomeTool
 from stock_analyser.tools.yfinance_swing_trading_tool import YFinanceSwingTradingTool
+from stock_analyser.tools.linkup_search_tool import LinkUpSearchTool
 
 from dotenv import load_dotenv
 
@@ -37,6 +38,7 @@ class AnalystInsightsCrew():
 				YFinanceIncomeTool(),
 				YFinanceSwingTradingTool(),
 				CalculatorTool(),
+				LinkUpSearchTool(),
 				# FilingsSearchTool(
 				# 	config=dict(
 				# 		llm=dict(

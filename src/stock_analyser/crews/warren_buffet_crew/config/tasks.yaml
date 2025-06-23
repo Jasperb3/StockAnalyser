@@ -19,10 +19,20 @@ warren_buffet_analysis_task:
     - Sell Signals: Consider selling when fundamentals deteriorate or the valuation becomes excessively high.
 
     Leverage the available tools to gather all necessary data.
+
+    When providing your reasoning, be thorough and specific by:
+    1. Explaining the key factors that influenced your decision the most (both positive and negative)
+    2. Highlighting how the company aligns with or violates specific Buffett principles
+    3. Providing quantitative evidence where relevant (e.g., specific margins, ROE values, debt levels)
+    4. Concluding with a Buffett-style assessment of the investment opportunity
+    5. Using Warren Buffett's voice and conversational style in your explanation
+
     Synthesize your findings into a clear, Warren Buffet-style investment signal that substantiates the investment recommendation with detailed reference to specific metrics in the analysis.
+    For example, if bullish: "I'm particularly impressed with [specific strength], reminiscent of our early investment in See's Candies where we saw [similar attribute]..."
+    For example, if bearish: "The declining returns on capital remind me of the textile operations at Berkshire that we eventually exited because..."
 
   expected_output: >
-    A definitive investment recommendation (bullish, bearish, or neutral), supported by a confidence level (0-100) and clear, concise reasoning.
+    A definitive investment recommendation (bullish, bearish, or neutral), supported by a confidence level (0-100) and clear, thorough reasoning.
   agent: warren_buffet_agent
 
 

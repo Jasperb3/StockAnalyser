@@ -2,6 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.gemini_company_news_search_tool import CompanyNewsSearchTool
+from stock_analyser.tools.linkup_search_tool import LinkUpSearchTool
 from stock_analyser.utils.models import RiskList, RiskSeverityList
 from stock_analyser.utils.agent_llms import RESEARCH_MODEL, CRITIC_MODEL
 from dotenv import load_dotenv
@@ -31,7 +32,7 @@ class RiskSeverityCrew():
 	def risk_severity_agent(self) -> Agent:
 		return Agent(
 			config=self.agents_config['risk_severity_agent'],
-			tools=[GeminiSearchTool(), CompanyNewsSearchTool()],
+			tools=[GeminiSearchTool(), CompanyNewsSearchTool(), LinkUpSearchTool()],
 			llm=CRITIC_MODEL,
 			verbose=True,
 			max_iter=5

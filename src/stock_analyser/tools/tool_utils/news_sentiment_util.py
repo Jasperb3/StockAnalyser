@@ -4,6 +4,10 @@ from typing import List, Dict
 from pydantic import BaseModel
 from trafilatura import fetch_url, extract
 from openai import OpenAI
+from dotenv import load_dotenv
+from src.stock_analyser.utils.agent_llms import SENTIMENT_ANALYSIS_MODEL
+
+load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -164,7 +168,7 @@ def get_llm_sentiment_scores(news: List[Dict[str, str]], ticker: str) -> List[fl
     
     try:
         completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model=SENTIMENT_ANALYSIS_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

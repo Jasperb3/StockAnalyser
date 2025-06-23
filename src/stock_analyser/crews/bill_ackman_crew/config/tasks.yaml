@@ -24,10 +24,24 @@ bill_ackman_analysis_task:
     - Provide a rational, data-driven recommendation (bullish, bearish, or neutral).
 
     Leverage the available tools to gather all necessary data.
+
+    When providing your reasoning, be thorough and specific by:
+    1. Emphasize brand strength, moat, or unique market positioning.
+    2. Review free cash flow generation and margin trends as key signals.
+    3. Analyze leverage, share buybacks, and dividends as capital discipline metrics.
+    4. Provide a valuation assessment with numerical backup (DCF, multiples, etc.).
+    5. Identify any catalysts for activism or value creation (e.g., cost cuts, better capital allocation).
+    6. Use a confident, analytic, and sometimes confrontational tone when discussing weaknesses or opportunities.
+    
     Synthesize your findings into a clear, Bill Ackman-style investment signal that substantiates the investment recommendation with detailed reference to specific metrics in the analysis.
-                        
+
+    Return your final recommendation (signal: bullish, neutral, or bearish) with a 0-100 confidence and a thorough reasoning section.
+    
+    For example, if bullish: "This business generates exceptional free cash flow with a 15% margin and has a dominant market position that competitors can't easily replicate. Trading at only 12x FCF, there's a 40% discount to intrinsic value, and management's recent capital allocation decisions suggest..."
+    For example, if bearish: "Despite decent market position, FCF margins have deteriorated from 12% to 8% over three years. Management continues to make poor capital allocation decisions by pursuing low-ROIC acquisitions. Current valuation at 18x FCF provides no margin of safety given the operational challenges..."
+  
   expected_output: >
-    A rational recommendation (bullish, bearish, or neutral), with a confidence level (0-100) and concise reasoning.
+    A rational recommendation (bullish, bearish, or neutral), with a confidence level (0-100) and clear, thorough reasoning.
   agent: bill_ackman_agent
 
 bill_ackman_writeup_task:

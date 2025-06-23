@@ -24,7 +24,7 @@ def format_value(val):
 def get_cost_of_equity(ticker: str):
     stock = yf.Ticker(ticker)
 
-    beta = stock.info.get("beta")
+    beta = stock.info.get("beta", 0)
     # print(f"Beta: {beta:.2f}")
 
     # risk-free rate
@@ -44,7 +44,7 @@ def get_cost_of_equity(ticker: str):
 def calculate_cost_of_debt(ticker: str):
     stock = yf.Ticker(ticker)
     exchange_rate = convert_currency(ticker)
-    debt = stock.info.get("totalDebt") * exchange_rate
+    debt = stock.info.get("totalDebt", 0) * exchange_rate
     # print(f"Total Debt: ${debt:,.2f}")
     interest_expense = (
         stock.financials.loc["Interest Expense"].dropna().iloc[0] * exchange_rate
@@ -64,9 +64,9 @@ def get_WACC(ticker: str, tax_perc_T: float):
     stock = yf.Ticker(ticker)
     cost_of_equity = get_cost_of_equity(ticker)
     cost_of_debt = calculate_cost_of_debt(ticker)
-    market_cap = stock.info.get("marketCap")
+    market_cap = stock.info.get("marketCap", 0)
     # print(f"Market Cap: ${market_cap:,.2f}")
-    debt = stock.info.get("totalDebt") * exchange_rate
+    debt = stock.info.get("totalDebt", 0) * exchange_rate
     # print(f"Debt (from balance sheet): ${debt:,.2f}")
     total = market_cap + debt
     # print(f"Total (Market Cap + Debt): ${total:,.2f}")
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     # Terminal Growth Rate = 2.5%
     TGR = 0.025
 
-    ticker = "NVDA"
+    ticker = "RDDT"
     output_dir = "plots/sensitivity_anal"
     timestamp = "2025-03-17_012000"
     stock = yf.Ticker(ticker)

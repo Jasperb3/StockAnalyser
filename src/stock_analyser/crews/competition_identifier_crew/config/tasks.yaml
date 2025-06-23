@@ -1,0 +1,21 @@
+competitor_identification_task:
+  description: >
+    Your task is to research and identify the top 5 competitors of the following company:
+
+    Company name: {company_name}.
+
+    Company ticker: {company_ticker}.
+
+    Industry: {industry}.
+
+    Use the tools available to you to identify the competitors.
+    
+    These could be leaders in the same industry, or companies that are similar in nature.
+    
+    Return ONLY a JSON list containing just the tickers of these 5 competitors. e.g. ["NVDA", "AMD", "INTEL", "TSM", "MSFT"]
+
+    Current date (ISO format): {date_iso}.
+  expected_output: >
+    A list of strings, where each string is a competitor's ticker symbol.
+    Example: ["MSFT", "GOOGL", "AMZN", "NVDA", "TSM"]
+  agent: competitor_identifier_agent

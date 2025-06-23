@@ -12,6 +12,8 @@ from stock_analyser.tools.tool_utils.dcf_implied_price_calcs import (
     get_WACC,
 )
 
+from stock_analyser.tools.tool_utils.intrinsic_value_dcf import run_intrinsic_valuation
+
 now = datetime.now()
 TODAY = now.strftime("%Y-%m-%d")
 ONE_YEAR_AGO = now - timedelta(days=365)
@@ -106,42 +108,54 @@ class YFinanceAnalysisAndHoldingsTool(BaseTool):
         # estimated_intrinsic_value = calculate_intrinsic_value_dcf(**in_val_inputs)
 
         # get implied share price
+        # try:
+        #     outShares = company_ticker.info.get("sharesOutstanding")
+        #     if outShares is None:
+        #         raise ValueError(
+        #             "sharesOutstanding is missing"
+        #         )  # Raise a specific error
+        #     tax_provision = (
+        #         company_ticker.financials.loc["Tax Provision"].dropna().iloc[0] * exchange_rate
+        #     )
+        #     ebit = company_ticker.financials.loc["EBIT"].dropna().iloc[0] * exchange_rate
+
+        #     tax_perc_T = tax_provision / ebit
+
+        #     wacc = get_WACC(ticker, tax_perc_T)
+
+        #     fcf_calcs_inputs = {
+        #         "n": 10,
+        #         "OutShares": outShares,
+        #         "revenue_growth_T": 0.07,
+        #         "ebit_perc_T": 0.23,
+        #         "tax_perc_T": tax_perc_T,
+        #         "dna_perc_T": 0.03,
+        #         "capex_perc_T": 0.05,
+        #         "nwc_perc_T": 0.05,
+        #         "WACC": wacc,
+        #         "TGR": 0.025,
+        #     }
+        #     implied_share_price = calculate_implied_share_price(
+        #         ticker, **fcf_calcs_inputs
+        #     )
+
+        #     if isinstance(implied_share_price, float):
+        #         implied_share_price = f"${implied_share_price:,.2f}"
+        #     else:
+        #         implied_share_price = "N/A - Error calculating implied share price."
+        # except (KeyError, AttributeError, IndexError, TypeError, ValueError):
+        #     implied_share_price = (
+        #         "N/A - Missing data for implied share price calculation."
+        #     )
+        # except Exception:
+        #     implied_share_price = "N/A - Error calculating implied share price."
+
+        # intrinsic value
         try:
-            outShares = company_ticker.info.get("sharesOutstanding")
-            if outShares is None:
-                raise ValueError(
-                    "sharesOutstanding is missing"
-                )  # Raise a specific error
-            tax_provision = (
-                company_ticker.financials.loc["Tax Provision"].dropna().iloc[0] * exchange_rate
-            )
-            ebit = company_ticker.financials.loc["EBIT"].dropna().iloc[0] * exchange_rate
-
-            tax_perc_T = tax_provision / ebit
-
-            wacc = get_WACC(ticker, tax_perc_T)
-
-            fcf_calcs_inputs = {
-                "n": 10,
-                "OutShares": outShares,
-                "revenue_growth_T": 0.07,
-                "ebit_perc_T": 0.23,
-                "tax_perc_T": tax_perc_T,
-                "dna_perc_T": 0.03,
-                "capex_perc_T": 0.05,
-                "nwc_perc_T": 0.05,
-                "WACC": wacc,
-                "TGR": 0.025,
-            }
-            implied_share_price = calculate_implied_share_price(
-                ticker, **fcf_calcs_inputs
-            )
-        except (KeyError, AttributeError, IndexError, TypeError, ValueError):
-            implied_share_price = (
-                "N/A - Missing data for implied share price calculation."
-            )
-        except Exception:
-            implied_share_price = "N/A - Error calculating implied share price."
+            intrinsic_value_data = run_intrinsic_valuation(ticker)
+        except Exception as e:
+            print(f"Error calculating intrinsic value: {e}")
+            intrinsic_value_data = "N/A - Error calculating intrinsic value."
 
         # get earnings estimate
         try:
@@ -467,19 +481,20 @@ class YFinanceAnalysisAndHoldingsTool(BaseTool):
         data = f"Analyst Recommendations:\n{''.join(recommendations_list)}\n"
         data += f"Upgrades Downgrades:\n{''.join(upgrades_downgrades_list)}\n"
         data += f"Analyst Price Targets:\n{''.join(analyst_price_targets_list)}\n"
-        data += (
-            f"Intrinsic value per share: ${implied_share_price:,.2f}\n"
-            f"*Assumptions: "
-            f"Number of years of projections for DCF model = {fcf_calcs_inputs['n']}, "
-            f"Terminal Revenue Growth = {fcf_calcs_inputs['revenue_growth_T']:.2%}, "
-            f"Terminal EBIT (Earnings Before Interest and Taxes) / Sales = {fcf_calcs_inputs['ebit_perc_T']:.2%}, "
-            f"Terminal Tax Percentage of EBIT = {fcf_calcs_inputs['tax_perc_T']:.2%}, "
-            f"Terminal Depreciation and Amortization / Sales = {fcf_calcs_inputs['dna_perc_T']:.2%}, "
-            f"Terminal Capital Expenditures / Sales = {fcf_calcs_inputs['capex_perc_T']:.2%}, "
-            f"Terminal Change in Net Working Capital / Sales = {fcf_calcs_inputs['nwc_perc_T']:.2%}, "
-            f"Weighted Average Cost of Capital = {fcf_calcs_inputs['WACC']:.2%}, "
-            f"Terminal Growth Rate = {fcf_calcs_inputs['TGR']:.2%})\n\n"
-        )
+        # data += (
+        #     f"Intrinsic value per share: {implied_share_price}\n"
+        #     f"*Assumptions: "
+        #     f"Number of years of projections for DCF model = {fcf_calcs_inputs['n']}, "
+        #     f"Terminal Revenue Growth = {fcf_calcs_inputs['revenue_growth_T']:.2%}, "
+        #     f"Terminal EBIT (Earnings Before Interest and Taxes) / Sales = {fcf_calcs_inputs['ebit_perc_T']:.2%}, "
+        #     f"Terminal Tax Percentage of EBIT = {fcf_calcs_inputs['tax_perc_T']:.2%}, "
+        #     f"Terminal Depreciation and Amortization / Sales = {fcf_calcs_inputs['dna_perc_T']:.2%}, "
+        #     f"Terminal Capital Expenditures / Sales = {fcf_calcs_inputs['capex_perc_T']:.2%}, "
+        #     f"Terminal Change in Net Working Capital / Sales = {fcf_calcs_inputs['nwc_perc_T']:.2%}, "
+        #     f"Weighted Average Cost of Capital = {fcf_calcs_inputs['WACC']:.2%}, "
+        #     f"Terminal Growth Rate = {fcf_calcs_inputs['TGR']:.2%})\n\n"
+        # )
+        data += f"Intrinsic value calculation: {intrinsic_value_data}\n"
         data += f"Earnings Estimate:\n{''.join(earnings_estimate_list)}\n"
         data += f"Revenue Estimate:\n{''.join(revenue_estimate_list)}\n"
         data += f"Earnings History:\n{''.join(earnings_history_list)}\n"
@@ -501,4 +516,4 @@ class YFinanceAnalysisAndHoldingsTool(BaseTool):
 
 if __name__ == "__main__":
     tool = YFinanceAnalysisAndHoldingsTool()
-    print(tool.run("GC=F"))
+    print(tool.run("RDDT"))

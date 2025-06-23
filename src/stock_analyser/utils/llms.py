@@ -10,7 +10,7 @@ gemini_pro = LLM(
 )
 
 gemini_flash = LLM(
-	model="gemini/gemini-2.0-flash",
+	model="gemini/gemini-2.5-flash-preview-04-17",
 	api_key = os.getenv("GEMINI_API_KEY"),
 	temperature=0.7,
 	timeout=600
@@ -41,6 +41,24 @@ gpt4o = LLM(
 	temperature=0.7
 )
 
+gpt41 = LLM(
+	model="gpt-4.1",
+	api_key = os.getenv("OPENAI_API_KEY"),
+	temperature=0.7
+)
+
+gpt41mini = LLM(
+	model="gpt-4.1-mini",
+	api_key = os.getenv("OPENAI_API_KEY"),
+	temperature=0.7
+)
+
+gpt41nano = LLM(
+	model="gpt-4.1-nano",
+	api_key = os.getenv("OPENAI_API_KEY"),
+	temperature=0.7
+)
+
 gemma3 = LLM(
 	model="ollama/gemma3:12b",
     base_url="http://localhost:11434",
@@ -53,3 +71,16 @@ mistral_large = LLM(
 	api_key = os.getenv("MISTRAL_API_KEY"),
 	temperature=0.25
 )
+
+llama_4_maverick = LLM(
+	model="groq/meta-llama/llama-4-maverick-17b-128e-instruct",
+	api_key = os.getenv("GROQ_API_KEY"),
+	temperature=0.7
+)
+
+llama_4_scout = LLM(
+	model="groq/meta-llama/llama-4-scout-17b-16e-instruct",
+	api_key = os.getenv("GROQ_API_KEY"),
+	temperature=0.7
+)
+

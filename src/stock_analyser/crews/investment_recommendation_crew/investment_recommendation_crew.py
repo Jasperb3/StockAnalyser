@@ -2,10 +2,10 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.utils.models import ReportCritique, ResearchQuestions, ResearchAnswers
 from stock_analyser.utils.constants import TIMESTAMP, REL_KNOW_DIR
-from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL, EXPERT_MODEL
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL, GPT4O
 from stock_analyser.tools.gemini_search_tool import GeminiSearchTool
 from stock_analyser.tools.yfinance_swing_trading_tool import YFinanceSwingTradingTool
-
+from stock_analyser.tools.linkup_search_tool import LinkUpSearchTool
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,7 +24,7 @@ class InvestmentRecommendationCrew():
 	def planner(self) -> Agent:
 		return Agent(
 			config=self.agents_config['planner'],
-			llm=EXPERT_MODEL,
+			llm=GPT4O,
 			verbose=True
 		)
 
@@ -36,7 +36,8 @@ class InvestmentRecommendationCrew():
 			verbose=True,
 			tools=[
 				GeminiSearchTool(),
-				YFinanceSwingTradingTool()
+				YFinanceSwingTradingTool(),
+				LinkUpSearchTool()
 			],
 			max_iter=10
 		)
