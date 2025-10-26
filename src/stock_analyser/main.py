@@ -21,6 +21,9 @@ from .plotting.plot_relative_strength import plot_relative_strength
 from .plotting.plot_squeeze_momentum import analyze_single_stock
 from .plotting.plot_competitor_prices import plot_competitor_prices
 from .plotting.plotting_tools import plot_candlestick_chart
+from .plotting.plot_supertrend_chart import analyze_single_stock as analyze_supertrend
+from .plotting.plot_standard_error_bands import plot_standard_error_bands
+from .plotting.plot_multi_timeframe_momentum import plot_multi_timeframe_momentum, get_momentum_consensus
 
 from .utils.get_sp500_tickers import get_sp500_tickers
 from .utils.setup import Setup
@@ -336,10 +339,26 @@ class ReportFlow(Flow[ReportState]):
     def generate_trends_section(self):
         print("Generating trends section...")
 
+        # Generate multi-timeframe momentum dashboard
+        print("Generating multi-timeframe momentum dashboard...")
+        try:
+            momentum_plot = plot_multi_timeframe_momentum(
+                self.state.company_ticker, PLOTS_DIR, TIMESTAMP
+            )
+            momentum_consensus = get_momentum_consensus(
+                self.state.company_ticker, PLOTS_DIR, TIMESTAMP
+            )
+            print(f"📊 Multi-timeframe momentum dashboard saved to {momentum_plot}")
+        except Exception as e:
+            print(f"❌ Error generating momentum dashboard: {str(e)}")
+            momentum_plot = None
+            momentum_consensus = None
+
         inputs = {
             "company_name": self.state.company_name,
             "company_ticker": self.state.company_ticker,
             "date_iso": self.state.date_iso,
+            "momentum_analysis": momentum_consensus,
         }
 
         raw_trends_section = TrendsCrew().crew().kickoff(inputs=inputs)
@@ -381,6 +400,21 @@ class ReportFlow(Flow[ReportState]):
             "[freeCashFlow]",
             f"\n![Free Cash Flow Trends Plot]({free_cash_flow_plot})\n\n\n",
         )
+        
+        # Add multi-timeframe momentum dashboard
+        if momentum_plot:
+            trends_section = trends_section.replace(
+                "[multiTimeframeMomentum]", 
+                f"\n![Multi Timeframe Momentum Dashboard]({momentum_plot})\n\n"
+                + "<figcaption>Multi-timeframe momentum analysis comparing key technical "
+                + "indicators (RSI, Williams %R, Ultimate Oscillator, Schaff Trend Cycle) "
+                + "across daily, weekly, and monthly timeframes. This dashboard provides "
+                + "comprehensive momentum confirmation and helps identify trend alignment "
+                + "or divergence across different time horizons for better trend "
+                + "validation.</figcaption>\n\n\n"
+            )
+        else:
+            trends_section = trends_section.replace("[multiTimeframeMomentum]", "")
 
         self.state.trends_section += trends_section
 
@@ -495,6 +529,99 @@ class ReportFlow(Flow[ReportState]):
                 )
         except Exception as e:
             print(f"❌ Error plotting Squeeze Momentum chart: {str(e)}")
+
+        # Plot Supertrend analysis
+        try:
+            supertrend_result = analyze_supertrend(
+                self.state.company_ticker, atr_period=10, atr_multiplier=3.0, 
+                start_date='2023-01-01', output_dir=PLOTS_DIR, timestamp=TIMESTAMP
+            )
+            if supertrend_result:
+                _, _, _, roi = supertrend_result
+                supertrend_plot_path = f"{PLOTS_DIR}/{self.state.company_ticker}_supertrend_period10_mult3.0_{TIMESTAMP}.png"
+                
+                if os.path.exists(supertrend_plot_path):
+                    print(f"📊 Supertrend chart saved to {supertrend_plot_path}\n")
+                    
+                    fig_and_caption = f"\n\n![Supertrend Chart]({supertrend_plot_path})"
+                    fig_and_caption += (
+                        "\n<figcaption>The Supertrend indicator combines price action with "
+                        "Average True Range (ATR) to identify trend direction and potential "
+                        "reversal points. Green areas indicate bullish trends (buy signals) "
+                        "while red areas show bearish trends (sell signals). The indicator "
+                        "adapts to market volatility and provides dynamic support and resistance "
+                        f"levels. Backtest ROI: {roi:.2f}%</figcaption>\n\n"
+                    )
+                    
+                    self.state.analyst_insights_section = (
+                        self.state.analyst_insights_section.replace(
+                            "[supertrendChart]", fig_and_caption
+                        )
+                    )
+                    print("Supertrend chart added to analyst insights section ✅")
+                else:
+                    print("❌ Supertrend chart not found. Skipping...")
+                    self.state.analyst_insights_section = (
+                        self.state.analyst_insights_section.replace(
+                            "[supertrendChart]", ""
+                        )
+                    )
+            else:
+                print("❌ Supertrend analysis failed. Skipping...")
+                self.state.analyst_insights_section = (
+                    self.state.analyst_insights_section.replace(
+                        "[supertrendChart]", ""
+                    )
+                )
+        except Exception as e:
+            print(f"❌ Error plotting Supertrend chart: {str(e)}")
+            self.state.analyst_insights_section = (
+                self.state.analyst_insights_section.replace(
+                    "[supertrendChart]", ""
+                )
+            )
+
+        # Plot Standard Error Bands analysis
+        try:
+            seb_plot_path = plot_standard_error_bands(
+                self.state.company_ticker, period='6mo', 
+                output_dir=PLOTS_DIR, timestamp=TIMESTAMP
+            )
+            
+            if seb_plot_path and os.path.exists(seb_plot_path):
+                print(f"📊 Standard Error Bands chart saved to {seb_plot_path}\n")
+                
+                fig_and_caption = f"\n\n![Standard Error Bands Chart]({seb_plot_path})"
+                fig_and_caption += (
+                    "\n<figcaption>Standard Error Bands provide a statistically-based "
+                    "approach to volatility analysis using linear regression. The center "
+                    "line represents a smoothed regression trend, while the upper and lower "
+                    "bands are positioned at ±2 standard errors from the regression line. "
+                    "This creates a dynamic channel that adapts to price volatility and "
+                    "helps identify potential support/resistance levels and trend "
+                    "continuation or reversal points.</figcaption>\n\n"
+                )
+                
+                self.state.analyst_insights_section = (
+                    self.state.analyst_insights_section.replace(
+                        "[standardErrorBandsChart]", fig_and_caption
+                    )
+                )
+                print("Standard Error Bands chart added to analyst insights section ✅")
+            else:
+                print("❌ Standard Error Bands chart not generated. Skipping...")
+                self.state.analyst_insights_section = (
+                    self.state.analyst_insights_section.replace(
+                        "[standardErrorBandsChart]", ""
+                    )
+                )
+        except Exception as e:
+            print(f"❌ Error plotting Standard Error Bands chart: {str(e)}")
+            self.state.analyst_insights_section = (
+                self.state.analyst_insights_section.replace(
+                    "[standardErrorBandsChart]", ""
+                )
+            )
 
     @timeit
     @listen(plot_signals_charts)

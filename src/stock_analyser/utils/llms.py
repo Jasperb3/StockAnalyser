@@ -59,6 +59,21 @@ gpt41nano = LLM(
 	temperature=0.7
 )
 
+gpt5 = LLM(
+	model="gpt-5",
+	api_key = os.getenv("OPENAI_API_KEY"),
+)
+
+gpt5_mini = LLM(
+	model="gpt-5-mini",
+	api_key = os.getenv("OPENAI_API_KEY"),
+)
+
+gpt5_nano = LLM(
+	model="gpt-5-nano",
+	api_key = os.getenv("OPENAI_API_KEY"),
+)
+
 gemma3 = LLM(
 	model="ollama/gemma3:12b",
     base_url="http://localhost:11434",

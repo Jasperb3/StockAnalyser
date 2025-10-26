@@ -2,6 +2,7 @@ import shutil
 import os
 import uuid
 from pathlib import Path
+from dotenv import load_dotenv
 from google import genai
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
@@ -16,6 +17,7 @@ from stock_analyser.utils.fmp_get_filings import get_most_recent_filing, save_fi
 from stock_analyser.utils.constants import KNOWLEDGE_DIR, FILINGS_DIR, DB_DIR
 import time
 
+load_dotenv()
 
 class Setup:
     def __init__(self, state):
@@ -34,8 +36,11 @@ class Setup:
         self.qdrant_api_key = os.environ.get("QDRANT_API_KEY")
         if self.qdrant_url and self.qdrant_api_key:
             self.qdrant_client = QdrantClient(
-                url=self.qdrant_url, api_key=self.qdrant_api_key
+                url=self.qdrant_url,
+                api_key=self.qdrant_api_key,
+                check_compatibility=False
             )
+            print("Qdrant client initialized ✅")
         else:
             print("⚠️ QDRANT_URL or QDRANT_API_KEY not found in environment variables")
             self.qdrant_client = None

@@ -8,6 +8,7 @@ __pycache__/
 .vscode/
 .env
 archived/
+CLAUDE.md
 crewOutputs/
 filings/
 final_reports/
@@ -24,3 +25,4 @@ timings/
 src/stock_analyser/tools/token.json
 src/stock_analyser/tools/credentials.json
 reference/
+test_plots/

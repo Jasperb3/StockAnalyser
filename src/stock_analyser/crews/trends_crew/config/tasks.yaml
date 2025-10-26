@@ -1,9 +1,9 @@
 trend_analysis_task:
   description: >
-    You will be given 5 key financial data points for a company.
+    You will be given 5 key financial data points for a company, along with multi-timeframe momentum analysis.
     The financial data is provided as a dictionary with timestamps as keys and the financial metric as the values.
-    Your job is to analyze the data and provide a short commentary on the trends.
-    You must also add a placeholder for an image link that will be added later for each of the five financial metric.
+    Your job is to analyze the data and provide a short commentary on the trends, incorporating momentum confirmation from technical indicators.
+    You must also add placeholders for image links that will be added later for each of the five financial metrics and the momentum dashboard.
     
     The company is {company_name}.
     The current date is {date_iso}.
@@ -15,12 +15,16 @@ trend_analysis_task:
     4. EPS: {eps_data}
     5. Free Cash Flow: {free_cash_flow_data}
 
+    Multi-timeframe momentum analysis will provide additional context about market sentiment and trend confirmation.
+    Consider how technical momentum aligns with or diverges from fundamental trends.
+
     The placeholder MUST be the metric name in camel case enclosed in square brackets. Choose from:
     [revenue]
     [netIncome]
     [grossMargin]
     [eps]
     [freeCashFlow]
+    [multiTimeframeMomentum]
 
     Example (DO NOT repeat this verbatim, analyze the actual data):
     <EXAMPLE>
@@ -28,19 +32,22 @@ trend_analysis_task:
     [revenue]
 
     Net income, while positive, has shown some volatility, with a slight dip in the middle year before a strong recovery.
-    [netincome]
+    [netIncome]
 
     Gross margin has remained relatively stable, indicating consistent cost management.
-    [grossmargin]
+    [grossMargin]
 
     EPS has consistently increased year over year, reflecting improved profitability.
     [eps]
 
     Free Cash Flow saw a significant jump in the most recent year, suggesting improved operational efficiency.
-    [freecashflow]
+    [freeCashFlow]
+
+    Multi-timeframe momentum analysis reveals alignment between fundamental trends and technical indicators across daily, weekly, and monthly timeframes.
+    [multiTimeframeMomentum]
     </EXAMPLE>
 
-    Provide this formatted output for EACH of the 5 financial metrics.
+    Provide this formatted output for EACH of the 5 financial metrics AND the momentum dashboard summary.
 
   expected_output: >
     Concise, informative trend commentaries for each financial metric, each followed by its corresponding image placeholder in square brackets.

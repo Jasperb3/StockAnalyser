@@ -115,7 +115,9 @@ editing_task:
     **Image placeholders**
     1. At the end of the "Analyst Price Targets" sub-section, precisely insert the placeholder: `[rsiChart]`.
     2. Directly after this, precisely insert the placeholder: `[squeezeMomentumChart]`.
-    3. At the end of the "Estimated Intrinsic Value" sub-section, precisely insert the placeholder: `[sensitivityAnalysis]`.
+    3. Directly after this, precisely insert the placeholder: `[supertrendChart]`.
+    4. Directly after this, precisely insert the placeholder: `[standardErrorBandsChart]`.
+    5. At the end of the "Estimated Intrinsic Value" sub-section, precisely insert the placeholder: `[sensitivityAnalysis]`.
     - Do not add any other text or formatting to the placeholders.
     - These placeholders will be replaced later with charts, so it is vital that they are placed correctly using the exact text specified.
     - Continue with the rest of the section after each placeholder.
