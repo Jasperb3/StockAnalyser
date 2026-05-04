@@ -32,8 +32,8 @@ class Setup:
             self.genai_client = None
 
         # Initialize Qdrant client
-        self.qdrant_url = os.environ.get("QDRANT_CLUSTER_URL")
-        self.qdrant_api_key = os.environ.get("QDRANT_API_KEY")
+        self.qdrant_url = os.environ.get("QDRANT_LOCAL_URL")
+        self.qdrant_api_key = os.environ.get("QDRANT_LOCAL_API_KEY")
         if self.qdrant_url and self.qdrant_api_key:
             self.qdrant_client = QdrantClient(
                 url=self.qdrant_url,
@@ -42,7 +42,7 @@ class Setup:
             )
             print("Qdrant client initialized ✅")
         else:
-            print("⚠️ QDRANT_URL or QDRANT_API_KEY not found in environment variables")
+            print("⚠️ QDRANT_LOCAL_URL or QDRANT_LOCAL_API_KEY not found in environment variables")
             self.qdrant_client = None
 
         # Collection name for Qdrant
@@ -479,7 +479,7 @@ class Setup:
                 try:
                     # Generate embedding using Gemini
                     result = self.genai_client.models.embed_content(
-                        model="text-embedding-004", contents=chunk["text"]
+                        model="gemini-embedding-001", contents=chunk["text"]
                     )
 
                     # Correctly access the embedding values
@@ -521,7 +521,7 @@ class Setup:
 
         try:
             # Check if collection exists and has correct vector size
-            vector_size = 768  # Gemini text-embedding-004 has 768 dimensions
+            vector_size = 3072  # Gemini gemini-embedding-001 has 3072 dimensions
 
             if self.qdrant_client.collection_exists(self.collection_name):
                 try:

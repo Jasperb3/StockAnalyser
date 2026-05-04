@@ -1,5 +1,4 @@
-import os
-from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL, CRITIC_MODEL, EDITOR_MODEL
+from stock_analyser.utils.agent_llms import RESEARCH_MODEL, WRITING_MODEL
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from stock_analyser.tools.gmail_tool import GmailTool

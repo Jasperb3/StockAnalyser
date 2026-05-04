@@ -71,13 +71,14 @@ class ReportFlow(Flow[ReportState]):
     @start()
     def confirm_company_stock(self):
         while True:
-            self.state.company_ticker = (
-                input(
-                    "\n\033[1;34mEnter the stock ticker symbol of the company you want to analyze or hit 'ENTER' for a random S&P 500 company:\033[0m "
+            if not self.state.company_ticker:
+                self.state.company_ticker = (
+                    input(
+                        "\n\033[1;34mEnter the stock ticker symbol of the company you want to analyze or hit 'ENTER' for a random S&P 500 company:\033[0m "
+                    )
+                    .strip()
+                    .upper()
                 )
-                .strip()
-                .upper()
-            )
             if self.state.company_ticker == "":
                 while True:
                     sp500_tickers = get_sp500_tickers()
@@ -127,6 +128,7 @@ class ReportFlow(Flow[ReportState]):
                 break
             else:
                 print("❌ Invalid ticker. Please try again.\n")
+                self.state.company_ticker = ""
 
     @timeit
     @listen(confirm_company_stock)
@@ -1182,8 +1184,15 @@ class ReportFlow(Flow[ReportState]):
 
 
 def kickoff():
+    raw_input = (
+        input(
+            "\n\033[1;34mEnter the stock ticker symbol of the company you want to analyze or hit 'ENTER' for a random S&P 500 company:\033[0m "
+        )
+        .strip()
+        .upper()
+    )
     report_flow = ReportFlow()
-    report_flow.kickoff()
+    report_flow.kickoff(inputs={"company_ticker": raw_input})
 
 
 def plot():

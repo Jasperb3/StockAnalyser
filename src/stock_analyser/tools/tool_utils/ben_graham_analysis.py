@@ -1,97 +1,69 @@
-import yfinance as yf
+"""
+Benjamin Graham value investing analysis implementation.
+
+Analyzes stocks using Graham's classic value-investing principles:
+1. Earnings stability over multiple years
+2. Solid financial strength (low debt, adequate liquidity)
+3. Discount to intrinsic value (Graham Number or net-net)
+4. Adequate margin of safety
+"""
+
+from typing import Dict, Any
 import math
 import numpy as np
 import pandas as pd
+
 from stock_analyser.utils.convert_currency import convert_currency
+from stock_analyser.tools.tool_utils.analysis_helpers import (
+    get_ticker,
+    safe_get_row,
+    filter_valid_values,
+    calculate_growth_rate,
+    create_error_result,
+    safe_divide,
+)
+from stock_analyser.tools.tool_utils.analysis_constants import (
+    MIN_PERIODS_FOR_ANALYSIS,
+    CURRENT_RATIO_EXCELLENT,
+    CURRENT_RATIO_GOOD,
+    DEBT_TO_ASSETS_CONSERVATIVE,
+    CONSISTENCY_THRESHOLD_GOOD,
+    CONSISTENCY_THRESHOLD_MAJORITY,
+    GRAHAM_MARGIN_STRONG,
+    GRAHAM_MARGIN_MODERATE,
+    SIGNAL_BULLISH_THRESHOLD,
+    SIGNAL_BEARISH_THRESHOLD,
+)
 
 
-def safe_get_row(df: pd.DataFrame, row_name: str, alternative_names=None):
-    """
-    Safely get a row from a DataFrame, handling KeyError and empty DataFrames.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to get the row from
-        row_name (str): The name of the row to get
-        alternative_names (list, optional): Alternative names to try if row_name is not found
-
-    Returns:
-        pd.Series or None: The row data or None if not found
-    """
-    if df is None or df.empty:
-        return None
-
-    try:
-        return df.loc[row_name]
-    except KeyError:
-        if alternative_names:
-            for alt_name in alternative_names:
-                try:
-                    return df.loc[alt_name]
-                except KeyError:
-                    continue
-        return None
-
-
-def filter_valid_values(series):
-    """
-    Filter a series to only include valid numeric values (not None or NaN).
-
-    Args:
-        series: A pandas Series or list-like object
-
-    Returns:
-        list: A list of valid numeric values
-    """
-    if series is None:
-        return []
-
-    if isinstance(series, pd.Series):
-        return [val for val in series if val is not None and not np.isnan(val)]
-    else:
-        return [val for val in series if val is not None and not np.isnan(val)]
-
-
-def analyse_earnings_stability(ticker: str):
+def analyse_earnings_stability(ticker: str) -> Dict[str, Any]:
     """
     Graham wants at least several years of consistently positive earnings (ideally 5+).
-    We'll check:
-    1. Number of years with positive EPS.
-    2. Growth in EPS from first to last period.
+    Checks:
+    1. Number of years with positive EPS
+    2. Growth in EPS from first to last period
 
     Args:
-        metrics (dict): Financial metrics dictionary
-        ticker (str): Stock ticker symbol
+        ticker: Stock ticker symbol
 
     Returns:
-        dict: Analysis results with score and details
+        Analysis results with score and details
     """
     score = 0
     max_score = 0
     details = []
 
     try:
-        company_ticker = yf.Ticker(ticker)
+        company_ticker = get_ticker(ticker)
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Failed to get ticker data: {str(e)}",
-        }
+        return create_error_result(f"Failed to get ticker data: {str(e)}")
 
     try:
         financials = company_ticker.financials
         if financials is None or financials.empty:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": "No financial data available",
-            }
+            return create_error_result("No financial data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving financial data: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving financial data: {str(e)}")
 
     # Get EPS data, trying alternative row names if needed
     eps_vals_df = safe_get_row(financials, "Diluted EPS", ["Basic EPS"])
@@ -104,19 +76,18 @@ def analyse_earnings_stability(ticker: str):
         }
 
     eps_vals = filter_valid_values(eps_vals_df)
-    if len(eps_vals) < 2:
-        details.append("Not enough multi-year EPS data (need at least 2 periods).")
+    if len(eps_vals) < MIN_PERIODS_FOR_ANALYSIS:
+        details.append(f"Not enough multi-year EPS data (need at least {MIN_PERIODS_FOR_ANALYSIS} periods).")
         return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
     # 1. Consistently positive EPS
     positive_eps_years = sum(1 for e in eps_vals if e > 0)
     total_eps_years = len(eps_vals)
 
-    # Add score for positive EPS years (but avoid double counting with the next section)
     if positive_eps_years == total_eps_years:
         score += 3
         details.append(f"EPS was positive in all {total_eps_years} available periods.")
-    elif positive_eps_years >= (total_eps_years * 0.8):
+    elif positive_eps_years >= (total_eps_years * CONSISTENCY_THRESHOLD_GOOD):
         score += 2
         details.append(
             f"EPS was positive in {positive_eps_years} of {total_eps_years} periods ({positive_eps_years / total_eps_years:.0%})"
@@ -126,192 +97,135 @@ def analyse_earnings_stability(ticker: str):
             f"EPS was negative in {total_eps_years - positive_eps_years} of {total_eps_years} periods."
         )
 
-    max_score += 3  # Increment max_score
+    max_score += 3
 
     # 2. EPS growth from earliest to latest
-    # Note: yfinance data is typically in reverse chronological order (newest first)
-    # So eps_vals[0] is the latest (newest) and eps_vals[-1] is the earliest (oldest)
-    try:
-        latest_eps = eps_vals[0]
-        earliest_eps = None  # Initialize
+    growth_rate = calculate_growth_rate(eps_vals, latest_first=True)
 
-        # Find a valid (non-zero) earliest EPS
+    if growth_rate is not None:
+        latest_eps = eps_vals[0]
+        # Find earliest non-zero value
+        earliest_eps = None
         for i in range(len(eps_vals) - 1, -1, -1):
             if eps_vals[i] != 0:
                 earliest_eps = eps_vals[i]
                 break
 
-        if (
-            earliest_eps is not None
-            and not np.isnan(earliest_eps)
-            and not np.isnan(latest_eps)
-        ):
-            growth_percentage = (latest_eps - earliest_eps) / abs(earliest_eps)
-
+        if earliest_eps is not None:
             if latest_eps > earliest_eps:
                 score += 1
                 details.append(
-                    f"EPS grew from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} growth)."
+                    f"EPS grew from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_rate:.2%} growth)."
                 )
             else:
                 details.append(
-                    f"EPS declined from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_percentage:.2%} change)."
+                    f"EPS declined from {earliest_eps:.2f} to {latest_eps:.2f} ({growth_rate:.2%} change)."
                 )
-
-        elif (
-            len(eps_vals) > 1
-        ):  # We did NOT find a valid earliest_eps, but there are at least two values
-            details.append("Cannot calculate EPS growth due to zero or invalid values.")
-
-        else:  # We did not find a valid earliest_eps AND there is only one value
-            details.append("Cannot calculate EPS growth due to zero or invalid values.")
-
-    except (IndexError, ZeroDivisionError, Exception) as e:
-        details.append(f"Error calculating EPS growth: {str(e)}")
+        else:
+            details.append("Cannot calculate EPS growth due to zero or invalid earliest value.")
+    else:
+        details.append("Cannot calculate EPS growth due to insufficient data.")
 
     max_score += 1
 
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-def analyse_financial_strength(ticker: str):
+def analyse_financial_strength(ticker: str) -> Dict[str, Any]:
     """
     Graham checks liquidity (current ratio >= 2), manageable debt,
     and dividend record (preferably some history of dividends).
 
     Args:
-        metrics (dict): Financial metrics dictionary
-        ticker (str): Stock ticker symbol
+        ticker: Stock ticker symbol
 
     Returns:
-        dict: Analysis results with score and details
+        Analysis results with score and details
     """
     score = 0
     max_score = 0
     details = []
 
     try:
-        company_ticker = yf.Ticker(ticker)
+        company_ticker = get_ticker(ticker)
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Failed to get ticker data for financial strength analysis: {str(e)}",
-        }
+        return create_error_result(f"Failed to get ticker data: {str(e)}")
 
     try:
         cash_flow = company_ticker.cashflow
         if cash_flow is None or cash_flow.empty:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": "No cash flow data available",
-            }
+            return create_error_result("No cash flow data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving cash flow data for financial strength analysis: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving cash flow data: {str(e)}")
 
     try:
         balance_sheet = company_ticker.balance_sheet
         if balance_sheet is None or balance_sheet.empty:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": "No balance sheet data available",
-            }
+            return create_error_result("No balance sheet data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving balance sheet data for financial strength analysis: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving balance sheet data: {str(e)}")
 
     # Extract metrics with safe handling of None/NaN values
     try:
-        total_assets = balance_sheet.loc["Total Assets"].dropna().iloc[0]
-        total_liabilities = (
-            balance_sheet.loc["Total Liabilities Net Minority Interest"]
-            .dropna()
-            .iloc[0]
-        )
-        current_assets = balance_sheet.loc["Current Assets"].dropna().iloc[0]
-        current_liabilities = balance_sheet.loc["Current Liabilities"].dropna().iloc[0]
+        total_assets_row = safe_get_row(balance_sheet, "Total Assets")
+        total_liabilities_row = safe_get_row(balance_sheet, "Total Liabilities Net Minority Interest")
+        current_assets_row = safe_get_row(balance_sheet, "Current Assets")
+        current_liabilities_row = safe_get_row(balance_sheet, "Current Liabilities")
+
+        # Check if any rows are None (not using all() to avoid pandas Series ambiguity)
+        if (total_assets_row is None or total_liabilities_row is None or
+            current_assets_row is None or current_liabilities_row is None):
+            return create_error_result("Missing required balance sheet data")
+
+        total_assets_vals = filter_valid_values(total_assets_row)
+        total_liabilities_vals = filter_valid_values(total_liabilities_row)
+        current_assets_vals = filter_valid_values(current_assets_row)
+        current_liabilities_vals = filter_valid_values(current_liabilities_row)
+
+        # Check if any value lists are empty
+        if (not total_assets_vals or not total_liabilities_vals or
+            not current_assets_vals or not current_liabilities_vals):
+            return create_error_result("No valid balance sheet values available")
+
+        total_assets = total_assets_vals[0]
+        total_liabilities = total_liabilities_vals[0]
+        current_assets = current_assets_vals[0]
+        current_liabilities = current_liabilities_vals[0]
+
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving balance sheet data: {str(e)}",
-        }
-          
+        return create_error_result(f"Error extracting balance sheet data: {str(e)}")
 
     # 1. Current ratio
-    if (
-        current_assets is not None
-        and current_liabilities is not None
-        and not np.isnan(current_assets)
-        and not np.isnan(current_liabilities)
-        and current_liabilities > 0
-    ):
-        try:
-            current_ratio = current_assets / current_liabilities
-            if current_ratio >= 2.0:
-                score += 2
-                details.append(f"Current ratio = {current_ratio:.2f} (>=2.0: solid).")
-            elif current_ratio >= 1.5:
-                score += 1
-                details.append(
-                    f"Current ratio = {current_ratio:.2f} (moderately strong)."
-                )
-            else:
-                details.append(
-                    f"Current ratio = {current_ratio:.2f} (<1.5: weaker liquidity)."
-                )
-
-            max_score += 2  # Increment max_score
-
-        except (ZeroDivisionError, Exception) as e:
-            details.append(f"Error calculating current ratio: {str(e)}")
+    current_ratio = safe_divide(current_assets, current_liabilities)
+    if current_ratio > 0:
+        if current_ratio >= CURRENT_RATIO_EXCELLENT:
+            score += 2
+            details.append(f"Current ratio = {current_ratio:.2f} (>={CURRENT_RATIO_EXCELLENT}: solid).")
+        elif current_ratio >= CURRENT_RATIO_GOOD:
+            score += 1
+            details.append(f"Current ratio = {current_ratio:.2f} (moderately strong).")
+        else:
+            details.append(f"Current ratio = {current_ratio:.2f} (<{CURRENT_RATIO_GOOD}: weaker liquidity).")
     else:
-        details.append(
-            "Cannot compute current ratio (missing or invalid current assets/liabilities data)."
-        )
+        details.append("Cannot compute current ratio (missing or invalid data).")
+
+    max_score += 2
 
     # 2. Debt vs. Assets
-    if (
-        total_assets is not None
-        and total_liabilities is not None
-        and not np.isnan(total_assets)
-        and not np.isnan(total_liabilities)
-        and total_assets > 0
-    ):
-        try:
-            debt_ratio = total_liabilities / total_assets
-            if debt_ratio < 0.5:
-                score += 2
-                details.append(
-                    f"Debt ratio = {debt_ratio:.2f}, under 0.50 (conservative)."
-                )
-            elif debt_ratio < 0.8:
-                score += 1
-                details.append(
-                    f"Debt ratio = {debt_ratio:.2f}, somewhat high but could be acceptable."
-                )
-            else:
-                details.append(
-                    f"Debt ratio = {debt_ratio:.2f}, quite high by Graham standards."
-                )
-
-            max_score += 2  # Increment max_score
-
-        except (ZeroDivisionError, Exception) as e:
-            details.append(f"Error calculating debt ratio: {str(e)}")
+    debt_ratio = safe_divide(total_liabilities, total_assets)
+    if debt_ratio >= 0:  # Valid calculation
+        if debt_ratio < DEBT_TO_ASSETS_CONSERVATIVE:
+            score += 2
+            details.append(f"Debt ratio = {debt_ratio:.2f}, under {DEBT_TO_ASSETS_CONSERVATIVE} (conservative).")
+        elif debt_ratio < 0.8:
+            score += 1
+            details.append(f"Debt ratio = {debt_ratio:.2f}, somewhat high but could be acceptable.")
+        else:
+            details.append(f"Debt ratio = {debt_ratio:.2f}, quite high by Graham standards.")
     else:
-        details.append(
-            "Cannot compute debt ratio (missing or invalid assets/liabilities data)."
-        )
+        details.append("Cannot compute debt ratio (missing or invalid data).")
+
+    max_score += 2
 
     # 3. Dividend track record
     cash_dividends_paid_df = safe_get_row(
@@ -320,38 +234,34 @@ def analyse_financial_strength(ticker: str):
 
     if cash_dividends_paid_df is None:
         details.append("Dividend data not available in cash flow statement.")
-        return {"score": score, "max_score": max_score, "details": "; ".join(details)}
-
-    div_periods = filter_valid_values(cash_dividends_paid_df)
-    if div_periods:
-        # In many data feeds, dividend outflow is shown as a negative number
-        # (money going out to shareholders). We'll consider any negative as 'paid a dividend'.
-        div_paid_years = sum(1 for d in div_periods if d < 0)
-        total_periods = len(div_periods)
-
-        if div_paid_years > 0:
-            # e.g. if at least half the periods had dividends
-            if div_paid_years >= (total_periods // 2 + 1):
-                score += 1
-                details.append(
-                    f"Company paid dividends in {div_paid_years} of {total_periods} reported years."
-                )
-            else:
-                details.append(
-                    f"Company has some dividend payments ({div_paid_years} of {total_periods} years)."
-                )
-        else:
-            details.append("Company did not pay dividends in these periods.")
-
-        max_score += 1  # Increment max_score
-
     else:
-        details.append("No dividend data available to assess payout consistency.")
+        div_periods = filter_valid_values(cash_dividends_paid_df)
+        if div_periods:
+            # In many data feeds, dividend outflow is shown as negative
+            div_paid_years = sum(1 for d in div_periods if d < 0)
+            total_periods = len(div_periods)
+
+            if div_paid_years > 0:
+                if div_paid_years >= (total_periods // 2 + 1):
+                    score += 1
+                    details.append(
+                        f"Company paid dividends in {div_paid_years} of {total_periods} reported years."
+                    )
+                else:
+                    details.append(
+                        f"Company has some dividend payments ({div_paid_years} of {total_periods} years)."
+                    )
+            else:
+                details.append("Company did not pay dividends in these periods.")
+        else:
+            details.append("No valid dividend data available.")
+
+    max_score += 1
 
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-def analyse_valuation_graham(ticker: str):
+def analyse_valuation_graham(ticker: str) -> Dict[str, Any]:
     """
     Core Graham approach to valuation:
     1. Net-Net Check: (Current Assets - Total Liabilities) vs. Market Cap
@@ -359,124 +269,92 @@ def analyse_valuation_graham(ticker: str):
     3. Compare per-share price to Graham Number => margin of safety
 
     Args:
-        ticker (str): Stock ticker symbol
+        ticker: Stock ticker symbol
 
     Returns:
-        dict: Analysis results with score and details
+        Analysis results with score and details
     """
-
     try:
-        company_ticker = yf.Ticker(ticker)
+        company_ticker = get_ticker(ticker)
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Failed to get ticker data: {str(e)}",
-        }
+        return create_error_result(f"Failed to get ticker data: {str(e)}")
 
     try:
         info = company_ticker.info
         if info is None:
-            return {"score": 0, "max_score": 0, "details": "No info data available"}
+            return create_error_result("No info data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving info data: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving info data: {str(e)}")
 
     try:
         balance_sheet = company_ticker.balance_sheet
         if balance_sheet is None or balance_sheet.empty:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": "No balance sheet data available",
-            }
+            return create_error_result("No balance sheet data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving balance sheet data: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving balance sheet data: {str(e)}")
 
     try:
         financials = company_ticker.financials
         if financials is None or financials.empty:
-            return {
-                "score": 0,
-                "max_score": 0,
-                "details": "No financial data available",
-            }
+            return create_error_result("No financial data available")
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving financial data: {str(e)}",
-        }
+        return create_error_result(f"Error retrieving financial data: {str(e)}")
 
     try:
         exchange_rate = convert_currency(ticker)
     except Exception as e:
-        print(f"Error converting currency: {str(e)}")
+        print(f"Warning: Error converting currency: {str(e)}, using rate of 1")
         exchange_rate = 1
 
     market_cap = info.get("marketCap")
 
-    if not info or market_cap is None or market_cap <= 0 or np.isnan(market_cap):
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": "Insufficient data for valuation analysis",
-        }
+    if not market_cap or market_cap <= 0 or np.isnan(market_cap):
+        return create_error_result("Insufficient or invalid market cap data for valuation analysis")
 
-    # Extract metrics with safe handling of None/NaN values
+    # Extract metrics with validation
     try:
-        current_assets = (
-            balance_sheet.loc["Current Assets"].dropna().iloc[0] * exchange_rate
+        current_assets = validate_balance_sheet_value(balance_sheet, "Current Assets", exchange_rate)
+        total_liabilities = validate_balance_sheet_value(
+            balance_sheet, "Total Liabilities Net Minority Interest", exchange_rate
         )
-        total_liabilities = (
-            balance_sheet.loc["Total Liabilities Net Minority Interest"]
-            .dropna()
-            .iloc[0]
-            * exchange_rate
-        )
-        stockholders_equity = (
-            balance_sheet.loc["Stockholders Equity"].dropna().iloc[0] * exchange_rate
-        )
-        goodwill = balance_sheet.loc["Goodwill"].dropna().iloc[0] * exchange_rate
-        other_intangible_assets = (
-            balance_sheet.loc["Other Intangible Assets"].dropna().iloc[0]
-            * exchange_rate
-        )
+        stockholders_equity = validate_balance_sheet_value(balance_sheet, "Stockholders Equity", exchange_rate)
+        goodwill = validate_balance_sheet_value(balance_sheet, "Goodwill", exchange_rate) or 0
+        other_intangible = validate_balance_sheet_value(balance_sheet, "Other Intangible Assets", exchange_rate) or 0
         shares_outstanding = info.get("sharesOutstanding")
-        total_intangible_assets = goodwill + other_intangible_assets
+
+        # Check if any critical values are None or zero (avoiding all() with potentially None values)
+        if (current_assets is None or total_liabilities is None or
+            stockholders_equity is None or shares_outstanding is None or
+            shares_outstanding <= 0):
+            return create_error_result("Missing required balance sheet values for Graham valuation")
+
+        total_intangible_assets = goodwill + other_intangible
         tangible_book_value = stockholders_equity - total_intangible_assets
-        tangible_book_value_per_share = tangible_book_value / shares_outstanding
-        eps = financials.loc["Diluted EPS"].dropna().iloc[0]
+        tangible_book_value_per_share = safe_divide(tangible_book_value, shares_outstanding)
+
+        eps_row = safe_get_row(financials, "Diluted EPS")
+        if eps_row is None:
+            return create_error_result("EPS data not available")
+
+        eps_vals = filter_valid_values(eps_row)
+        if not eps_vals:
+            return create_error_result("No valid EPS values")
+
+        eps = eps_vals[0]
+
     except Exception as e:
-        return {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error retrieving balance sheet data for Graham valuation: {str(e)}",
-        }
+        return create_error_result(f"Error extracting valuation data: {str(e)}")
 
     details = []
     score = 0
     max_score = 0
 
     # 1. Net-Net Check
-    #   NCAV = Current Assets - Total Liabilities
-    #   If NCAV > Market Cap => historically a strong buy signal
     try:
         net_current_asset_value = current_assets - total_liabilities
         if net_current_asset_value > 0 and shares_outstanding > 0:
-            net_current_asset_value_per_share = (
-                net_current_asset_value / shares_outstanding
-            )
-            price_per_share = (
-                market_cap / shares_outstanding if shares_outstanding else 0
-            )
+            net_current_asset_value_per_share = safe_divide(net_current_asset_value, shares_outstanding)
+            price_per_share = safe_divide(market_cap, shares_outstanding)
 
             details.append(f"Net Current Asset Value = {net_current_asset_value:,.2f}")
             details.append(f"NCAV Per Share = {net_current_asset_value_per_share:,.2f}")
@@ -485,36 +363,25 @@ def analyse_valuation_graham(ticker: str):
             if net_current_asset_value > market_cap:
                 score += 4  # Very strong Graham signal
                 details.append("Net-Net: NCAV > Market Cap (classic Graham deep value)")
+            elif net_current_asset_value_per_share >= (price_per_share * 0.67):
+                score += 2
+                details.append(
+                    "NCAV Per Share >= 2/3 of Price Per Share (moderate net-net discount)"
+                )
             else:
-                # For partial net-net discount
-                if net_current_asset_value_per_share >= (price_per_share * 0.67):
-                    score += 2
-                    details.append(
-                        "NCAV Per Share >= 2/3 of Price Per Share (moderate net-net discount)"
-                    )
+                details.append("No significant net-net discount present")
         else:
             if net_current_asset_value <= 0:
-                details.append(
-                    "NCAV is negative or zero (current assets don't exceed total liabilities)"
-                )
-            elif shares_outstanding <= 0:
-                details.append(
-                    "Cannot calculate per-share values (shares outstanding data invalid)"
-                )
+                details.append("NCAV is negative or zero (current assets don't exceed total liabilities)")
             else:
-                details.append(
-                    "NCAV not exceeding market cap or insufficient data for net-net approach"
-                )
+                details.append("NCAV not exceeding market cap")
 
         max_score += 4
 
-    except (ZeroDivisionError, Exception) as e:
+    except Exception as e:
         details.append(f"Error calculating Net-Net values: {str(e)}")
 
     # 2. Graham Number
-    #   GrahamNumber = sqrt(22.5 * EPS * BVPS).
-    #   Compare the result to the current price_per_share
-    #   If GrahamNumber >> price, indicates undervaluation
     graham_number = None
     if eps > 0 and tangible_book_value_per_share > 0:
         try:
@@ -526,86 +393,78 @@ def analyse_valuation_graham(ticker: str):
         if eps <= 0:
             details.append("Unable to compute Graham Number (EPS is negative or zero)")
         elif tangible_book_value_per_share <= 0:
-            details.append(
-                "Unable to compute Graham Number (Book Value per Share is negative or zero)"
-            )
-        else:
-            details.append(
-                "Unable to compute Graham Number (EPS or Book Value missing)"
-            )
+            details.append("Unable to compute Graham Number (Book Value per Share is negative or zero)")
 
     # 3. Margin of Safety relative to Graham Number
     if graham_number and shares_outstanding > 0:
         try:
-            current_price = market_cap / shares_outstanding
+            current_price = safe_divide(market_cap, shares_outstanding)
             if current_price > 0:
-                margin_of_safety = (graham_number - current_price) / current_price
-                details.append(
-                    f"Margin of Safety (Graham Number) = {margin_of_safety:.2%}"
-                )
-                if margin_of_safety > 0.5:
+                margin_of_safety = safe_divide(graham_number - current_price, current_price)
+                details.append(f"Margin of Safety (Graham Number) = {margin_of_safety:.2%}")
+
+                if margin_of_safety > GRAHAM_MARGIN_STRONG:
                     score += 3
-                    details.append("Price is well below Graham Number (>=50% margin).")
-                elif margin_of_safety > 0.2:
+                    details.append(f"Price is well below Graham Number (>={GRAHAM_MARGIN_STRONG:.0%} margin).")
+                elif margin_of_safety > GRAHAM_MARGIN_MODERATE:
                     score += 1
                     details.append("Some margin of safety relative to Graham Number.")
                 else:
-                    details.append(
-                        "Price close to or above Graham Number, low margin of safety."
-                    )
+                    details.append("Price close to or above Graham Number, low margin of safety.")
 
-                max_score += 3  # Increment max_score
+                max_score += 3
             else:
-                details.append(
-                    "Current price is zero or invalid; can't compute margin of safety."
-                )
-        except (ZeroDivisionError, Exception) as e:
+                details.append("Current price is zero or invalid; can't compute margin of safety.")
+        except Exception as e:
             details.append(f"Error calculating margin of safety: {str(e)}")
 
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-def calculate_graham_analysis_data(ticker: str):
+def validate_balance_sheet_value(
+    balance_sheet: pd.DataFrame,
+    row_name: str,
+    exchange_rate: float,
+    alternative_names: list = None
+) -> float:
+    """Helper to extract and convert balance sheet values."""
+    row = safe_get_row(balance_sheet, row_name, alternative_names)
+    if row is None:
+        return None
+    vals = filter_valid_values(row)
+    if not vals:
+        return None
+    return vals[0] * exchange_rate
+
+
+def calculate_graham_analysis_data(ticker: str) -> Dict[str, Any]:
     """
     Analyzes stocks using Benjamin Graham's classic value-investing principles:
-    1. Earnings stability over multiple years.
-    2. Solid financial strength (low debt, adequate liquidity).
-    3. Discount to intrinsic value (e.g. Graham Number or net-net).
-    4. Adequate margin of safety.
+    1. Earnings stability over multiple years
+    2. Solid financial strength (low debt, adequate liquidity)
+    3. Discount to intrinsic value (Graham Number or net-net)
+    4. Adequate margin of safety
 
     Args:
-        ticker (str): Stock ticker symbol
+        ticker: Stock ticker symbol
 
     Returns:
-        dict: Complete Graham analysis with signal, score, and detailed components
+        Complete Graham analysis with signal, score, and detailed components
     """
-
     try:
         earnings_analysis = analyse_earnings_stability(ticker)
     except Exception as e:
-        earnings_analysis = {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error in earnings stability analysis: {str(e)}",
-        }
+        earnings_analysis = create_error_result(f"Error in earnings stability analysis: {str(e)}")
 
     try:
         strength_analysis = analyse_financial_strength(ticker)
     except Exception as e:
-        strength_analysis = {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error in financial strength analysis: {str(e)}",
-        }
+        strength_analysis = create_error_result(f"Error in financial strength analysis: {str(e)}")
 
     try:
         valuation_analysis = analyse_valuation_graham(ticker)
     except Exception as e:
-        valuation_analysis = {
-            "score": 0,
-            "max_score": 0,
-            "details": f"Error in valuation analysis: {str(e)}",
-        }
+        valuation_analysis = create_error_result(f"Error in valuation analysis: {str(e)}")
 
     total_score = (
         earnings_analysis.get("score", 0)
@@ -619,10 +478,14 @@ def calculate_graham_analysis_data(ticker: str):
     )
 
     # Map total_score to signal
-    if total_score >= 0.7 * max_possible_score:
-        signal = "bullish"
-    elif total_score <= 0.3 * max_possible_score:
-        signal = "bearish"
+    if max_possible_score > 0:
+        score_ratio = total_score / max_possible_score
+        if score_ratio >= SIGNAL_BULLISH_THRESHOLD:
+            signal = "bullish"
+        elif score_ratio <= SIGNAL_BEARISH_THRESHOLD:
+            signal = "bearish"
+        else:
+            signal = "neutral"
     else:
         signal = "neutral"
 
@@ -639,6 +502,6 @@ def calculate_graham_analysis_data(ticker: str):
 
 
 if __name__ == "__main__":
-    TICKER = "PEP"
+    TICKER = "MSFT"
     graham_analysis_data = calculate_graham_analysis_data(TICKER)
     print(graham_analysis_data)

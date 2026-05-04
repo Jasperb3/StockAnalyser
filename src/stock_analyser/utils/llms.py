@@ -10,7 +10,7 @@ gemini_pro = LLM(
 )
 
 gemini_flash = LLM(
-	model="gemini/gemini-2.5-flash-preview-04-17",
+	model="gemini/gemini-2.5-flash",
 	api_key = os.getenv("GEMINI_API_KEY"),
 	temperature=0.7,
 	timeout=600

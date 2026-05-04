@@ -47,7 +47,7 @@ class YFinanceCompetitorNewsTool(BaseTool):
                         "content": f"Given the full text of a financial article, write a concise summary that includes only the most important information relevant to the company that is the main subject of the article. The summary must: Focus exclusively on the company’s performance, strategy, financials, outlook, risks, leadership, operations, deals, and any regulatory or macroeconomic factors directly affecting it. Omit general market context, irrelevant background, commentary on the broader industry unless directly linked to the company’s situation. Maintain the original meaning and prioritise factual accuracy. Use plain language and write in full, coherent sentences grouped into one or more short paragraphs. Avoid bullet points, markdown, headlines, or repetition. Your output should be as short as possible while capturing all material points. Do not include your reasoning or any extraneous explanation. Article: {text}",
                     },
                 ],
-                model="meta-llama/llama-4-maverick-17b-128e-instruct",
+                model="llama-3.3-70b-versatile",
                 temperature=0.5,
                 max_completion_tokens=4096,
                 top_p=1,

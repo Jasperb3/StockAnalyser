@@ -67,5 +67,5 @@ class YFinanceIncomeTool(BaseTool):
 # Example usage within CrewAI
 if __name__ == "__main__":
     tool_instance = YFinanceIncomeTool()
-    nvidia_analysis = tool_instance.run(ticker='AAPL', years=3)
+    nvidia_analysis = tool_instance.run(ticker='QBTS', years=3)
     print(nvidia_analysis)

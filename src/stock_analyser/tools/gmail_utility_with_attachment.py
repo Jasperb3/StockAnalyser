@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email import encoders  # Import the encoders module
 
 import google.auth
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -34,8 +35,14 @@ def authenticate_gmail():
     
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except RefreshError:
+                print("Refresh token is invalid or revoked. Re-authenticating...")
+                creds = None
+                if os.path.exists(token_path):
+                    os.remove(token_path)
+        if not creds:
             if not os.path.exists(credentials_path):
                 raise FileNotFoundError(
                     f"credentials.json not found at {credentials_path}. "
