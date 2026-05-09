@@ -1,14 +1,10 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 import yfinance as yf
-from google import genai
+from groq import Groq
 from trafilatura import fetch_url, extract
 from datetime import datetime
 from typing import Type
-import os
-
-_gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"), http_options={'api_version': 'v1alpha'})
-_GEMINI_MODEL = 'gemini-3.1-flash-lite'
 
 # Define the input schema using Pydantic
 class YFinanceNewsToolInput(BaseModel):
@@ -31,19 +27,29 @@ class YFinanceNewsTool(BaseTool):
 
     def summarise_article(self, text):
         try:
-            system_prompt = "You are a financial analyst assistant specialising in extracting key company-specific insights from financial news articles. Your task is to produce concise, information-dense summaries that include only the most relevant and material information about the company that is the subject of the article. You must ignore unrelated context, general market commentary, and filler content. You write in clear, objective, plain English with no formatting, lists, or bullet points."
-            user_prompt = f"Given the full text of a financial article, write a concise summary that includes only the most important information relevant to the company that is the main subject of the article. The summary must: Focus exclusively on the company’s performance, strategy, financials, outlook, risks, leadership, operations, deals, and any regulatory or macroeconomic factors directly affecting it. Omit general market context, irrelevant background, commentary on the broader industry unless directly linked to the company’s situation. Maintain the original meaning and prioritise factual accuracy. Use plain language and write in full, coherent sentences grouped into one or more short paragraphs. Avoid bullet points, markdown, headlines, or repetition. Your output should be as short as possible while capturing all material points. Do not include your reasoning or any extraneous explanation. Article: {text}"
+            client = Groq()
 
-            response = _gemini_client.models.generate_content(
-                model=_GEMINI_MODEL,
-                contents=user_prompt,
-                config=genai.types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.5,
-                    max_output_tokens=4096,
-                ),
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a financial analyst assistant specialising in extracting key company-specific insights from financial news articles. Your task is to produce concise, information-dense summaries that include only the most relevant and material information about the company that is the subject of the article. You must ignore unrelated context, general market commentary, and filler content. You write in clear, objective, plain English with no formatting, lists, or bullet points.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Given the full text of a financial article, write a concise summary that includes only the most important information relevant to the company that is the main subject of the article. The summary must: Focus exclusively on the company’s performance, strategy, financials, outlook, risks, leadership, operations, deals, and any regulatory or macroeconomic factors directly affecting it. Omit general market context, irrelevant background, commentary on the broader industry unless directly linked to the company’s situation. Maintain the original meaning and prioritise factual accuracy. Use plain language and write in full, coherent sentences grouped into one or more short paragraphs. Avoid bullet points, markdown, headlines, or repetition. Your output should be as short as possible while capturing all material points. Do not include your reasoning or any extraneous explanation. Article: {text}",
+                    },
+                ],
+                model="llama-3.3-70b-versatile",
+                temperature=0.5,
+                max_completion_tokens=4096,
+                top_p=1,
+                stop=None,
+                stream=False,
             )
-            return response.text
+            summary = chat_completion.choices[0].message.content
+
+            return summary
 
         except Exception as e:
             print(f"Error summarising article: {e}")
