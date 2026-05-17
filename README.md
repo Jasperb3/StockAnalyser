@@ -229,30 +229,6 @@ The system generates and embeds the following charts in the report:
 
 ---
 
-## Supported LLM Models
-
-Configured in `utils/llms.py` — swap models in crew YAML configs by referencing these variables:
-
-| Variable | Model | Provider |
-|----------|-------|---------|
-| `gemini_flash` | gemini-2.5-flash | Google |
-| `gemini_pro` | gemini-2.0-pro-exp | Google |
-| `gemini_flash_lite` | gemini-2.0-flash-lite | Google |
-| `gemini_thinking` | gemini-2.0-flash-thinking | Google |
-| `gpt41` | gpt-4.1 | OpenAI |
-| `gpt41mini` | gpt-4.1-mini | OpenAI |
-| `gpt41nano` | gpt-4.1-nano | OpenAI |
-| `gpt4o` | gpt-4o | OpenAI |
-| `gpt5` | gpt-5 | OpenAI |
-| `mistral_large` | mistral-large-latest | Mistral |
-| `llama_4_maverick` | llama-4-maverick-17b | Groq |
-| `llama_4_scout` | llama-4-scout-17b | Groq |
-| `gemma3` | gemma3:12b | Ollama (local) |
-
-Embeddings use `gemini-embedding-001` (3072 dimensions) via the Google GenAI SDK.
-
----
-
 ## Project Structure
 
 ```
